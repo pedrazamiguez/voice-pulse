@@ -52,6 +52,7 @@ voicepulse/
 │   │   ├── 03-netty-bytebuf-safety.md
 │   │   └── 04-kafka-partitioning.md
 │   └── skills/                        # Active, executable agent workflows
+│       ├── vp-create-issue/SKILL.md   # Idea & screenshot ingestion to GitHub issue
 │       ├── vp-plan-issue/SKILL.md     # Feature specification & interface contracts
 │       ├── vp-start-issue/SKILL.md    # Phased TDD implementation & file guards
 │       ├── vp-replan-issue/SKILL.md   # Architectural realignment
@@ -199,6 +200,32 @@ flowchart LR
 ## 5. Active Agent Skills (`.agents/skills/`)
 
 Skills are active markdown workflows with YAML frontmatter that orchestrate the development lifecycle.
+
+### Skill 0: `vp-create-issue` (`.agents/skills/vp-create-issue/SKILL.md`)
+
+```markdown
+---
+name: vp-create-issue
+description: Convert an idea, plain English description, or screenshots into a structured VoicePulse GitHub issue with human approval.
+mode: agent
+tools:
+  - codebase
+  - githubRepo
+  - terminalLastCommand
+arguments:
+  - name: input
+    description: Raw idea, plain English problem description, or path to screenshot/log image.
+    required: false
+---
+# Create Issue
+
+1. **Input Ingestion & Analysis:** Ingest plain text ideas, bug descriptions, stack traces, or inspect screenshot image paths.
+2. **Context Discovery:** Scan recent issues (`gh issue list`) to determine sequential `[VP-XX]` prefix, map affected modules, and reference relevant RFCs.
+3. **Label & Epic Resolution:** Assign mandatory type (`bug`, `enhancement`, `documentation`), domain labels, and associate with active epic (`epic-1`, etc.).
+4. **Draft Generation:** Generate structured issue with Context, Scope, Acceptance Criteria, and Architectural Invariants.
+5. **Human Approval Gate (Mandatory):** Present the complete draft to the developer and await explicit confirmation.
+6. **Creation & Handoff:** Run `gh issue create` upon approval and direct user to `vp-plan-issue`.
+```
 
 ### Skill 1: `vp-plan-issue` (`.agents/skills/vp-plan-issue/SKILL.md`)
 
