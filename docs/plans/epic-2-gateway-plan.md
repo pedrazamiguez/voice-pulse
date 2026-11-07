@@ -73,13 +73,13 @@ The implementation follows Specification-Driven Development (SDD), progressing f
 
 ```mermaid
 flowchart LR
-    VP10["#10 Phase 1<br/>Domain Models & Ports"] --> VP11["#11 Phase 2<br/>Netty WS Handler & ByteBuf Safety"]
-    VP11 --> VP12["#12 Phase 3<br/>AudioWorklet Softphone Client"]
-    VP12 --> VP13["#13 Phase 4<br/>Echo Loopback Adapter & Verification"]
-    VP13 --> VP14["#14 Phase 5<br/>E2E Integration & Paranoid Leak Gate"]
+    P1["Phase 1<br/>Domain Models & Ports"] --> P2["Phase 2<br/>Netty WS Handler & ByteBuf Safety"]
+    P2 --> P3["Phase 3<br/>AudioWorklet Softphone Client"]
+    P3 --> P4["Phase 4<br/>Echo Loopback Adapter & Verification"]
+    P4 --> P5["Phase 5<br/>E2E Integration & Paranoid Leak Gate"]
 ```
 
-### Phase 1: Pure Domain Modeling & Port Contracts (VP-10)
+### Phase 1: Pure Domain Modeling & Port Contracts
 * **Goal**: Establish framework-free domain aggregates, value objects, and port interfaces in `edge-gateway-service`.
 * **Deliverables**:
   - `AudioChunk`: Immutable record containing `CallSessionId`, `sequenceNumber`, `timestamp`, `pcmData` (`byte[]`), and `audioFormat`.
@@ -89,7 +89,7 @@ flowchart LR
   - `AudioFramePublisherPort` & `SessionRegistryPort`: Outbound driven ports.
   - Domain unit tests verifying invariant enforcement and frame ordering.
 
-### Phase 2: Reactive Netty WebSocket Handler & ByteBuf Safety (VP-11)
+### Phase 2: Reactive Netty WebSocket Handler & ByteBuf Safety
 * **Goal**: Scaffolding the Spring WebFlux Netty WebSocket endpoint with DoS defense and zero memory leaks.
 * **Deliverables**:
   - `AudioWebSocketHandler`: Non-blocking handler mapped to `/ws/calls/{callId}/audio`.
@@ -97,7 +97,7 @@ flowchart LR
   - Binary audio extraction with deterministic `ReferenceCountUtil.release(byteBuf)` in `finally` block.
   - Netty unit/mock tests running with `-Dio.netty.leakDetection.level=PARANOID`.
 
-### Phase 3: Browser Softphone & AudioWorklet Interface (VP-12)
+### Phase 3: Browser Softphone & AudioWorklet Interface
 * **Goal**: Deliver a zero-cost browser softphone for human voice and barge-in testing.
 * **Deliverables**:
   - HTML5/CSS single-page responsive UI served at `/` or `/softphone/index.html`.
@@ -106,14 +106,14 @@ flowchart LR
   - Audio playback queue using Web Audio API `AudioContext` for glitch-free continuous streaming.
   - Visual telemetry: Connection state, audio level VU meter, and round-trip latency HUD.
 
-### Phase 4: Loopback Audio Echo Adapter & Latency Tracking (VP-13)
+### Phase 4: Loopback Audio Echo Adapter & Latency Tracking
 * **Goal**: Wire the inbound stream back to the outbound WebSocket connection to complete the audio circuit.
 * **Deliverables**:
   - `ConcurrentSessionRegistry`: Thread-safe, non-blocking registry managing active `WebSocketSession` references by `CallSessionId`.
   - `LoopbackAudioEchoAdapter`: Secondary outbound adapter implementing `AudioFramePublisherPort` that reflects received PCM chunks back to the caller.
   - Microsecond timestamping on frames to calculate real-time network round-trip time (RTT).
 
-### Phase 5: End-to-End WebSocket Integration & Paranoid Memory Gate (VP-14)
+### Phase 5: End-to-End WebSocket Integration & Paranoid Memory Gate
 * **Goal**: Automated end-to-end regression test suite verifying audio fidelity, throughput, and memory safety.
 * **Deliverables**:
   - Spring Boot `@SpringBootTest(webEnvironment = RANDOM_PORT)` integration test using Netty `ReactorNettyWebSocketClient`.

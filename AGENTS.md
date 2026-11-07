@@ -125,3 +125,28 @@ All issues and feature additions must follow the SDD workflow:
 1. **Plan First:** Invoke `.agents/skills/vp-plan-issue/SKILL.md` to produce an approved architecture change contract before creating or editing code files.
 2. **Execute with TDD:** Invoke `.agents/skills/vp-start-issue/SKILL.md` to implement domain unit tests first, followed by ports, and finally infrastructure adapters.
 3. **Verify Locally:** Invoke `.agents/skills/vp-verify-architecture/SKILL.md` to run ArchUnit tests and audit file line counts before opening a Pull Request.
+
+---
+
+## 7. Git Workflow & GitHub Management Invariants
+
+Every agent and human contributor MUST adhere to these strict operational constraints:
+
+### Branch Discipline & PR Mandate
+* ❌ **NEVER commit or push directly to `main` or `develop`.**
+* All development, documentation, fixes, and internal tasks MUST occur on dedicated branches:
+  - Features: `feat/<description>`
+  - Bug fixes: `fix/<description>`
+  - Documentation: `docs/<description>`
+  - Refactoring: `refactor/<description>`
+  - Internal tooling/infrastructure: `internal/<description>`
+* All changes must land on `develop` strictly via Pull Requests verified by CI. Direct pushes to `develop` or `main` are rejected locally by `.git/hooks/pre-push`.
+
+### Monotonic Issue Numbering Invariant
+* ❌ **NEVER calculate, guess, or prepend arbitrary `[VP-XX]` or `[EPIC-XX]` tags to issue titles, plans, or checklists.**
+* GitHub automatically assigns monotonic identifiers (`#<id>`) sequentially across issues and pull requests. Pre-allocating manual identifiers causes desynchronization when pull requests and issues interleave.
+* Always refer to phases descriptively (e.g. `Phase 1: Domain Models & Ports`) or use the true GitHub-generated `#<id>` once created.
+
+### Human Approval Gate for GitHub Mutations
+* ❌ **NEVER execute `gh issue create`, `gh pr merge`, or repository state mutations autonomously.**
+* Always present the complete drafted specification (Title, Labels, Epic association, and Markdown Body) in chat and wait for explicit human approval before running creation commands.
