@@ -139,7 +139,7 @@ The platform is constructed across 7 phase-gated epics:
   - **Phase 1:** Maven multi-module scaffolding, ArchUnit rules, Spotless formatting, compiler static analysis.
   - **Phase 2:** Local containerized infrastructure (Kafka KRaft, Redis, Postgres), unified `Makefile`, pre-commit hooks.
   - **Phase 3:** Living documentation, local CPU FastEmbed RAG, GitHub Actions CI/CD pipelines.
-* **Epic 2:** Ingestion Voice Gateway & Softphone Echo Loop
+* **[Epic 2: Ingestion Voice Gateway & Softphone Echo Loop](docs/plans/epic-2-gateway-plan.md)** *(In Planning)*
 * **Epic 3:** High-Throughput Kafka Event Bus & In-Order Worker Pool
 * **Epic 4:** Hexagonal Conversation Core, VAD & State Machine
 * **Epic 5:** Runtime MCP Tool Servers & AI Triage Synthesis
