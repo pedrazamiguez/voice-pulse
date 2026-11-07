@@ -26,13 +26,13 @@ Use this skill to fetch, diagnose, and resolve human code review feedback and au
 
 ## 2. Categorize Feedback
 1. **Architectural / Invariant Violations:** e.g., ArchUnit rule breach, forbidden framework import in domain. Fix by adhering to [`AGENTS.md`](file:///home/antigravity/pedrazamiguez/voice-pulse/AGENTS.md).
-2. **Formatting & Style:** e.g., missing imports, unused variables, indent issues. Fix with `mvn spotless:apply`.
+2. **Formatting & Style:** e.g., missing imports, unused variables, indent issues. Fix with `./mvnw spotless:apply` (or `make format`).
 3. **Logic / Edge Case Testing:** e.g., missing test case, unhandled barge-in state. Write new JUnit 5 test cases first, then apply fix.
 
 ## 3. Implement & Verify Fixes
 * Apply changes to local branch.
 * Run `vp-verify-architecture` (ArchUnit + 600-line audit).
-* Run test suite: `mvn test`.
+* Run test suite: `./mvnw test` (or `make test`).
 
 ## 4. Push & Reply
 * Push commit to PR branch.

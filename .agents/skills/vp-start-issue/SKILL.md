@@ -63,7 +63,7 @@ Execute implementation in strict layers:
 ### Step 1: Pure Domain Layer (Hexagonal Core)
 * Implement pure Java `record` models and `sealed interface` state machines.
 * Write pure domain unit tests using JUnit 5 and AssertJ.
-* **Verification:** Run `mvn test -Dtest=*DomainTest` (or module equivalent). Must pass with zero Spring/Kafka dependencies.
+* **Verification:** Run `./mvnw test -Dtest=*DomainTest` (or module equivalent). Must pass with zero Spring/Kafka dependencies.
 
 ### Step 2: Port Interfaces
 * Declare Inbound (`*UseCase`) and Outbound (`*Port`) Java interfaces in `..domain.ports..`.
@@ -79,15 +79,15 @@ Execute implementation in strict layers:
 * Write integration tests using Testcontainers (KRaft Kafka, PostgreSQL) or MockMvc / WebTestClient.
 * Run tests with Netty leak detection set to `PARANOID`:
   ```bash
-  mvn test -Dio.netty.leakDetection.level=PARANOID
+  ./mvnw test -Dio.netty.leakDetection.level=PARANOID
   ```
 
 ---
 
 ## 4. Local Verification & Quality Gate
 1. **Fast Check:**
-   - Run `make fast-check` (executes Spotless formatting check and ArchUnit rules).
-   - If Spotless fails, run `mvn spotless:apply` (or `make format`).
+   - Run `make fast-check` (executes Spotless formatting check and ArchUnit rules via `./mvnw`).
+   - If Spotless fails, run `./mvnw spotless:apply` (or `make format`).
 2. **File Size Hard Gate:**
    - Verify no Java file exceeds 600 lines:
      ```bash

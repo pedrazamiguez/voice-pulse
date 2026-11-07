@@ -116,9 +116,9 @@ Format the issue draft adhering to the official VoicePulse template:
 ## Acceptance Criteria
 - [ ] Criterion 1 (specific, testable behavior)
 - [ ] Criterion 2 (specific, testable behavior)
-- [ ] Maven test suite passes (`mvn test`)
-- [ ] ArchUnit rules pass with zero violations (`mvn test -Dtest=ArchitectureTest`)
-- [ ] Code formatted cleanly with Google Java Format (`mvn spotless:check`)
+- [ ] Maven test suite passes (`./mvnw test`)
+- [ ] ArchUnit rules pass with zero violations (`./mvnw test -Dtest=ArchitectureTest`)
+- [ ] Code formatted cleanly with Google Java Format (`./mvnw spotless:check`)
 - [ ] Zero source files exceed the 600-line ceiling
 
 ## Architectural Invariants & Guardrails

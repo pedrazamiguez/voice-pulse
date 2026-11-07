@@ -10,6 +10,8 @@ YELLOW := \033[1;33m
 RED    := \033[0;31m
 NC     := \033[0m
 
+MVN    := ./mvnw
+
 help: ## Display available targets
 	@printf "\n$(CYAN)VoicePulse — Developer CLI$(NC)\n\n"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -27,17 +29,17 @@ hooks: ## Install Git pre-commit hook to .git/hooks/pre-commit
 
 fast-check: ## Rapid incremental check (Spotless + ArchUnit, < 15s)
 	@printf "$(YELLOW)⏳ Running fast quality gate (Spotless + ArchUnit)...$(NC)\n"
-	@mvn spotless:check test -Dtest=ArchitectureTest -q
+	@$(MVN) spotless:check test -Dtest=ArchitectureTest -q
 	@printf "$(GREEN)✅ Fast check passed (< 15s).$(NC)\n"
 
 check: ## Full cold check (clean, verify, spotbugs, jacoco)
 	@printf "$(YELLOW)⏳ Running full cold verification gate...$(NC)\n"
-	@mvn clean verify
+	@$(MVN) clean verify
 	@printf "$(GREEN)✅ Full quality check passed (Ready for PR).$(NC)\n"
 
 arch-check: ## ArchUnit test suite & 600-line file ceiling audit
 	@printf "$(YELLOW)⏳ Running ArchUnit tests & 600-line audit...$(NC)\n"
-	@mvn test -Dtest=ArchitectureTest
+	@$(MVN) test -Dtest=ArchitectureTest
 	@printf "$(YELLOW)Auditing Java file line counts (<= 600 lines)...$(NC)\n"
 	@VIOLATIONS=$$(find . -type f -name "*.java" ! -path "*/test/*" ! -path "*/target/*" -exec wc -l {} + | awk '$$1 > 600 {print $$0}'); \
 	if [ -n "$$VIOLATIONS" ]; then \
@@ -48,12 +50,12 @@ arch-check: ## ArchUnit test suite & 600-line file ceiling audit
 
 format: ## Apply Spotless code formatting
 	@printf "$(YELLOW)⏳ Applying Spotless code formatting...$(NC)\n"
-	@mvn spotless:apply -q
+	@$(MVN) spotless:apply -q
 	@printf "$(GREEN)✅ Code formatting applied.$(NC)\n"
 
 test: ## Run unit tests across all modules
 	@printf "$(YELLOW)⏳ Running unit tests across all modules...$(NC)\n"
-	@mvn test -q
+	@$(MVN) test -q
 	@printf "$(GREEN)✅ Unit tests passed.$(NC)\n"
 
 docker-infra: ## Start local Kafka KRaft, Redis, and PostgreSQL
@@ -69,39 +71,41 @@ docker-infra-down: ## Stop local Docker infrastructure
 verify-infra: ## Run end-to-end infrastructure health verification
 	@./scripts/verify-infra.sh
 
-doctor: ## Diagnose developer environment (Java 21, Maven 3.9+, Docker, uv, Git)
+doctor: ## Diagnose developer environment (Java 21, Maven Wrapper, Docker, uv, Git)
 	@printf "\n$(CYAN)VoicePulse — Environment Diagnostics$(NC)\n"
 	@printf "──────────────────────────────────────────────\n"
 	@if command -v java >/dev/null 2>&1; then \
-		printf "$(GREEN)✅ Java:   $$(java -version 2>&1 | head -n 1)$(NC)\n"; \
+		printf "$(GREEN)✅ Java:          $$(java -version 2>&1 | head -n 1)$(NC)\n"; \
 	else \
-		printf "$(RED)❌ Java:   Missing (Java 21 required)$(NC)\n"; \
+		printf "$(RED)❌ Java:          Missing (Java 21 required)$(NC)\n"; \
 	fi
-	@if command -v mvn >/dev/null 2>&1; then \
-		printf "$(GREEN)✅ Maven:  $$(mvn -version 2>&1 | head -n 1)$(NC)\n"; \
+	@if [ -x ./mvnw ]; then \
+		printf "$(GREEN)✅ Maven Wrapper: $$(./mvnw -version 2>&1 | head -n 1)$(NC)\n"; \
+	elif command -v mvn >/dev/null 2>&1; then \
+		printf "$(YELLOW)⚠️ Maven Wrapper: Missing (found system $$(mvn -version 2>&1 | head -n 1))$(NC)\n"; \
 	else \
-		printf "$(RED)❌ Maven:  Missing (Maven 3.9+ required)$(NC)\n"; \
+		printf "$(RED)❌ Maven Wrapper: Missing (./mvnw required)$(NC)\n"; \
 	fi
 	@if command -v docker >/dev/null 2>&1; then \
-		printf "$(GREEN)✅ Docker: $$(docker --version 2>&1)$(NC)\n"; \
+		printf "$(GREEN)✅ Docker:        $$(docker --version 2>&1)$(NC)\n"; \
 	else \
-		printf "$(RED)❌ Docker: Missing$(NC)\n"; \
+		printf "$(RED)❌ Docker:        Missing$(NC)\n"; \
 	fi
 	@if command -v uv >/dev/null 2>&1; then \
-		printf "$(GREEN)✅ uv:     $$(uv --version 2>&1)$(NC)\n"; \
+		printf "$(GREEN)✅ uv:            $$(uv --version 2>&1)$(NC)\n"; \
 	else \
-		printf "$(RED)❌ uv:     Missing$(NC)\n"; \
+		printf "$(RED)❌ uv:            Missing$(NC)\n"; \
 	fi
 	@if command -v git >/dev/null 2>&1; then \
-		printf "$(GREEN)✅ Git:    $$(git --version 2>&1)$(NC)\n"; \
+		printf "$(GREEN)✅ Git:           $$(git --version 2>&1)$(NC)\n"; \
 	else \
-		printf "$(RED)❌ Git:    Missing$(NC)\n"; \
+		printf "$(RED)❌ Git:           Missing$(NC)\n"; \
 	fi
 	@printf "──────────────────────────────────────────────\n\n"
 
 clean: ## Clean build artifacts
 	@printf "$(YELLOW)⏳ Cleaning build artifacts...$(NC)\n"
-	@mvn clean -q
+	@$(MVN) clean -q
 	@printf "$(GREEN)✅ Build artifacts cleaned.$(NC)\n"
 
 ai-setup: ## Bootstrap AI tooling and local RAG if script exists

@@ -63,7 +63,10 @@ VoicePulse enforces a strict separation between domain business logic, applicati
   }
   ```
 * If a buffer is retained and forwarded downstream to an asynchronous publisher, call `byteBuf.retain()` explicitly and ensure downstream consumers release it upon completion or error.
-* Integration tests must run with `-Dio.netty.leakDetection.level=PARANOID`. Any detected leak fails the build immediately.
+* Integration tests must run with `-Dio.netty.leakDetection.level=PARANOID`:
+  ```bash
+  ./mvnw test -Dio.netty.leakDetection.level=PARANOID
+  ```
 
 ### Virtual Threads vs. Reactive Netty Event Loop
 * **Edge Gateway:** Uses Netty event-loop non-blocking I/O. **NEVER** block Netty worker threads with synchronous blocking calls, thread sleep, or synchronous I/O.
@@ -110,7 +113,8 @@ When generating domain logic, prompts, or tests for the **SkyWay Airlines Intern
   ```java
   log.info("Audio frame ingested", kv("callId", callId), kv("seq", sequenceNumber), kv("bytes", frameSize));
   ```
-* **Formatting:** All Java code must format cleanly with Google Java Format (AOSP style, 4-space indent) via `mvn spotless:apply`.
+* **Deterministic Build Tooling:** All builds, tests, and plugin executions MUST use the Maven Wrapper (`./mvnw` or `$(MVN)`) or unified Makefile targets. Never invoke ambient system `mvn` directly.
+* **Formatting:** All Java code must format cleanly with Google Java Format (AOSP style, 4-space indent) via `./mvnw spotless:apply` (or `make format`).
 
 ---
 

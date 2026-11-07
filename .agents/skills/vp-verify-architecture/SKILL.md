@@ -17,7 +17,7 @@ This skill validates the repository bytecode rules, code formatting, and complex
 Run the ArchUnit test suite to assert domain purity, port definitions, and forbidden framework dependencies:
 
 ```bash
-mvn test -Dtest=ArchitectureTest
+./mvnw test -Dtest=ArchitectureTest
 ```
 
 * **Expected Result:** Build SUCCESS.
@@ -42,13 +42,13 @@ Check code style and compiler warnings:
 
 ```bash
 # Check Spotless formatting
-mvn spotless:check
+./mvnw spotless:check
 
 # If unformatted, automatically format
-mvn spotless:apply
+./mvnw spotless:apply
 
 # Run SpotBugs & compiler checks
-mvn compile spotbugs:check
+./mvnw compile spotbugs:check
 ```
 
 ---
@@ -57,7 +57,7 @@ mvn compile spotbugs:check
 Verify that Netty direct memory buffers are properly released across reactive tests:
 
 ```bash
-mvn test -Dio.netty.leakDetection.level=PARANOID
+./mvnw test -Dio.netty.leakDetection.level=PARANOID
 ```
 
 * **Pass Criteria:** No `LEAK: ByteBuf.release() was not called` in test logs.
