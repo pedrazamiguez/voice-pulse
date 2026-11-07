@@ -17,21 +17,33 @@ This skill executes the implementation phase of the Specification-Driven Develop
 
 ---
 
-## 1. Branch & Synchronization Gate
-1. **Branch Verification:**
-   - Ensure the current working branch is named `feature/VP-$ISSUE_NUMBER` or `bugfix/VP-$ISSUE_NUMBER`.
-   - If not on the correct branch, create and switch to it from the latest `develop`:
-     ```bash
-     git checkout develop
-     git pull origin develop
-     git checkout -b feature/VP-$ISSUE_NUMBER
-     ```
-2. **Retrieve Authoritative Plan:**
+## 1. Plan Retrieval & Dedicated Branch Synchronization Gate
+1. **Retrieve Authoritative Plan:**
    - Inspect issue #`$ISSUE_NUMBER` comments for the approved plan posted by `vp-plan-issue`:
      ```bash
      gh issue view $ISSUE_NUMBER --comments
      ```
    - **HALT CONDITION:** If no approved plan exists on the issue, **STOP IMMEDIATELY**. Instruct the developer to run `vp-plan-issue` first.
+   - Extract the designated branch name from the plan (e.g. `feature/VP-01-scaffolding` or `feature/VP-$ISSUE_NUMBER`).
+
+2. **Retrieve Latest Changes from `develop`:**
+   - Always update the local `develop` branch with the latest changes from `origin`:
+     ```bash
+     git checkout develop
+     git pull origin develop
+     ```
+
+3. **Dedicated Branch Creation & Synchronization:**
+   - Ensure you are working on the dedicated feature or bugfix branch, never directly on `develop` or `main`:
+     - If the branch does not exist locally, create and switch to it from the up-to-date `develop`:
+       ```bash
+       git checkout -b <branch-name> develop
+       ```
+     - If the branch already exists locally, switch to it and synchronize with latest `develop`:
+       ```bash
+       git checkout <branch-name>
+       git merge develop
+       ```
 
 ---
 
