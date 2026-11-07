@@ -1,0 +1,68 @@
+# Rule 01: Hexagonal Architecture (Ports & Adapters)
+
+## Context & Purpose
+VoicePulse enforces Hexagonal Architecture across all services (`conversation-engine`, `edge-gateway-service`, `routing-handoff-service`) to keep core voice and business domain models decoupled from frameworks, transport protocols, and storage drivers.
+
+---
+
+## 1. Domain Core Purity
+
+* Packages matching `..domain..` (e.g. `com.voicepulse.conversation.domain.*`) represent the enterprise business core.
+* **Inviolable Rule:** Domain classes must contain ZERO external dependencies, annotations, or imports:
+  - ❌ **Forbidden:**
+    - `org.springframework.*`
+    - `io.netty.*`
+    - `org.apache.kafka.*`
+    - `jakarta.persistence.*` / `javax.persistence.*`
+    - `com.fasterxml.jackson.*`
+    - `reactor.core.*` (keep Reactor in adapters and use standard CompletableFuture or pure synchronous domain returns where possible)
+  - ✅ **Permitted:**
+    - `java.lang.*`, `java.util.*`, `java.time.*`, `java.math.*`
+    - Pure records, value objects, domain entities, and domain exceptions.
+
+---
+
+## 2. Port Definitions & Package Structure
+
+* All ports must reside in dedicated packages:
+  - `com.voicepulse.<module>.domain.ports.inbound`
+  - `com.voicepulse.<module>.domain.ports.outbound`
+* Ports MUST be declared as Java `public interface`.
+
+### Inbound Ports (Driving Ports / Use Cases)
+* Define operations that driving adapters (WebSocket handler, Kafka listener, REST controller) can invoke on the domain core.
+* **Naming:** Suffix with `UseCase` (e.g., `ProcessAudioChunkUseCase`, `EvaluateBargeInUseCase`, `SubmitDisruptionTicketUseCase`).
+
+```java
+package com.voicepulse.conversation.domain.ports.inbound;
+
+import com.voicepulse.conversation.domain.model.AudioFrame;
+import com.voicepulse.conversation.domain.model.CallSessionId;
+
+public interface ProcessAudioChunkUseCase {
+    void processAudioChunk(CallSessionId callId, AudioFrame frame);
+}
+```
+
+### Outbound Ports (Driven Ports / Secondary SPIs)
+* Define contracts required by domain logic that external infrastructure adapters must satisfy.
+* **Naming:** Suffix with `Port` (e.g., `TicketRepositoryPort`, `AudioFramePublisherPort`, `OperatorQueuePort`).
+
+```java
+package com.voicepulse.conversation.domain.ports.outbound;
+
+import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
+
+public interface TicketRepositoryPort {
+    void saveTicket(AirlineDisruptionTicket ticket);
+}
+```
+
+---
+
+## 3. Adapters & Direction of Dependencies
+
+* Primary adapters depend on Inbound Ports to trigger domain actions.
+* Secondary adapters implement Outbound Ports to fulfill domain I/O needs.
+* **Dependency Rule:** Infrastructure $\rightarrow$ Domain. The domain package NEVER imports or references any class in `infrastructure.*` or `application.*`.
+* All wiring is performed in an application configuration layer via Constructor Injection. Field injection (`@Autowired`) is strictly prohibited.

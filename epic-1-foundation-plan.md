@@ -15,22 +15,45 @@ Jumping directly into WebFlux WebSocket audio loops or Kafka producers without s
 
 ---
 
-## 2. Architecture & Dependency Flow
+## 2. Architecture & Dependency Flow (AI-First Execution)
+
+To avoid the **Bootstrapping Paradox** (attempting to implement code without automated agent guardrails and SDD workflows), the repository meta-system (README, `AGENTS.md`, and active skills) is established in **Phase 0** prior to code scaffolding and local infrastructure.
 
 ```mermaid
 flowchart TD
-    subgraph Epic1 ["Epic 1: Engineering Foundation & Tooling"]
+    subgraph Phase0 ["Phase 0: Repository & Agentic Bootstrap (Do First)"]
         direction TB
-        I1["#1 Multi-Module Scaffolding (Java 21 / Maven)"] --> I2["#2 Architectural Guardrails (ArchUnit + Spotless)"]
-        I1 --> I3["#3 Local Infrastructure (Kafka KRaft, Redis, Postgres)"]
-        I2 --> I4["#4 Developer Ergonomics (Makefile & Pre-Commit)"]
-        I1 --> I5["#5 Passive Agent Directives (AGENTS.md & Rules)"]
-        I5 --> I6["#6 Active Agent Skills (.agents/skills/*)"]
-        I5 --> I7["#7 In-Repo CPU Documentation RAG & MCP Server"]
-        I2 & I4 --> I8["#8 GitHub Actions CI/CD & PR Gates"]
+        R0["README.md (Project Vision & Entrypoint)"]
+        I5["#5 Passive Directives (AGENTS.md & .agents/rules/*)"]
+        I6["#6 Active Agent Skills (.agents/skills/*)"]
+        R0 --> I5 --> I6
     end
 
-    Epic1 --> NextEpic["Epic 2: Ingestion Voice Gateway & Softphone Echo Loop"]
+    subgraph Phase1 ["Phase 1: Code Scaffolding & Bytecode Enforcement"]
+        direction TB
+        I1["#1 Multi-Module Scaffolding (Java 21 / Maven POMs)"]
+        I2["#2 ArchUnit Rules, Spotless & Static Analysis"]
+        I1 --> I2
+    end
+
+    subgraph Phase2 ["Phase 2: Local Infrastructure & Unified DX"]
+        direction TB
+        I3["#3 Local Infrastructure (Kafka KRaft, Redis, Postgres)"]
+        I4["#4 Unified Makefile & Git Pre-Commit Hooks"]
+        I3 --> I4
+    end
+
+    subgraph Phase3 ["Phase 3: Knowledge Retrieval & CI Automation"]
+        direction TB
+        I7["#7 Living Docs & FastEmbed CPU RAG MCP Server"]
+        I8["#8 GitHub Actions CI/CD Multi-Job Pipeline"]
+    end
+
+    Phase0 -->|"AI has guardrails & skills to execute"| Phase1
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+    Phase1 -->|"ArchUnit ready to verify in CI"| I8
+    Phase3 --> NextEpic["Epic 2: Ingestion Voice Gateway & Softphone Echo Loop"]
 ```
 
 ---
@@ -227,18 +250,19 @@ flowchart TD
 
 ---
 
-## 4. Work Breakdown & Execution Timeline
+## 4. Work Breakdown & Execution Timeline (AI-First)
 
-| Order | Issue / Task | Est. Scope | Primary Focus |
-|:---:|:---|:---:|:---|
-| **1** | **#1 Multi-Module Project Scaffolding** | 1 day | Maven root POM, submodules, dependencies, directory tree |
-| **2** | **#2 Architectural Testing & Quality Guards** | 1 day | ArchUnit tests, Spotless config, Error Prone, SpotBugs |
-| **3** | **#3 Local Infrastructure (Docker Compose)** | 0.5 day | Kafka KRaft, Redis 7, Postgres 16, topic provisioner |
-| **4** | **#4 Developer Ergonomics (Makefile & Hooks)** | 0.5 day | Unified Makefile, git pre-commit hook, developer CLI |
-| **5** | **#5 Passive Agent Directives (AGENTS.md)** | 0.5 day | AGENTS.md, .agents/rules/*.md, business invariants |
-| **6** | **#6 Active Agent Skills (.agents/skills)** | 1 day | vp-plan-issue, vp-start-issue, vp-verify-architecture |
-| **7** | **#7 Local Documentation RAG & MCP Server** | 1 day | docs/ skeleton, scripts/rag_indexer.py, FastMCP server |
-| **8** | **#8 GitHub Actions CI/CD Pipeline Suite** | 1 day | Workflows for static analysis, ArchUnit, JaCoCo, branch creation |
+| Phase | Order | Issue / Task | Est. Scope | Primary Focus |
+|:---|:---:|:---|:---:|:---|
+| **Phase 0: Bootstrap** | **1** | **README.md & Vision Setup** | 0.25 day | Repo entrypoint, architecture map, quick links |
+| | **2** | **#5 Passive Agent Directives (AGENTS.md)** | 0.5 day | Root `AGENTS.md`, `.agents/rules/*.md`, business rules |
+| | **3** | **#6 Active Agent Skills (.agents/skills)** | 0.75 day | `vp-plan-issue`, `vp-start-issue`, `vp-verify-architecture` |
+| **Phase 1: Scaffolding** | **4** | **#1 Multi-Module Project Scaffolding** | 1 day | Maven root POM, submodules, dependencies, directory tree |
+| | **5** | **#2 Architectural Testing & Quality Guards** | 1 day | ArchUnit tests, Spotless config, Error Prone, SpotBugs |
+| **Phase 2: Infra & DX** | **6** | **#3 Local Infrastructure (Docker Compose)** | 0.5 day | Kafka KRaft, Redis 7, Postgres 16, topic provisioner |
+| | **7** | **#4 Developer Ergonomics (Makefile & Hooks)** | 0.5 day | Unified Makefile, git pre-commit hook, developer CLI |
+| **Phase 3: Automation** | **8** | **#7 Local Documentation RAG & MCP Server** | 1 day | `docs/` skeleton, `scripts/rag_indexer.py`, FastMCP server |
+| | **9** | **#8 GitHub Actions CI/CD Pipeline Suite** | 1 day | Workflows for static analysis, ArchUnit, JaCoCo, branch creation |
 
 **Total Estimated Duration:** ~6-7 days of focused implementation, leaving the repository in an enterprise-grade state ready for Epic 2 (Edge Gateway & Browser Softphone).
 
