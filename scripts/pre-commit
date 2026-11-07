@@ -47,6 +47,12 @@ if [ -n "$VIOLATIONS" ]; then
 fi
 
 # 2. Run fast quality gate (Spotless formatting check + ArchUnit rules)
+if [ ! -x "./mvnw" ]; then
+    printf "\n${RED}❌ Commit rejected: Maven Wrapper './mvnw' not found or not executable.${NC}\n"
+    printf "${YELLOW}💡 Run 'chmod +x ./mvnw' or provision the wrapper.${NC}\n\n"
+    exit 1
+fi
+
 printf "\n${CYAN}🔍 [pre-commit] Validating staged Java changes with 'make fast-check'...${NC}\n"
 
 if ! make fast-check; then

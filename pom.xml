@@ -39,6 +39,7 @@
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
         <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+        <maven-wrapper-plugin.version>3.3.4</maven-wrapper-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -140,6 +141,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>${maven-jar-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-wrapper-plugin</artifactId>
+                    <version>${maven-wrapper-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
