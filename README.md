@@ -2,7 +2,7 @@
 
 [![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![Architecture](https://img.shields.io/badge/Architecture-Hexagonal%20%7C%20EDA-blue.svg)](RFC-0001-VOICEPULSE.md)
+[![Architecture](https://img.shields.io/badge/Architecture-Hexagonal%20%7C%20EDA-blue.svg)](docs/rfcs/RFC-0001-VOICEPULSE.md)
 [![Apache Kafka](https://img.shields.io/badge/Kafka-KRaft%20Mode-black.svg)](https://kafka.apache.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
@@ -22,50 +22,40 @@ Modern customer call centers face crushing demand during mass disruption events 
 
 ## 2. System Architecture
 
-```
-                                  +---------------------------------------------+
-                                  |                Web Browser                  |
-                                  |   WebRTC / WS Audio Client (Live Testing)   |
-                                  +----------------------+----------------------+
-                                                         |
-                                                         | Audio Stream / JSON
-                                                         v
-+--------------------------+                      +---------------------+                      +---------------------+
-|      Load Generator      |                      |   Voice Gateway     |                      |      Frontend       |
-|  (Simulated WS Clients)  | --(WS Mass Traffic)->| (Reactive / Netty)  |<--(Operator WS)------|  Operator Console   |
-+--------------------------+                      +----------+----------+                      |  (Next.js / Lit)    |
-                                                         |                                     +----------^----------+
-                                                Kafka Ingestion                                           |
-                                                Partition Key: call_id                                    |
-                                                         |                                                |
-                                                         v                                                |
-                                              +---------------------+                                     |
-                                              |    Apache Kafka     |                                     |
-                                              |  (KRaft Cluster)    |                                     |
-                                              +----------+----------+                                     |
-                                                         |                                                |
-                                                         | Raw Events / Audio Frames                      |
-                                                         v                                                |
-                                              +---------------------+                                     |
-                                              | Conversation Engine |                                     |
-                                              | (Hexagonal Core)    |                                     |
-                                              | - State Machine     |                                     |
-                                              | - VAD & Interruption|                                     |
-                                              | - AI Agent / MCP    |                                     |
-                                              +----------+----------+                                     |
-                                                         |                                                |
-                                                         | TicketFormFilledEvent                          |
-                                                         v                                                |
-                                              +---------------------+                                     |
-                                              |   Routing Service   |---------------------------------+
-                                              | (Handoff & Queues)  |      (Dispatched Ticket Data)
-                                              +----------+----------+
-                                                         |
-                                                         v
-                                              +---------------------+
-                                              |     PostgreSQL      |
-                                              |  (Historical Store) |
-                                              +---------------------+
+```mermaid
+flowchart TD
+    subgraph Clients ["Client Layer"]
+        browser["Web Browser<br/>(WebRTC / WS Audio Client)"]
+        loadgen["Load Generator<br/>(Simulated WS Clients)"]
+        console["Frontend / Operator Console<br/>(Next.js / Lit)"]
+    end
+
+    subgraph Edge ["Edge Layer"]
+        gateway["Voice Gateway<br/>(Reactive / Netty)"]
+    end
+
+    subgraph Messaging ["Event Streaming Backbone"]
+        kafka[("Apache Kafka<br/>KRaft Cluster<br/>Partition Key: call_id")]
+    end
+
+    subgraph Core ["Hexagonal Domain Services"]
+        engine["Conversation Engine<br/>• State Machine<br/>• VAD & Interruption<br/>• AI Agent / MCP"]
+    end
+
+    subgraph RoutingStore ["Routing & Persistence"]
+        routing["Routing Service<br/>(Handoff & Queues)"]
+        postgres[("PostgreSQL 16<br/>Historical Store")]
+    end
+
+    browser -->|"Audio Stream / JSON"| gateway
+    loadgen -->|"WS Mass Traffic"| gateway
+    gateway <-->|"Operator WS"| console
+
+    gateway -->|"Kafka Ingestion<br/>(Key: call_id)"| kafka
+    kafka -->|"Raw Events / Audio Chunks"| engine
+    engine -->|"TicketFormFilledEvent"| routing
+    routing -->|"Dispatched Ticket Data"| console
+    routing -->|"Persist Tickets / Logs"| postgres
 ```
 
 ### Core Technology Stack
@@ -83,7 +73,7 @@ Modern customer call centers face crushing demand during mass disruption events 
 
 ## 3. Reference Business Scenario: International Airline Disruption Hotline
 
-VoicePulse is validated against the high-load **SkyWay Airlines International Disruption Hotline** scenario ([RFC-0003](RFC-0003-VOICEPULSE.md)):
+VoicePulse is validated against the high-load **SkyWay Airlines International Disruption Hotline** scenario ([RFC-0003](docs/rfcs/RFC-0003-VOICEPULSE.md)):
 
 * **The Event:** Winter storm causes simultaneous cancellation of 14 transatlantic flights, routing 4,200 panicked passengers to customer support.
 * **The Voice Bot Objective:**
@@ -98,7 +88,7 @@ VoicePulse is validated against the high-load **SkyWay Airlines International Di
 
 ## 4. AI-First Development & The Meta-System
 
-VoicePulse is architected for **Specification-Driven Development (SDD)** with local AI coding agents, dramatically cutting token consumption through AST symbol indexing and local documentation RAG ([RFC-0002](RFC-0002-VOICEPULSE.md)):
+VoicePulse is architected for **Specification-Driven Development (SDD)** with local AI coding agents, dramatically cutting token consumption through AST symbol indexing and local documentation RAG ([RFC-0002](docs/rfcs/RFC-0002-VOICEPULSE.md)):
 
 * **Passive Directives ([`AGENTS.md`](AGENTS.md)):** Strict architectural rules governing Domain Core purity, Java 21 records/sealed interfaces, Netty `ByteBuf` reference-counting safety, and Kafka partitioning mandates.
 * **Modular Rule Sets ([`.agents/rules/`](.agents/rules/)):**
@@ -125,7 +115,12 @@ voice-pulse/
 ├── .agents/                    # AI agent directives, modular rules, and active skills
 │   ├── rules/                  # Focused architectural and concurrency constraints
 │   └── skills/                 # SDD workflow automation skills
-├── docs/                       # Living documentation (Architecture, Domain, Engineering)
+├── docs/                       # Living documentation (Architecture, Domain, Engineering, RFCs, Plans)
+│   ├── architecture/
+│   ├── domain/
+│   ├── engineering/
+│   ├── plans/
+│   └── rfcs/
 ├── scripts/                    # Automation scripts (pre-commit, RAG indexer, MCP servers)
 ├── docker-compose.infra.yml    # KRaft Kafka, Redis 7, and PostgreSQL 16
 ├── Makefile                    # Developer ergonomics CLI
@@ -139,7 +134,7 @@ voice-pulse/
 
 The platform is constructed across 7 phase-gated epics:
 
-* **[Epic 1: Engineering Foundation, Tooling, & Agentic Workflow Setup](epic-1-foundation-plan.md)** *(In Progress)*
+* **[Epic 1: Engineering Foundation, Tooling, & Agentic Workflow Setup](docs/plans/epic-1-foundation-plan.md)** *(Completed)*
   - **Phase 0:** Repository entrypoints (`README.md`), `AGENTS.md` guardrails, and active SDD skills.
   - **Phase 1:** Maven multi-module scaffolding, ArchUnit rules, Spotless formatting, compiler static analysis.
   - **Phase 2:** Local containerized infrastructure (Kafka KRaft, Redis, Postgres), unified `Makefile`, pre-commit hooks.
@@ -156,9 +151,9 @@ The platform is constructed across 7 phase-gated epics:
 ## 7. Foundational RFC Documents
 
 For in-depth technical blueprints, review the repository RFCs:
-- **[RFC-0001: Architecture Strategy](RFC-0001-VOICEPULSE.md)** — Architectural pillars, network framing, streaming topology, and component contracts.
-- **[RFC-0002: AI Engineering, Tooling & Automation Blueprint](RFC-0002-VOICEPULSE.md)** — Multi-agent taxonomy, SDD skills, local RAG indexer, ArchUnit rules, and Makefile.
-- **[RFC-0003: Airline Disruption Hotline Scenario](RFC-0003-VOICEPULSE.md)** — SkyWay Airlines disruption business requirements, dialog flows, and ticket schemas.
+- **[RFC-0001: Architecture Strategy](docs/rfcs/RFC-0001-VOICEPULSE.md)** — Architectural pillars, network framing, streaming topology, and component contracts.
+- **[RFC-0002: AI Engineering, Tooling & Automation Blueprint](docs/rfcs/RFC-0002-VOICEPULSE.md)** — Multi-agent taxonomy, SDD skills, local RAG indexer, ArchUnit rules, and Makefile.
+- **[RFC-0003: Airline Disruption Hotline Scenario](docs/rfcs/RFC-0003-VOICEPULSE.md)** — SkyWay Airlines disruption business requirements, dialog flows, and ticket schemas.
 
 ---
 

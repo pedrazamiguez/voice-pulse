@@ -1,7 +1,7 @@
 # Airline Disruption Ticket Schema & Data Contracts
 
 > [!IMPORTANT]
-> **Source of Truth:** Defines the structured ticket model, PostgreSQL 16 JSONB schema, and domain enums for the SkyWay Airlines Disruption scenario (RFC-0003 & AGENTS.md §4).
+> **Source of Truth:** Defines the structured ticket model, PostgreSQL 16 JSONB schema, and domain enums for the SkyWay Airlines Disruption scenario ([RFC-0003](../rfcs/RFC-0003-VOICEPULSE.md) & AGENTS.md §4).
 
 ---
 

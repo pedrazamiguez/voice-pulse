@@ -54,9 +54,9 @@ Before drafting, gather repository context to make the issue well-informed:
 
 3. **Align with Governing RFCs:**
    - Reference relevant architectural blueprints:
-     - [`RFC-0001`](file:///home/antigravity/pedrazamiguez/voice-pulse/RFC-0001-VOICEPULSE.md): Architecture Strategy & Hexagonal Boundaries.
-     - [`RFC-0002`](file:///home/antigravity/pedrazamiguez/voice-pulse/RFC-0002-VOICEPULSE.md): AI Engineering, Tooling & Automation Blueprint.
-     - [`RFC-0003`](file:///home/antigravity/pedrazamiguez/voice-pulse/RFC-0003-VOICEPULSE.md): Airline Disruption Hotline Scenario.
+     - [`RFC-0001`](file:///home/antigravity/pedrazamiguez/voice-pulse/docs/rfcs/RFC-0001-VOICEPULSE.md): Architecture Strategy & Hexagonal Boundaries.
+     - [`RFC-0002`](file:///home/antigravity/pedrazamiguez/voice-pulse/docs/rfcs/RFC-0002-VOICEPULSE.md): AI Engineering, Tooling & Automation Blueprint.
+     - [`RFC-0003`](file:///home/antigravity/pedrazamiguez/voice-pulse/docs/rfcs/RFC-0003-VOICEPULSE.md): Airline Disruption Hotline Scenario.
 
 ---
 

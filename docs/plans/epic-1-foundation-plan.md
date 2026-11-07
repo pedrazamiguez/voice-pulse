@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary & Objective
 
-Based on the blueprints defined in **[RFC-0001](file:///home/antigravity/pedrazamiguez/voice-pulse/RFC-0001-VOICEPULSE.md)** (Architecture Strategy), **[RFC-0002](file:///home/antigravity/pedrazamiguez/voice-pulse/RFC-0002-VOICEPULSE.md)** (AI Engineering, Tooling & Automation Blueprint), and **[RFC-0003](file:///home/antigravity/pedrazamiguez/voice-pulse/RFC-0003-VOICEPULSE.md)** (Business Scenario: International Airline Disruption Hotline), the VoicePulse platform requires a rock-solid engineering baseline before writing runtime audio streaming code.
+Based on the blueprints defined in **[RFC-0001](../rfcs/RFC-0001-VOICEPULSE.md)** (Architecture Strategy), **[RFC-0002](../rfcs/RFC-0002-VOICEPULSE.md)** (AI Engineering, Tooling & Automation Blueprint), and **[RFC-0003](../rfcs/RFC-0003-VOICEPULSE.md)** (Business Scenario: International Airline Disruption Hotline), the VoicePulse platform requires a rock-solid engineering baseline before writing runtime audio streaming code.
 
 ### Why Epic 1 Comes First
 Jumping directly into WebFlux WebSocket audio loops or Kafka producers without structural guardrails leads to:

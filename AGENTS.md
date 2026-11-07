@@ -86,7 +86,7 @@ VoicePulse processes conversational audio streams and signaling events asynchron
 
 ---
 
-## 4. Airline Disruption Hotline Business Invariants (RFC-0003)
+## 4. Airline Disruption Hotline Business Invariants ([RFC-0003](docs/rfcs/RFC-0003-VOICEPULSE.md))
 
 When generating domain logic, prompts, or tests for the **SkyWay Airlines International Disruption Hotline**:
 

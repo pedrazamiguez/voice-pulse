@@ -19,7 +19,7 @@ This skill guides the AI agent through the **Specification & Architecture** stag
 ## 1. Context & Ingestion
 1. **Fetch Issue Description:**
    - Retrieve issue #`$ISSUE_NUMBER` and existing discussion comments using `gh issue view $ISSUE_NUMBER`.
-   - Identify the user stories, acceptance criteria, and relevant RFC citations ([`RFC-0001`](file:///home/antigravity/pedrazamiguez/voice-pulse/RFC-0001-VOICEPULSE.md), [`RFC-0002`](file:///home/antigravity/pedrazamiguez/voice-pulse/RFC-0002-VOICEPULSE.md), or [`RFC-0003`](file:///home/antigravity/pedrazamiguez/voice-pulse/RFC-0003-VOICEPULSE.md)).
+   - Identify the user stories, acceptance criteria, and relevant RFC citations ([`RFC-0001`](file:///home/antigravity/pedrazamiguez/voice-pulse/docs/rfcs/RFC-0001-VOICEPULSE.md), [`RFC-0002`](file:///home/antigravity/pedrazamiguez/voice-pulse/docs/rfcs/RFC-0002-VOICEPULSE.md), or [`RFC-0003`](file:///home/antigravity/pedrazamiguez/voice-pulse/docs/rfcs/RFC-0003-VOICEPULSE.md)).
 2. **Review Inviolable Constraints:**
    - Read [`AGENTS.md`](file:///home/antigravity/pedrazamiguez/voice-pulse/AGENTS.md) and relevant `.agents/rules/*.md` files:
      - `01-hexagonal-architecture.md` (Domain purity, Port signatures)

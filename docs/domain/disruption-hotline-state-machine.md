@@ -1,7 +1,7 @@
 # Disruption Hotline Conversational State Machine
 
 > [!IMPORTANT]
-> **Source of Truth:** Defines the finite state machine (FSM), state transitions, and Java 21 sealed interface hierarchy for the **SkyWay Airlines International Disruption Hotline** (RFC-0003).
+> **Source of Truth:** Defines the finite state machine (FSM), state transitions, and Java 21 sealed interface hierarchy for the **SkyWay Airlines International Disruption Hotline** ([RFC-0003](../rfcs/RFC-0003-VOICEPULSE.md)).
 
 ---
 
