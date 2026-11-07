@@ -43,3 +43,13 @@ Thumbs.db
 docker-compose.override.yml
 *.env.local
 
+### Python & Local RAG ###
+.cache/
+graphify-out/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+
+
