@@ -21,11 +21,13 @@ help: ## Display available targets
 setup: hooks docker-infra ai-setup ## Full first-time developer bootstrap
 	@printf "$(GREEN)✅ Setup complete. Ready to develop.$(NC)\n"
 
-hooks: ## Install Git pre-commit hook to .git/hooks/pre-commit
+hooks: ## Install Git pre-commit and pre-push verification hooks
 	@mkdir -p .git/hooks
 	@cp scripts/pre-commit .git/hooks/pre-commit
 	@chmod +x .git/hooks/pre-commit
-	@printf "$(GREEN)✅ Git pre-commit hook installed.$(NC)\n"
+	@cp scripts/pre-push .git/hooks/pre-push
+	@chmod +x .git/hooks/pre-push
+	@printf "$(GREEN)✅ Git pre-commit and pre-push hooks installed.$(NC)\n"
 
 fast-check: ## Rapid incremental check (Spotless + ArchUnit, < 15s)
 	@printf "$(YELLOW)⏳ Running fast quality gate (Spotless + ArchUnit)...$(NC)\n"
