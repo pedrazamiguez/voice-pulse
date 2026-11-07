@@ -1,5 +1,6 @@
 package com.voicepulse.shared.model;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -56,7 +57,7 @@ public record Pnr(String value) {
 
     public Pnr {
         Objects.requireNonNull(value, "PNR value cannot be null");
-        String normalized = value.trim().toUpperCase();
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
         if (!PNR_PATTERN.matcher(normalized).matches()) {
             throw new IllegalArgumentException(
                     "PNR must be exactly 6 alphanumeric characters: " + value);
