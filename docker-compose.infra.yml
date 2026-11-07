@@ -1,0 +1,103 @@
+services:
+  voicepulse-kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: voicepulse-kafka
+    hostname: voicepulse-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@voicepulse-kafka:29093"
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://voicepulse-kafka:29092,PLAINTEXT_HOST://localhost:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_JVM_PERFORMANCE_OPTS: "-Xms512m -Xmx1024m"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-cluster cluster-id --bootstrap-server localhost:9092 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - voicepulse-net
+
+  voicepulse-kafka-init:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: voicepulse-kafka-init
+    depends_on:
+      voicepulse-kafka:
+        condition: service_healthy
+    environment:
+      LOG_DIR: "/tmp"
+    networks:
+      - voicepulse-net
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "Waiting for Kafka to be ready..."
+        while ! kafka-topics --bootstrap-server voicepulse-kafka:29092 --list > /dev/null 2>&1; do
+          sleep 1
+        done
+
+        echo "Provisioning VoicePulse Kafka topics..."
+        kafka-topics --bootstrap-server voicepulse-kafka:29092 --create --if-not-exists --topic telephony.calls.raw --partitions 12 --replication-factor 1
+        kafka-topics --bootstrap-server voicepulse-kafka:29092 --create --if-not-exists --topic telephony.calls.control --partitions 12 --replication-factor 1
+        kafka-topics --bootstrap-server voicepulse-kafka:29092 --create --if-not-exists --topic telephony.tickets.intent --partitions 6 --replication-factor 1
+        kafka-topics --bootstrap-server voicepulse-kafka:29092 --create --if-not-exists --topic telephony.calls.dlq --partitions 3 --replication-factor 1
+
+        echo "Kafka topics provisioned successfully:"
+        kafka-topics --bootstrap-server voicepulse-kafka:29092 --list
+
+  voicepulse-redis:
+    image: redis:7-alpine
+    container_name: voicepulse-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+    networks:
+      - voicepulse-net
+
+  voicepulse-postgres:
+    image: postgres:16-alpine
+    container_name: voicepulse-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: voicepulse
+      POSTGRES_USER: voicepulse
+      POSTGRES_PASSWORD: voicepulse
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./config/postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voicepulse -d voicepulse"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - voicepulse-net
+
+volumes:
+  postgres_data:
+    name: voicepulse_postgres_data
+
+networks:
+  voicepulse-net:
+    name: voicepulse-network
+    driver: bridge
