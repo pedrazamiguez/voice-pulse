@@ -51,6 +51,12 @@
             <artifactId>spring-kafka-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.voicepulse</groupId>
+            <artifactId>shared-kernel</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
