@@ -116,7 +116,8 @@ When generating domain logic, prompts, or tests for the **SkyWay Airlines Intern
 
 ## 6. Specification-Driven Development (SDD) Workflow for Agents
 
-All issues and feature additions must follow the 5-stage SDD workflow:
+All issues and feature additions must follow the SDD workflow:
+0. **Create Issue (If New):** Invoke `.agents/skills/vp-create-issue/SKILL.md` to convert ideas, bug reports, or screenshots into structured GitHub issues with human approval.
 1. **Plan First:** Invoke `.agents/skills/vp-plan-issue/SKILL.md` to produce an approved architecture change contract before creating or editing code files.
 2. **Execute with TDD:** Invoke `.agents/skills/vp-start-issue/SKILL.md` to implement domain unit tests first, followed by ports, and finally infrastructure adapters.
 3. **Verify Locally:** Invoke `.agents/skills/vp-verify-architecture/SKILL.md` to run ArchUnit tests and audit file line counts before opening a Pull Request.
