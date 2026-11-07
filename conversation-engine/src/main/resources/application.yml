@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: conversation-engine
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
