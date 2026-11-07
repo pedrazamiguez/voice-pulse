@@ -1,0 +1,63 @@
+name: Coverage and Architecture
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  architecture:
+    name: ArchUnit & 600-Line File Ceiling Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Grant execute permission for Maven Wrapper
+        run: chmod +x ./mvnw
+
+      - name: Run ArchUnit Tests
+        run: ./mvnw test -Dtest=ArchitectureTest
+
+      - name: Audit 600-Line File Ceiling (AGENTS.md)
+        run: |
+          echo "Auditing production Java files for 600-line architectural ceiling..."
+          VIOLATIONS=$(find . -name "*.java" ! -path "*/test/*" ! -path "*/target/*" -exec wc -l {} + | awk '$1 > 600 {print $0}')
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::The following Java files violate the 600-line architectural ceiling (AGENTS.md):"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "All production Java files comply with the 600-line ceiling."
+
+  coverage:
+    name: JaCoCo Coverage Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Grant execute permission for Maven Wrapper
+        run: chmod +x ./mvnw
+
+      - name: Run Tests with Coverage & Verify Gate
+        run: ./mvnw clean test jacoco:report jacoco:check

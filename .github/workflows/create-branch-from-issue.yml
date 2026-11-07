@@ -1,0 +1,96 @@
+name: Create Branch From Issue
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  create-branch:
+    name: Provision Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Git Branch from Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = context.payload.label.name;
+            let prefix = '';
+            let baseBranch = 'develop';
+
+            if (label === 'bug') {
+              prefix = 'bugfix/';
+              baseBranch = 'develop';
+            } else if (label === 'hotfix') {
+              prefix = 'hotfix/';
+              baseBranch = 'main';
+            } else if (['enhancement', 'feature', 'ci-cd', 'tooling', 'architecture', 'ai-workflow', 'documentation'].includes(label)) {
+              prefix = 'feature/';
+              baseBranch = 'develop';
+            } else {
+              core.info(`Label '${label}' does not trigger branch provisioning.`);
+              return;
+            }
+
+            const issueNumber = context.payload.issue.number;
+            const rawTitle = context.payload.issue.title;
+
+            // 1. Remove bracketed prefixes (e.g. [VP-08], [EPIC-01])
+            let cleaned = rawTitle.replace(/^\[[^\]]+\]\s*/, '');
+            // 2. Remove Conventional Commit prefix (e.g. feat(core):, ci:, fix:)
+            cleaned = cleaned.replace(/^[a-z]+(\([a-z0-9_-]+\))?:\s*/i, '');
+            // 3. Lowercase and replace non-alphanumeric characters with hyphens
+            let slug = cleaned.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            // 4. Truncate slug to 30 characters and trim trailing hyphens
+            slug = slug.substring(0, 30).replace(/-+$/, '');
+
+            const branchName = `${prefix}VP-${issueNumber}-${slug}`;
+            core.info(`Target branch name: ${branchName} from base: ${baseBranch}`);
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Check if branch already exists
+            try {
+              await github.rest.git.getRef({
+                owner,
+                repo,
+                ref: `heads/${branchName}`
+              });
+              core.info(`Branch '${branchName}' already exists. Skipping creation.`);
+              return;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            // Retrieve base branch head SHA
+            const baseRef = await github.rest.git.getRef({
+              owner,
+              repo,
+              ref: `heads/${baseBranch}`
+            });
+            const sha = baseRef.data.object.sha;
+
+            // Create branch ref
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/heads/${branchName}`,
+              sha
+            });
+
+            core.info(`Branch '${branchName}' created successfully.`);
+
+            // Post comment on issue
+            const branchUrl = `https://github.com/${owner}/${repo}/tree/${branchName}`;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: `🚀 Automated branch [\`${branchName}\`](${branchUrl}) successfully provisioned from \`${baseBranch}\` for #${issueNumber}.`
+            });

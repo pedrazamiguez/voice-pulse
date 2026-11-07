@@ -39,12 +39,10 @@ The agent can receive input in several forms:
 
 Before drafting, gather repository context to make the issue well-informed:
 
-1. **Determine Next Issue Identifier:**
-   - Check existing issues to calculate the next sequential `[VP-XX]` ticket tag:
-     ```bash
-     gh issue list --state all --limit 20
-     ```
-   - Suggest the next sequential tag (e.g., if highest is `[VP-08]`, designate `[VP-09]`).
+1. **Monotonic Issue Numbering Invariant:**
+   - In GitHub, Issues and Pull Requests share a unified monotonic identifier sequence.
+   - **NEVER** calculate or prepend arbitrary `[VP-XX]` tags to issue titles. Pre-allocating manual identifiers causes desynchronization when pull requests or issues are interleaved.
+   - GitHub automatically assigns the true monotonic `#<id>` upon creation. Downstream workflows (such as `.github/workflows/create-branch-from-issue.yml`) automatically derive branch names and references directly from `${{ github.event.issue.number }}`.
 
 2. **Identify Affected Modules & Scope:**
    - Map the requirement or bug to one or more VoicePulse Maven submodules or directories:
@@ -96,12 +94,16 @@ gh label list
 Format the issue draft adhering to the official VoicePulse template:
 
 ### Title Format
-`[VP-XX] <type>(<scope>): <concise imperative summary>`
+`<type>(<scope>): <concise imperative summary>`
+
+> [!IMPORTANT]
+> Do NOT prepend manual ticket numbers (such as `[VP-XX]`). Use clean Conventional Commits format only.
 
 *Examples:*
-* `[VP-09] feat(core): implement CallSession state machine aggregate`
-* `[VP-10] fix(gateway): release retained Netty ByteBuf on client disconnect`
-* `[VP-11] feat(infra): provision Redis presence store in docker-compose`
+* `feat(core): implement CallSession state machine aggregate`
+* `fix(gateway): release retained Netty ByteBuf on client disconnect`
+* `feat(infra): provision Redis presence store in docker-compose`
+* `ci(workflow): configure branch protection rules`
 
 ### Body Template
 ```markdown
@@ -133,7 +135,7 @@ Format the issue draft adhering to the official VoicePulse template:
 ## 5. Human Approval Gate (Mandatory)
 
 1. Present the complete issue draft to the developer:
-   - **Title:** `[VP-XX] type(scope): summary`
+   - **Title:** `<type>(<scope>): <summary>`
    - **Labels:** `label1, label2, epic-X`
    - **Markdown Body:** Rendered for developer review.
 2. Ask for explicit approval:
