@@ -2,7 +2,7 @@
 # VoicePulse — Developer Bootstrap & Quality Gates
 # ─────────────────────────────────────────────────────────────────────────────
 
-.PHONY: help setup hooks fast-check check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup
+.PHONY: help setup hooks fast-check check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag knowledge-update
 
 CYAN   := \033[0;36m
 GREEN  := \033[0;32m
@@ -108,9 +108,21 @@ clean: ## Clean build artifacts
 	@$(MVN) clean -q
 	@printf "$(GREEN)✅ Build artifacts cleaned.$(NC)\n"
 
-ai-setup: ## Bootstrap AI tooling and local RAG if script exists
-	@if [ -f scripts/ai-setup.sh ]; then \
-		./scripts/ai-setup.sh; \
-	else \
-		printf "$(YELLOW)ℹ️ scripts/ai-setup.sh not found (Phase 2). Skipping AI bootstrap.$(NC)\n"; \
-	fi
+ai-setup: ## Bootstrap AI tooling, MCP servers, and local RAG
+	@./scripts/ai-setup.sh
+
+rag-index: ## Build or update local documentation vector database
+	@printf "$(YELLOW)⏳ Indexing documentation with FastEmbed CPU ONNX...$(NC)\n"
+	@uv run scripts/rag_indexer.py
+	@printf "$(GREEN)✅ Documentation RAG index up to date.$(NC)\n"
+
+test-rag: ## Run RAG unit and integration tests
+	@printf "$(YELLOW)⏳ Running RAG verification test suite...$(NC)\n"
+	@uv run scripts/test_rag.py
+	@printf "$(GREEN)✅ RAG tests passed.$(NC)\n"
+
+knowledge-update: ## Refresh all AI indexes (voicepulse-rag, graphify, codebase-memory)
+	@printf "$(YELLOW)⏳ Refreshing AI code graphs and RAG databases...$(NC)\n"
+	@uv run scripts/rag_indexer.py
+	@graphify update . 2>/dev/null || true
+	@printf "$(GREEN)✅ All AI knowledge graphs up to date.$(NC)\n"
