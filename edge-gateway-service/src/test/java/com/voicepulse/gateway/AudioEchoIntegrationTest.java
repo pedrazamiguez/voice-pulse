@@ -152,7 +152,7 @@ class AudioEchoIntegrationTest {
                         session -> {
                             Flux<WebSocketMessage> outboundFlux =
                                     Flux.range(0, TOTAL_FRAMES)
-                                            .delayElements(Duration.ofNanos(500_000))
+                                            .delayElements(Duration.ofMillis(1))
                                             .map(
                                                     index -> {
                                                         byte[] payload = expectedFrames.get(index);
@@ -273,7 +273,7 @@ class AudioEchoIntegrationTest {
                             session -> {
                                 Flux<WebSocketMessage> outboundFlux =
                                         Flux.range(0, sessionFrames)
-                                                .delayElements(Duration.ofNanos(500_000))
+                                                .delayElements(Duration.ofMillis(1))
                                                 .map(
                                                         index ->
                                                                 session.binaryMessage(
