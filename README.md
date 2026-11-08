@@ -101,6 +101,7 @@ VoicePulse is architected for **Specification-Driven Development (SDD)** with lo
   - `vp-start-issue`: Enforces TDD implementation, 500-line pre-edit limits, and local verification.
   - `vp-verify-architecture`: Runs ArchUnit bytecode tests and audits file sizes ($\le 600$ lines).
 * **In-Repo Documentation RAG:** Local CPU ONNX vector database (`fastembed` + SQLite FTS5) providing sub-100ms semantic search over architecture docs with zero cloud API keys or external costs.
+* **Automated Changelog ([`CHANGELOG.md`](CHANGELOG.md)):** Continuous Keep a Changelog updates committed automatically upon issue completion via GitHub Actions ([`docs/engineering/changelog-automation.md`](docs/engineering/changelog-automation.md)).
 
 ---
 
@@ -124,6 +125,7 @@ voice-pulse/
 ├── scripts/                    # Automation scripts (pre-commit, RAG indexer, MCP servers)
 ├── docker-compose.infra.yml    # KRaft Kafka, Redis 7, and PostgreSQL 16
 ├── Makefile                    # Developer ergonomics CLI
+├── CHANGELOG.md                # Automated Keep a Changelog release history
 ├── AGENTS.md                   # Foundational AI agent directives
 └── pom.xml                     # Maven root build descriptor (Java 21 / Spring Boot 3.3.x)
 ```
