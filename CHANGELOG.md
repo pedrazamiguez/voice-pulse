@@ -13,9 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] - 2026-11-08
 
-### Tooling & Infrastructure
-- chore(release): prepare release v0.1.0 ([#40](https://github.com/pedrazamiguez/voice-pulse/issues/40))
-- chore(release): prepare release ([#46](https://github.com/pedrazamiguez/voice-pulse/issues/46))
+### Fixed
+- fix(release): remove version prompt from template and drop legacy VP prefix from PR titles ([#42](https://github.com/pedrazamiguez/voice-pulse/pull/42))
+- fix(release): make release workflows trigger reliably on PR merge and remove skip-ci tags ([#44](https://github.com/pedrazamiguez/voice-pulse/pull/44))
 
 ## [0.1.0] - 2026-11-08
 

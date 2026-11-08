@@ -114,22 +114,28 @@ function determineCategory(title, labels = []) {
 
 /**
  * Validates whether an issue should be recorded in CHANGELOG.md.
- * Ignores issues closed as not_planned or labeled with triage skip labels.
+ * Ignores issues closed as not_planned, labeled with triage skip labels,
+ * tagged with the release label, or with release chore titles.
  *
  * @param {object} param0
  * @param {string} [param0.stateReason]
  * @param {Array<string|{name: string}>} [param0.labels]
+ * @param {string} [param0.title]
  * @returns {boolean}
  */
-function shouldProcessIssue({ stateReason, labels = [] }) {
+function shouldProcessIssue({ stateReason, labels = [], title = '' }) {
   if (stateReason && stateReason !== 'completed') {
     return false;
   }
   const normalizedLabels = labels.map(l =>
     (typeof l === 'string' ? l : l && l.name ? l.name : '').toLowerCase()
   );
-  const excludedLabels = ['duplicate', 'wontfix', 'invalid'];
+  const excludedLabels = ['duplicate', 'wontfix', 'invalid', 'release'];
   if (normalizedLabels.some(l => excludedLabels.includes(l))) {
+    return false;
+  }
+  const cleaned = cleanTitle(title);
+  if (/^chore\(release\):/i.test(cleaned)) {
     return false;
   }
   return true;
@@ -312,11 +318,11 @@ async function run({ github, context, core }) {
   const stateReason = issue.state_reason;
   const labels = issue.labels || [];
 
-  if (!shouldProcessIssue({ stateReason, labels })) {
+  if (!shouldProcessIssue({ stateReason, labels, title: issueTitle })) {
     core.info(
       `Issue #${issueNumber} skipped (state_reason='${stateReason}', labels=${JSON.stringify(
         labels.map(l => (typeof l === 'string' ? l : l.name))
-      )}).`
+      )}, title='${issueTitle}').`
     );
     return;
   }

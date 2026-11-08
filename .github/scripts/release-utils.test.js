@@ -212,6 +212,7 @@ test('stampChangelogRelease — stamps release header in CHANGELOG.md', async (t
     assert.equal(res.modified, true);
     assert.match(res.content, /## \[0\.1\.0\] - 2026-11-08/);
     assert.equal(res.content.includes('## [Unreleased]'), false);
+    assert.ok(res.content.includes('- Feature X'));
   });
 
   await t.test('returns modified false if ## [Unreleased] is missing', () => {
@@ -219,6 +220,43 @@ test('stampChangelogRelease — stamps release header in CHANGELOG.md', async (t
     const res = stampChangelogRelease(input, '0.2.0', '2026-11-09');
     assert.equal(res.modified, false);
     assert.equal(res.content, input);
+  });
+
+  await t.test('stamps fallback entry when unreleased section has no items before previous release', () => {
+    const input = '# Changelog\n\n## [Unreleased]\n\n## [0.1.0] - 2026-11-08\n\n### Added\n- Feature X\n';
+    const res = stampChangelogRelease(input, '0.2.0', '2026-11-09');
+    assert.equal(res.modified, true);
+    assert.ok(res.content.includes('## [0.2.0] - 2026-11-09'));
+    assert.ok(res.content.includes('- Maintenance release with no user-facing changes.'));
+    assert.ok(res.content.includes('## [0.1.0] - 2026-11-08'));
+    assert.ok(res.content.includes('- Feature X'));
+  });
+
+  await t.test('stamps fallback entry when unreleased section contains headers but no bullets', () => {
+    const input = '# Changelog\n\n## [Unreleased]\n\n### Added\n\n## [0.1.0] - 2026-11-08\n';
+    const res = stampChangelogRelease(input, '0.2.0', '2026-11-09');
+    assert.equal(res.modified, true);
+    assert.ok(res.content.includes('## [0.2.0] - 2026-11-09'));
+    assert.ok(res.content.includes('- Maintenance release with no user-facing changes.'));
+    assert.ok(res.content.includes('## [0.1.0] - 2026-11-08'));
+  });
+
+  await t.test('stamps fallback entry when unreleased section is at EOF with no items', () => {
+    const input = '# Changelog\n\n## [Unreleased]\n';
+    const res = stampChangelogRelease(input, '0.1.0', '2026-11-08');
+    assert.equal(res.modified, true);
+    assert.ok(res.content.includes('## [0.1.0] - 2026-11-08'));
+    assert.ok(res.content.includes('- Maintenance release with no user-facing changes.'));
+  });
+
+  await t.test('preserves existing items intact when items are present with subsequent releases', () => {
+    const input = '# Changelog\n\n## [Unreleased]\n\n### Added\n- New feature ([#10](url))\n\n## [0.1.0] - 2026-11-08\n\n### Fixed\n- Bugfix 1\n';
+    const res = stampChangelogRelease(input, '0.2.0', '2026-11-09');
+    assert.equal(res.modified, true);
+    assert.ok(res.content.includes('## [0.2.0] - 2026-11-09'));
+    assert.ok(res.content.includes('### Added\n- New feature ([#10](url))'));
+    assert.ok(!res.content.includes('Maintenance release with no user-facing changes.'));
+    assert.ok(res.content.includes('## [0.1.0] - 2026-11-08'));
   });
 });
 
