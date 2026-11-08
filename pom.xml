@@ -41,6 +41,13 @@
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
         <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
         <maven-wrapper-plugin.version>3.3.4</maven-wrapper-plugin.version>
+        <sonar-maven-plugin.version>5.0.0.4389</sonar-maven-plugin.version>
+
+        <!-- SonarQube Static Analysis & Quality Gate -->
+        <sonar.projectKey>VoicePulse</sonar.projectKey>
+        <sonar.projectName>VoicePulse</sonar.projectName>
+        <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/target/site/jacoco/jacoco.xml,${maven.multiModuleProjectDirectory}/**/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.coverage.exclusions>**/VoicePulseApplication.java,**/*Application.java,**/config/**</sonar.coverage.exclusions>
     </properties>
 
     <dependencyManagement>
@@ -149,6 +156,11 @@
                     <version>${maven-wrapper-plugin.version}</version>
                 </plugin>
                 <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>${sonar-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
@@ -240,6 +252,10 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

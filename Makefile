@@ -2,7 +2,12 @@
 # VoicePulse — Developer Bootstrap & Quality Gates
 # ─────────────────────────────────────────────────────────────────────────────
 
-.PHONY: help setup hooks fast-check check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag knowledge-update
+-include .env
+-include .env.local
+export SONAR_HOST_URL
+export SONAR_TOKEN
+
+.PHONY: help setup hooks fast-check check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag knowledge-update sonar
 
 CYAN   := \033[0;36m
 GREEN  := \033[0;32m
@@ -128,3 +133,21 @@ knowledge-update: ## Refresh all AI indexes (voicepulse-rag, graphify, codebase-
 	@uv run scripts/rag_indexer.py
 	@graphify update . 2>/dev/null || true
 	@printf "$(GREEN)✅ All AI knowledge graphs up to date.$(NC)\n"
+
+sonar: ## Run SonarQube analysis locally (uses .env.local or SONAR_HOST_URL & SONAR_TOKEN)
+	@printf "$(YELLOW)⏳ Running SonarQube static analysis and quality gate...$(NC)\n"
+	@if [ -z "$$SONAR_HOST_URL" ]; then \
+		printf "$(RED)❌ SONAR_HOST_URL is not set. Set SONAR_HOST_URL in .env.local or export SONAR_HOST_URL=...$(NC)\n"; \
+		exit 1; \
+	fi
+	@if [ -z "$$SONAR_TOKEN" ]; then \
+		printf "$(RED)❌ SONAR_TOKEN is not set. Set SONAR_TOKEN in .env.local or export SONAR_TOKEN=...$(NC)\n"; \
+		exit 1; \
+	fi
+	@$(MVN) clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+		-Dsonar.host.url="$$SONAR_HOST_URL" \
+		-Dsonar.token="$$SONAR_TOKEN" \
+		-Dsonar.qualitygate.wait=true \
+		-Dsonar.qualitygate.timeout=300
+	@printf "$(GREEN)✅ SonarQube analysis completed and Quality Gate passed.$(NC)\n"
+
