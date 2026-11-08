@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(ai-workflow): add vp-review-pr skill for automated PR compliance and plan validation ([#51](https://github.com/pedrazamiguez/voice-pulse/issues/51))
 - feat(gateway): implement reactive Netty AudioWebSocketHandler with ByteBuf memory safety ([#24](https://github.com/pedrazamiguez/voice-pulse/issues/24))
 - feat(softphone): implement browser AudioWorklet PCM downsampler and WebSocket client UI ([#25](https://github.com/pedrazamiguez/voice-pulse/issues/25))
+- feat(gateway): implement loopback audio echo adapter with RTT latency tracking ([#26](https://github.com/pedrazamiguez/voice-pulse/issues/26))
 
 ### Tooling & Infrastructure
 - ci(changelog): exclude release lifecycle issues from automated changelog updates ([#49](https://github.com/pedrazamiguez/voice-pulse/issues/49))
