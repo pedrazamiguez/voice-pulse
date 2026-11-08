@@ -7,7 +7,7 @@
 export SONAR_HOST_URL
 export SONAR_TOKEN
 
-.PHONY: help setup hooks fast-check check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag knowledge-update sonar
+.PHONY: help setup hooks fast-check check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag test-changelog knowledge-update sonar
 
 CYAN   := \033[0;36m
 GREEN  := \033[0;32m
@@ -127,6 +127,11 @@ test-rag: ## Run RAG unit and integration tests
 	@printf "$(YELLOW)⏳ Running RAG verification test suite...$(NC)\n"
 	@uv run scripts/test_rag.py
 	@printf "$(GREEN)✅ RAG tests passed.$(NC)\n"
+
+test-changelog: ## Run Node.js changelog automation unit tests
+	@printf "$(YELLOW)⏳ Running changelog automation test suite...$(NC)\n"
+	@node --test .github/scripts/update-changelog.test.js
+	@printf "$(GREEN)✅ Changelog automation tests passed.$(NC)\n"
 
 knowledge-update: ## Refresh all AI indexes (voicepulse-rag, graphify, codebase-memory)
 	@printf "$(YELLOW)⏳ Refreshing AI code graphs and RAG databases...$(NC)\n"
