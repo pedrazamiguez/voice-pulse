@@ -94,6 +94,12 @@ Execute implementation in strict layers:
      find . -name "*.java" ! -path "*/test/*" ! -path "*/target/*" -exec wc -l {} + | awk '$1 > 600 {print $0}'
      ```
    - Any output indicates an immediate violation that must be resolved prior to committing.
-3. **Commit & PR:**
+3. **Synchronize AI Knowledge Indexes:**
+   - Run `make knowledge-update` to refresh documentation vector embeddings, Graphify topological code graph, and `codebase-memory-mcp` AST symbols with all newly implemented classes, ports, and documentation:
+     ```bash
+     make knowledge-update
+     ```
+   - **Verification:** Ensure documentation chunks and code nodes are re-indexed cleanly without errors.
+4. **Commit & PR:**
    - Commit changes with conventional commit syntax (e.g. `feat(arch): ...`).
    - Push branch and open PR targeting `develop`.
