@@ -173,7 +173,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore(release): prepare release v$VERSION [skip ci]"
+          git commit -am "chore(release): prepare release v$VERSION"
           git push origin ${{ steps.branch-meta.outputs.branch_name }}
 
       - name: Auto-Create Release PR Targeting Main
@@ -190,10 +190,14 @@ jobs:
 
             const isMajor = /\[x\]\s*Major Release/i.test(context.payload.issue.body || '');
 
+            const prTitle = cleanedTitle.endsWith(`(#${issueNumber})`)
+              ? cleanedTitle
+              : `${cleanedTitle} (#${issueNumber})`;
+
             const pr = await github.rest.pulls.create({
               owner,
               repo,
-              title: `[VP-${issueNumber}]: ${cleanedTitle}`,
+              title: prTitle,
               head: branchName,
               base: 'main',
               body: `Automated release pull request for #${issueNumber}.\n\nCloses #${issueNumber}`
