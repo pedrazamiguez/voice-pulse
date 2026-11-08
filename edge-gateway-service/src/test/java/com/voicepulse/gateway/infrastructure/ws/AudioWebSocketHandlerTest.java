@@ -14,6 +14,7 @@ import com.voicepulse.gateway.domain.model.CallSession;
 import com.voicepulse.gateway.domain.model.DisconnectReason;
 import com.voicepulse.gateway.domain.ports.inbound.IngestAudioChunkUseCase;
 import com.voicepulse.gateway.domain.ports.inbound.ManageCallSessionUseCase;
+import com.voicepulse.gateway.infrastructure.registry.ConcurrentSessionRegistry;
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallSessionId;
@@ -41,6 +42,7 @@ class AudioWebSocketHandlerTest {
 
     private IngestAudioChunkUseCase ingestAudioChunkUseCase;
     private ManageCallSessionUseCase manageCallSessionUseCase;
+    private ConcurrentSessionRegistry sessionRegistry;
     private AudioWebSocketHandler handler;
     private NettyDataBufferFactory bufferFactory;
 
@@ -48,7 +50,10 @@ class AudioWebSocketHandlerTest {
     void setUp() {
         ingestAudioChunkUseCase = mock(IngestAudioChunkUseCase.class);
         manageCallSessionUseCase = mock(ManageCallSessionUseCase.class);
-        handler = new AudioWebSocketHandler(ingestAudioChunkUseCase, manageCallSessionUseCase);
+        sessionRegistry = new ConcurrentSessionRegistry();
+        handler =
+                new AudioWebSocketHandler(
+                        ingestAudioChunkUseCase, manageCallSessionUseCase, sessionRegistry);
         bufferFactory = new NettyDataBufferFactory(PooledByteBufAllocator.DEFAULT);
     }
 
@@ -60,8 +65,24 @@ class AudioWebSocketHandlerTest {
         when(handshakeInfo.getUri()).thenReturn(URI.create("ws://localhost:8080" + path));
         when(session.getAttributes()).thenReturn(Collections.emptyMap());
         when(handshakeInfo.getAttributes()).thenReturn(Collections.emptyMap());
-        when(session.receive()).thenReturn(messageFlux);
+        when(session.receive())
+                .thenReturn(
+                        messageFlux.concatMap(
+                                msg ->
+                                        Mono.just(msg)
+                                                .doFinally(
+                                                        sig -> {
+                                                            if (msg.getPayload()
+                                                                    instanceof
+                                                                    NettyDataBuffer nettyBuf) {
+                                                                io.netty.util.ReferenceCountUtil
+                                                                        .release(
+                                                                                nettyBuf
+                                                                                        .getNativeBuffer());
+                                                            }
+                                                        })));
         when(session.close(any(CloseStatus.class))).thenReturn(Mono.empty());
+        when(session.send(any())).thenReturn(Mono.empty());
 
         return session;
     }
@@ -246,5 +267,26 @@ class AudioWebSocketHandlerTest {
         verify(session).close(argThat(status -> status.getCode() == 1011));
         verify(manageCallSessionUseCase)
                 .terminateSession(sessionId, DisconnectReason.PROTOCOL_ERROR);
+    }
+
+    @Test
+    @DisplayName(
+            "WebSocket session is registered in ConcurrentSessionRegistry and unregistered on"
+                    + " close")
+    void webSocketSession_registeredAndUnregisteredInRegistry() {
+        CallSessionId sessionId = CallSessionId.generate();
+        CallSession mockSession = CallSession.start(sessionId, Instant.now());
+        when(manageCallSessionUseCase.getSession(sessionId)).thenReturn(Optional.of(mockSession));
+
+        WebSocketSession session =
+                createMockSession("/ws/calls/" + sessionId + "/audio", Flux.empty());
+
+        assertThat(sessionRegistry.hasWebSocketSession(sessionId)).isFalse();
+
+        handler.handle(session).block();
+
+        // After completion, session should be unregistered cleanly
+        assertThat(sessionRegistry.hasWebSocketSession(sessionId)).isFalse();
+        assertThat(sessionRegistry.activeWebSocketSessionCount()).isZero();
     }
 }
