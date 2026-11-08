@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(gateway): implement loopback audio echo adapter with RTT latency tracking ([#26](https://github.com/pedrazamiguez/voice-pulse/issues/26))
 - test(gateway): implement end-to-end WebSocket audio integration test with Paranoid leak check ([#27](https://github.com/pedrazamiguez/voice-pulse/issues/27))
 
+### Changed
+- Epic 2: Ingestion Voice Gateway & Softphone Echo Loop ([#20](https://github.com/pedrazamiguez/voice-pulse/issues/20))
+
 ### Tooling & Infrastructure
 - ci(changelog): exclude release lifecycle issues from automated changelog updates ([#49](https://github.com/pedrazamiguez/voice-pulse/issues/49))
 
