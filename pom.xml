@@ -6,7 +6,7 @@
 
     <groupId>com.voicepulse</groupId>
     <artifactId>voice-pulse</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <packaging>pom</packaging>
 
     <name>VoicePulse</name>
@@ -143,6 +143,9 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+                        <systemPropertyVariables>
+                            <io.netty.leakDetection.level>PARANOID</io.netty.leakDetection.level>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
                 <plugin>

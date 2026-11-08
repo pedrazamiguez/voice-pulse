@@ -58,6 +58,7 @@ voicepulse/
 │       ├── vp-replan-issue/SKILL.md   # Architectural realignment
 │       ├── vp-verify-architecture/SKILL.md # ArchUnit + Spotless + SpotBugs checks
 │       ├── vp-address-sonar-issues/SKILL.md# Quality gate & vulnerability remediation
+│       ├── vp-review-pr/SKILL.md      # Pull request compliance & architectural review
 │       ├── vp-address-pr-comments/SKILL.md # Review feedback resolution
 │       └── vp-follow-up/SKILL.md      # In-flight scope amendments & post-merge follow-ups
 ├── .github/
@@ -423,6 +424,33 @@ arguments:
    - Inherit parent labels and active epic.
    - Draft follow-up issue linking `Follow-up to #<parent_id>` using VoicePulse SDD template.
    - Enforce Human Approval Gate before creating via `gh issue create`.
+```
+
+### Skill 7: `vp-review-pr` (`.agents/skills/vp-review-pr/SKILL.md`)
+
+```markdown
+---
+name: vp-review-pr
+description: Conduct comprehensive Pull Request compliance, plan validation, and architectural review before merging.
+mode: agent
+tools:
+  - codebase
+  - githubRepo
+  - terminalLastCommand
+arguments:
+  - name: pr_number
+    description: The Pull Request number to review.
+    required: true
+---
+# Review PR #$PR_NUMBER
+
+1. **PR Ingestion & Plan Retrieval:** Fetch PR metadata, diff, and the linked issue's approved architectural plan (`gh pr view`, `gh issue view <id> --comments`, `gh pr diff`).
+2. **CI Status Checks Verification:** Verify all CI check suites (`build-and-test`, `static-analysis`, `coverage-and-architecture`, `codeql`) pass (`gh pr checks $PR_NUMBER`).
+3. **Plan Alignment & Scope Audit:** Verify declared `[NEW]` and `[MODIFY]` files match PR changes; detect undeclared scope or missing deliverables.
+4. **Architectural Invariant Audit:** Enforce hexagonal domain purity, Java 21 records/sealed interfaces, Netty `ByteBuf` release, Virtual Threads for blocking I/O, Kafka `callId` partitioning, 600-line limit, constructor injection, structured SLF4J logging.
+5. **Test Coverage & Edge Cases:** Validate pure domain unit tests, ArchUnit tests, PARANOID leak detection, and airline disruption business rules.
+6. **Structured Review Report:** Draft markdown review with Blockers, Suggestions, Nitpicks, and an explicit Verdict (`APPROVE`, `REQUEST_CHANGES`, `COMMENT`).
+7. **Human Approval Gate:** Present draft in chat; never run `gh pr review` without explicit human confirmation.
 ```
 
 ---

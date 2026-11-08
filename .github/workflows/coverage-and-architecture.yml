@@ -34,7 +34,7 @@ jobs:
       - name: Audit 600-Line File Ceiling (AGENTS.md)
         run: |
           echo "Auditing production Java files for 600-line architectural ceiling..."
-          VIOLATIONS=$(find . -name "*.java" ! -path "*/test/*" ! -path "*/target/*" -exec wc -l {} + | awk '$1 > 600 {print $0}')
+          VIOLATIONS=$(find . -name "*.java" ! -path "*/test/*" ! -path "*/target/*" -exec wc -l {} + | awk '$1 > 600 && $2 != "total" {print $0}')
           if [ -n "$VIOLATIONS" ]; then
             echo "::error::The following Java files violate the 600-line architectural ceiling (AGENTS.md):"
             echo "$VIOLATIONS"

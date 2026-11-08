@@ -40,16 +40,19 @@ fast-check: ## Rapid incremental check (Spotless + ArchUnit, < 15s)
 	@$(MVN) spotless:check test -Dtest=ArchitectureTest -q
 	@printf "$(GREEN)✅ Fast check passed (< 15s).$(NC)\n"
 
-check: ## Full cold check (clean, verify, spotbugs, jacoco)
+check: arch-check ## Full cold check (clean, verify, spotbugs, jacoco, arch-check, sonar)
 	@printf "$(YELLOW)⏳ Running full cold verification gate...$(NC)\n"
 	@$(MVN) clean verify
+	@if [ -n "$$SONAR_HOST_URL" ] && [ -n "$$SONAR_TOKEN" ]; then \
+		$(MAKE) sonar; \
+	fi
 	@printf "$(GREEN)✅ Full quality check passed (Ready for PR).$(NC)\n"
 
 arch-check: ## ArchUnit test suite & 600-line file ceiling audit
 	@printf "$(YELLOW)⏳ Running ArchUnit tests & 600-line audit...$(NC)\n"
 	@$(MVN) test -Dtest=ArchitectureTest
 	@printf "$(YELLOW)Auditing Java file line counts (<= 600 lines)...$(NC)\n"
-	@VIOLATIONS=$$(find . -type f -name "*.java" ! -path "*/test/*" ! -path "*/target/*" -exec wc -l {} + | awk '$$1 > 600 {print $$0}'); \
+	@VIOLATIONS=$$(find . -type f -name "*.java" ! -path "*/test/*" ! -path "*/target/*" -exec wc -l {} + | awk '$$1 > 600 && $$2 != "total" {print $$0}'); \
 	if [ -n "$$VIOLATIONS" ]; then \
 		printf "$(RED)❌ 600-line ceiling violated:\n$$VIOLATIONS$(NC)\n"; \
 		exit 1; \

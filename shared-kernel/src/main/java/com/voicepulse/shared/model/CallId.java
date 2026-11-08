@@ -23,6 +23,15 @@ public record CallId(UUID value) {
         return new CallId(UUID.fromString(uuidStr));
     }
 
+    public static CallId fromSessionId(CallSessionId sessionId) {
+        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        return new CallId(sessionId.value());
+    }
+
+    public CallSessionId toSessionId() {
+        return new CallSessionId(value);
+    }
+
     @Override
     public String toString() {
         return value.toString();

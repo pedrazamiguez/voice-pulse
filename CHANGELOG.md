@@ -5,10 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-11-08
+## [0.3.0] - 2026-11-08
+### Added
+- feat(gateway): define domain models, audio frame records, and hexagonal ports ([#23](https://github.com/pedrazamiguez/voice-pulse/issues/23))
+- feat(ai-workflow): add vp-review-pr skill for automated PR compliance and plan validation ([#51](https://github.com/pedrazamiguez/voice-pulse/issues/51))
+- feat(gateway): implement reactive Netty AudioWebSocketHandler with ByteBuf memory safety ([#24](https://github.com/pedrazamiguez/voice-pulse/issues/24))
+- feat(softphone): implement browser AudioWorklet PCM downsampler and WebSocket client UI ([#25](https://github.com/pedrazamiguez/voice-pulse/issues/25))
+- feat(gateway): implement loopback audio echo adapter with RTT latency tracking ([#26](https://github.com/pedrazamiguez/voice-pulse/issues/26))
+- test(gateway): implement end-to-end WebSocket audio integration test with Paranoid leak check ([#27](https://github.com/pedrazamiguez/voice-pulse/issues/27))
+
+### Changed
+- Epic 2: Ingestion Voice Gateway & Softphone Echo Loop ([#20](https://github.com/pedrazamiguez/voice-pulse/issues/20))
 
 ### Tooling & Infrastructure
-- chore(release): prepare release v0.1.0 ([#40](https://github.com/pedrazamiguez/voice-pulse/issues/40))
+- ci(changelog): exclude release lifecycle issues from automated changelog updates ([#49](https://github.com/pedrazamiguez/voice-pulse/issues/49))
+
+## [0.2.0] - 2026-11-08
+
+### Fixed
+- fix(release): remove version prompt from template and drop legacy VP prefix from PR titles ([#42](https://github.com/pedrazamiguez/voice-pulse/pull/42))
+- fix(release): make release workflows trigger reliably on PR merge and remove skip-ci tags ([#44](https://github.com/pedrazamiguez/voice-pulse/pull/44))
 
 ## [0.1.0] - 2026-11-08
 
