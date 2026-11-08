@@ -97,8 +97,10 @@ VoicePulse is architected for **Specification-Driven Development (SDD)** with lo
   - `03-netty-bytebuf-safety.md`
   - `04-kafka-partitioning.md`
 * **Active Agent Skills ([`.agents/skills/`](.agents/skills/)):**
+  - `vp-create-issue`: Ingests ideas and screenshots into structured, human-approved GitHub issues.
   - `vp-plan-issue`: Generates formal Hexagonal architectural specifications before touching code.
   - `vp-start-issue`: Enforces TDD implementation, 500-line pre-edit limits, and local verification.
+  - `vp-follow-up`: Manages in-flight scope amendments (`[SCOPE ADDENDUM]`) and linked post-merge follow-up issues.
   - `vp-verify-architecture`: Runs ArchUnit bytecode tests and audits file sizes ($\le 600$ lines).
 * **In-Repo Documentation RAG:** Local CPU ONNX vector database (`fastembed` + SQLite FTS5) providing sub-100ms semantic search over architecture docs with zero cloud API keys or external costs.
 * **Automated Changelog ([`CHANGELOG.md`](CHANGELOG.md)):** Continuous Keep a Changelog updates committed automatically upon issue completion via GitHub Actions ([`docs/engineering/changelog-automation.md`](docs/engineering/changelog-automation.md)).
