@@ -2,7 +2,7 @@ name: Create Branch From Issue
 
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
 
 permissions:
   contents: write
@@ -24,35 +24,59 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const label = context.payload.label.name;
+            // Extract label names across both 'opened' and 'labeled' events
+            let labelNames = [];
+            if (context.payload.action === 'labeled' && context.payload.label) {
+              labelNames = [context.payload.label.name];
+            } else if (context.payload.issue && Array.isArray(context.payload.issue.labels)) {
+              labelNames = context.payload.issue.labels.map(l => typeof l === 'string' ? l : l.name);
+            }
+
+            let targetLabel = null;
             let prefix = '';
             let baseBranch = 'develop';
             let isRelease = false;
 
-            if (label === 'release') {
+            // Prioritized label matching
+            if (labelNames.includes('release')) {
+              targetLabel = 'release';
               prefix = 'release/';
               baseBranch = 'develop';
               isRelease = true;
-            } else if (label === 'hotfix') {
+            } else if (labelNames.includes('hotfix')) {
+              targetLabel = 'hotfix';
               prefix = 'hotfix/';
               baseBranch = 'main';
-            } else if (label === 'bug') {
+            } else if (labelNames.includes('bug')) {
+              targetLabel = 'bug';
               prefix = 'bugfix/';
               baseBranch = 'develop';
-            } else if (label === 'refactor') {
+            } else if (labelNames.includes('refactor')) {
+              targetLabel = 'refactor';
               prefix = 'refactor/';
               baseBranch = 'develop';
-            } else if (label === 'internal') {
+            } else if (labelNames.includes('internal')) {
+              targetLabel = 'internal';
               prefix = 'internal/';
               baseBranch = 'develop';
-            } else if (['enhancement', 'feature', 'ci-cd', 'tooling', 'architecture', 'ai-workflow', 'documentation'].includes(label)) {
-              prefix = 'feature/';
-              baseBranch = 'develop';
             } else {
-              core.info(`Label '${label}' does not trigger branch provisioning.`);
+              const featureLabel = labelNames.find(l =>
+                ['enhancement', 'feature', 'ci-cd', 'tooling', 'architecture', 'ai-workflow', 'documentation'].includes(l)
+              );
+              if (featureLabel) {
+                targetLabel = featureLabel;
+                prefix = 'feature/';
+                baseBranch = 'develop';
+              }
+            }
+
+            if (!targetLabel) {
+              core.info(`No triggering labels found in [${labelNames.join(', ')}]. Skipping branch provisioning.`);
               core.setOutput('is_created', 'false');
               return;
             }
+
+            core.info(`Triggered branch provisioning via label '${targetLabel}' (action: ${context.payload.action}).`);
 
             const issueNumber = context.payload.issue.number;
             const rawTitle = context.payload.issue.title;

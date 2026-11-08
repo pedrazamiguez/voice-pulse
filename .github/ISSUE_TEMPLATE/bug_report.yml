@@ -1,0 +1,57 @@
+name: Bug Report
+description: Report a defect, crash, or unexpected behavior in VoicePulse
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🐛 Bug Report
+        Thank you for reporting an issue in VoicePulse. Submitting this issue automatically provisions a `bugfix/VP-<issue_number>-<slug>` branch from `develop`.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened and the impact...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Start service '...'
+        2. Send payload / audio frame '...'
+        3. See unexpected behavior or error '...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Describe the expected behavior according to VoicePulse architecture/RFCs...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Diagnostic Logs / Traces
+      description: Relevant log snippets, Netty leak traces, or error messages (wrap in ``` code blocks).
+      render: shell
+
+  - type: checkboxes
+    id: triage_checklist
+    attributes:
+      label: Bug Triage Checklist
+      options:
+        - label: I verified this issue is not already reported in open or closed issues.
+          required: true
+        - label: I checked system and application logs for leak or exception traces.
+          required: false

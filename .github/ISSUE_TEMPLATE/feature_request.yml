@@ -1,0 +1,45 @@
+name: Feature / Enhancement Request
+description: Propose a new feature, capability, or architectural enhancement
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 💡 Feature / Enhancement Request
+        Propose a new feature or architectural improvement for VoicePulse. Submitting this issue automatically provisions a `feature/VP-<issue_number>-<slug>` branch from `develop`.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: A concise summary of the proposed feature or enhancement.
+      placeholder: Describe the goal and capability...
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation & Business Context
+      description: Why is this feature needed? What problem does it solve for VoicePulse or SkyWay Airlines hotline?
+      placeholder: Explain the business or technical motivation...
+    validations:
+      required: true
+
+  - type: textarea
+    id: architectural_solution
+    attributes:
+      label: Proposed Solution & Hexagonal Architecture Impact
+      description: Describe proposed domain models, ports, or adapters, and how domain purity is preserved.
+      placeholder: Inbound UseCase, Outbound Port, or infrastructure adapter details...
+
+  - type: checkboxes
+    id: guardrails_checklist
+    attributes:
+      label: Architecture & SDD Guardrails
+      options:
+        - label: Adheres to Hexagonal Architecture (Domain has zero framework dependencies).
+          required: true
+        - label: Follows Specification-Driven Development (SDD) with TDD before implementation.
+          required: true
