@@ -58,7 +58,8 @@ voicepulse/
 │       ├── vp-replan-issue/SKILL.md   # Architectural realignment
 │       ├── vp-verify-architecture/SKILL.md # ArchUnit + Spotless + SpotBugs checks
 │       ├── vp-address-sonar-issues/SKILL.md# Quality gate & vulnerability remediation
-│       └── vp-address-pr-comments/SKILL.md # Review feedback resolution
+│       ├── vp-address-pr-comments/SKILL.md # Review feedback resolution
+│       └── vp-follow-up/SKILL.md      # In-flight scope amendments & post-merge follow-ups
 ├── .github/
 │   ├── workflows/
 │   │   ├── build-and-test.yml         # Unit + Testcontainers integration tests
@@ -335,6 +336,93 @@ arguments: []
    ```bash
    make fast-check
    ```
+```
+
+### Skill 4: `vp-replan-issue` (`.agents/skills/vp-replan-issue/SKILL.md`)
+
+```markdown
+---
+name: vp-replan-issue
+description: Replan an issue when scope changes, unexpected architectural blockers arise, or tests fail repeatedly.
+mode: agent
+tools:
+  - codebase
+  - githubRepo
+arguments:
+  - name: issue_number
+    description: The GitHub issue number to replan.
+    required: true
+  - name: reason
+    description: Explanation of why replanning is required.
+    required: true
+---
+# Replan Issue #$ISSUE_NUMBER
+
+1. **Document the Blocker:** Summarize root cause or breaking architectural constraint.
+2. **Re-evaluate Architecture & Contracts:** Review AGENTS.md and draft decoupled port strategies.
+3. **Post Revised Plan:** Post updated plan prefixed with `[REVISED PLAN]` and await human approval before resuming `vp-start-issue`.
+```
+
+### Skill 5: `vp-address-pr-comments` (`.agents/skills/vp-address-pr-comments/SKILL.md`)
+
+```markdown
+---
+name: vp-address-pr-comments
+description: Ingest, analyze, and systematically resolve pull request review comments.
+mode: agent
+tools:
+  - codebase
+  - githubRepo
+  - terminalLastCommand
+arguments:
+  - name: pr_number
+    description: The Pull Request number to address comments on.
+    required: true
+---
+# Address PR Comments #$PR_NUMBER
+
+1. **Fetch Review Comments:** Ingest inline review comments and PR review threads (`gh pr view $PR_NUMBER --comments`).
+2. **Categorize Feedback:** Architectural invariants, style/formatting, or logic/edge case tests.
+3. **Implement & Verify Fixes:** Write tests, apply changes, run `make fast-check`.
+4. **Push & Reply:** Push commits and post inline resolutions on PR comments.
+```
+
+### Skill 6: `vp-follow-up` (`.agents/skills/vp-follow-up/SKILL.md`)
+
+```markdown
+---
+name: vp-follow-up
+description: Handle in-flight scope amendments for active issues or create linked follow-up issues for merged work with human approval.
+mode: agent
+tools:
+  - codebase
+  - githubRepo
+  - terminalLastCommand
+arguments:
+  - name: issue_number
+    description: The GitHub issue number to amend or follow up on.
+    required: true
+  - name: description
+    description: Details of the scope amendment or follow-up requirement.
+    required: true
+  - name: mode
+    description: "Operational mode: auto (default, inferred from issue state), in-flight (Mode A: scope addendum for open issues), or post-merge (Mode B: follow-up issue for closed/merged work)."
+    required: false
+---
+# Follow-Up / Scope Amendment #$ISSUE_NUMBER
+
+1. **Mode Resolution:** Inspect issue state (`gh issue view $ISSUE_NUMBER --json state`). Route to Mode A if open, Mode B if closed.
+2. **Mode A (In-Flight Scope Amendment):**
+   - Diff proposed scope against active issue and plan comments (`gh issue view $ISSUE_NUMBER --comments`).
+   - Assess Hexagonal boundaries and 600-line file limit impact.
+   - Draft structured `[SCOPE ADDENDUM]` comment.
+   - Enforce Human Approval Gate before posting via `gh issue comment`.
+3. **Mode B (Post-Merge Follow-Up Issue):**
+   - Inspect closed parent issue and merged PR context (`gh pr list --search "$ISSUE_NUMBER" --state merged`).
+   - Format Conventional Commit title (`<type>(<scope>): <summary>`, zero `[VP-XX]` prefixes).
+   - Inherit parent labels and active epic.
+   - Draft follow-up issue linking `Follow-up to #<parent_id>` using VoicePulse SDD template.
+   - Enforce Human Approval Gate before creating via `gh issue create`.
 ```
 
 ---
@@ -958,10 +1046,11 @@ ai-setup: ## Install & configure codebase-memory-mcp, Graphify, and local RAG
 rag-index: ## Build or update local documentation vector database
 	@uv run scripts/rag_indexer.py
 
-knowledge-update: ## Refresh all AI indexes (codebase-memory, graphify, voicepulse-rag)
+knowledge-update: ## Refresh all AI indexes (voicepulse-rag, graphify, codebase-memory)
 	@printf "$(YELLOW)⏳ Refreshing AI code graphs and RAG databases...$(NC)\n"
 	@uv run scripts/rag_indexer.py
 	@graphify update . 2>/dev/null || true
+	@codebase-memory-mcp cli index_repository "{\"repo_path\": \"$$(pwd)\"}" 2>/dev/null || true
 	@printf "$(GREEN)✅ All AI knowledge graphs up to date.$(NC)\n"
 
 doctor: ## Diagnose developer environment

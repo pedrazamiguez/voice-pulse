@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: VoicePulse Architectural RFCs
+    url: https://github.com/pedrazamiguez/voice-pulse/tree/develop/docs/rfcs
+    about: Review VoicePulse architecture, pipeline topology, and CI/CD specifications.
+  - name: VoicePulse Engineering Directives (AGENTS.md)
+    url: https://github.com/pedrazamiguez/voice-pulse/blob/develop/AGENTS.md
+    about: Read architectural constraints, hexagonal boundaries, and GitFlow invariants.

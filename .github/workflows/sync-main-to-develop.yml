@@ -1,0 +1,178 @@
+name: Sync Main to Develop
+
+on:
+  workflow_run:
+    workflows: ["Publish Release"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type (minor, patch, major)'
+        required: false
+        default: 'minor'
+        type: choice
+        options:
+          - minor
+          - patch
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  sync-back-merge:
+    name: Prepare Sync Back-Merge PR
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout Main Branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Calculate Next Snapshot Version & Prep Sync Branch
+        id: prep-sync
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            const { computeNextVersion, initializeUnreleasedChangelog } = require('./.github/scripts/release-utils.js');
+
+            const currentVersion = execSync('./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout', { encoding: 'utf8' }).trim();
+            core.info(`Current release version on main: ${currentVersion}`);
+
+            const headSha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+            const shortSha = headSha.substring(0, 7);
+            const syncBranch = `sync/main-to-develop-${shortSha}`;
+
+            let isMajor = false;
+            let isHotfix = false;
+
+            if (context.eventName === 'workflow_dispatch') {
+              const bumpType = context.payload.inputs?.bump_type || 'minor';
+              isMajor = bumpType === 'major';
+              isHotfix = bumpType === 'patch';
+            } else {
+              // Inspect commit message or merged PR labels
+              const commitMsg = execSync('git log -1 --pretty=%B', { encoding: 'utf8' });
+              if (/merge pull request #(\d+)/i.test(commitMsg)) {
+                const prNum = commitMsg.match(/merge pull request #(\d+)/i)[1];
+                try {
+                  const prData = await github.rest.pulls.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: parseInt(prNum, 10)
+                  });
+                  const labels = (prData.data.labels || []).map(l => l.name.toLowerCase());
+                  isMajor = labels.includes('major');
+                  isHotfix = labels.includes('hotfix');
+                } catch (e) {
+                  core.warning(`Could not fetch PR #${prNum} labels: ${e.message}`);
+                }
+              }
+            }
+
+            const { releaseVersion, snapshotVersion } = computeNextVersion(currentVersion, { isMajor, isHotfix });
+            core.info(`Computed next iteration: ${snapshotVersion} (release: ${releaseVersion})`);
+
+            // Check out sync branch locally
+            execSync(`git checkout -b ${syncBranch}`, { stdio: 'inherit' });
+
+            // Bump pom.xml versions
+            execSync(`./mvnw versions:set -DnewVersion=${snapshotVersion} -DgenerateBackupPoms=false`, { stdio: 'inherit' });
+
+            // Restore ## [Unreleased] section in CHANGELOG.md
+            if (fs.existsSync('CHANGELOG.md')) {
+              const changelogContent = fs.readFileSync('CHANGELOG.md', 'utf8');
+              const { modified, content } = initializeUnreleasedChangelog(changelogContent);
+              if (modified) {
+                fs.writeFileSync('CHANGELOG.md', content, 'utf8');
+                core.info('Initialized clean ## [Unreleased] section in CHANGELOG.md.');
+              }
+            }
+
+            // Commit and push sync branch
+            execSync('git config user.name "github-actions[bot]"', { stdio: 'inherit' });
+            execSync('git config user.email "41898282+github-actions[bot]@users.noreply.github.com"', { stdio: 'inherit' });
+            execSync(`git commit -am "chore(sync): bump version to ${snapshotVersion} and initialize unreleased changelog [skip ci]"`, { stdio: 'inherit' });
+            execSync(`git push origin ${syncBranch} --force`, { stdio: 'inherit' });
+
+            core.setOutput('sync_branch', syncBranch);
+            core.setOutput('snapshot_version', snapshotVersion);
+            core.setOutput('short_sha', shortSha);
+            core.setOutput('current_version', currentVersion);
+
+      - name: Open Sync PR Targeting Develop
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const syncBranch = '${{ steps.prep-sync.outputs.sync_branch }}';
+            const snapshotVersion = '${{ steps.prep-sync.outputs.snapshot_version }}';
+            const shortSha = '${{ steps.prep-sync.outputs.short_sha }}';
+            const currentVersion = '${{ steps.prep-sync.outputs.current_version }}';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Check if open PR already exists
+            const existingPrs = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:${syncBranch}`,
+              base: 'develop',
+              state: 'open'
+            });
+
+            if (existingPrs.data.length > 0) {
+              core.info(`Sync PR already exists: #${existingPrs.data[0].number}`);
+              return;
+            }
+
+            const title = `chore(sync): merge main (${currentVersion}) into develop (${snapshotVersion})`;
+            const body = [
+              '## Automated Post-Release Synchronization',
+              '',
+              'This PR synchronizes production release changes from `main` back into `develop` and bumps the development iteration.',
+              '',
+              `- **Production Release:** \`${currentVersion}\` (commit \`${shortSha}\`)`,
+              `- **Next Iteration:** \`${snapshotVersion}\``,
+              `- **Source Branch:** \`${syncBranch}\``,
+              `- **Target Branch:** \`develop\``,
+              '',
+              '### Merge Instructions',
+              'Merge this PR into `develop` using **Create a merge commit** to maintain clean Git history and tag ancestry.'
+            ].join('\n');
+
+            const pr = await github.rest.pulls.create({
+              owner,
+              repo,
+              title,
+              head: syncBranch,
+              base: 'develop',
+              body
+            });
+
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: pr.data.number,
+              labels: ['sync']
+            });
+
+            core.info(`✅ Successfully opened sync PR #${pr.data.number} targeting 'develop'.`);

@@ -125,6 +125,12 @@ All issues and feature additions must follow the SDD workflow:
 1. **Plan First:** Invoke `.agents/skills/vp-plan-issue/SKILL.md` to produce an approved architecture change contract before creating or editing code files.
 2. **Execute with TDD:** Invoke `.agents/skills/vp-start-issue/SKILL.md` to implement domain unit tests first, followed by ports, and finally infrastructure adapters.
 3. **Verify Locally:** Invoke `.agents/skills/vp-verify-architecture/SKILL.md` to run ArchUnit tests and audit file line counts before opening a Pull Request.
+4. **Address Review Feedback:** Invoke `.agents/skills/vp-address-pr-comments/SKILL.md` to resolve PR review comments and CI feedback.
+
+### Scope Evolution & Realignment Skills
+* **In-Flight Scope Additions (Active Issues):** When new requirements or edge cases are uncovered during implementation, invoke `.agents/skills/vp-follow-up/SKILL.md` (Mode A) to append a structured `[SCOPE ADDENDUM]` to the active issue/plan without discarding current progress.
+* **Architectural Realignment (Invalidated Plans):** If major architectural blockers or contract breaks invalidate an active plan, invoke `.agents/skills/vp-replan-issue/SKILL.md` to draft a revised plan.
+* **Post-Merge Follow-Ups (Merged Work):** When follow-up enhancements or deferred edge cases are identified for merged/closed work, invoke `.agents/skills/vp-follow-up/SKILL.md` (Mode B) to spin off a new tracked GitHub issue explicitly linked to `#<parent_id>` and the merged PR.
 
 ---
 
@@ -134,13 +140,21 @@ Every agent and human contributor MUST adhere to these strict operational constr
 
 ### Branch Discipline & PR Mandate
 * ❌ **NEVER commit or push directly to `main` or `develop`.**
-* All development, documentation, fixes, and internal tasks MUST occur on dedicated branches:
-  - Features: `feat/<description>`
-  - Bug fixes: `fix/<description>`
-  - Documentation: `docs/<description>`
-  - Refactoring: `refactor/<description>`
-  - Internal tooling/infrastructure: `internal/<description>`
-* All changes must land on `develop` strictly via Pull Requests verified by CI. Direct pushes to `develop` or `main` are rejected locally by `.git/hooks/pre-push`.
+* All development, documentation, fixes, and internal tasks MUST occur on dedicated branches using canonical prefixes:
+  - Features: `feature/<description>` (targets `develop`)
+  - Bug fixes: `bugfix/<description>` (targets `develop`)
+  - Hotfixes: `hotfix/<description>` (targets `main` ONLY)
+  - Releases: `release/<description>` (targets `main` ONLY)
+  - Documentation: `docs/<description>` (targets `develop`)
+  - Refactoring: `refactor/<description>` (targets `develop`)
+  - Internal tooling/infrastructure: `internal/<description>` (targets `develop`)
+  - Post-release sync back-merges: `sync/main-to-develop-<sha>` (targets `develop`)
+* Legacy prefixes such as `feat/` and `fix/` are strictly prohibited.
+* All changes must land on `develop` or `main` strictly via Pull Requests verified by CI. Direct pushes to `develop` or `main` are rejected locally by `.git/hooks/pre-push`.
+
+### Release Management & Merge Commit Mandate
+* ❌ **NEVER use "Squash and merge" or "Rebase and merge" when merging Pull Requests into `main`.**
+* Merges into `main` (for releases and hotfixes) MUST strictly use **"Create a merge commit"**. This preserves full commit history, ensures accurate git tag ancestry for changelog generation, and allows the automated `sync/main-to-develop` workflow to back-merge changes into `develop` cleanly without phantom conflicts or duplicate histories.
 
 ### Monotonic Issue Numbering Invariant
 * ❌ **NEVER calculate, guess, or prepend arbitrary `[VP-XX]` or `[EPIC-XX]` tags to issue titles, plans, or checklists.**

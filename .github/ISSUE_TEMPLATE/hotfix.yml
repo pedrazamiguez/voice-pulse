@@ -1,0 +1,36 @@
+name: Emergency Hotfix Request
+description: Request an emergency production patch branch provisioned directly from main
+title: "fix(hotfix): "
+labels: ["hotfix"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🚨 Emergency Production Hotfix Request
+        Submitting this issue automatically provisions a `hotfix/VP-<issue_number>-<slug>` branch directly from `main`. Use only for critical production defects.
+
+  - type: textarea
+    id: severity_summary
+    attributes:
+      label: Outage / Defect Summary & Impact
+      description: Describe the production impact, affected systems, and customer impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: root_cause
+    attributes:
+      label: Root Cause & Immediate Remediation
+      description: Explain the identified root cause and the specific fix proposed.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: hotfix_checklist
+    attributes:
+      label: Emergency Gate Checklist
+      options:
+        - label: This defect impacts production or blocks a critical release path.
+          required: true
+        - label: A targeted patch and regression test are identified.
+          required: true
