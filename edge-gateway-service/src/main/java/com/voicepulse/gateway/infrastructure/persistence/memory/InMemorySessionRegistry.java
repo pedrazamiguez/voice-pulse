@@ -14,8 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class InMemorySessionRegistry implements SessionRegistryPort {
 
-    private static final String SESSION_ID_NULL_MSG = "sessionId cannot be null";
-
     private final ConcurrentHashMap<CallSessionId, CallSession> sessions =
             new ConcurrentHashMap<>();
 
@@ -27,24 +25,28 @@ public class InMemorySessionRegistry implements SessionRegistryPort {
 
     @Override
     public Optional<CallSession> findById(CallSessionId sessionId) {
-        Objects.requireNonNull(sessionId, SESSION_ID_NULL_MSG);
+        validateSessionId(sessionId);
         return Optional.ofNullable(sessions.get(sessionId));
     }
 
     @Override
     public void remove(CallSessionId sessionId) {
-        Objects.requireNonNull(sessionId, SESSION_ID_NULL_MSG);
+        validateSessionId(sessionId);
         sessions.remove(sessionId);
     }
 
     @Override
     public boolean exists(CallSessionId sessionId) {
-        Objects.requireNonNull(sessionId, SESSION_ID_NULL_MSG);
+        validateSessionId(sessionId);
         return sessions.containsKey(sessionId);
     }
 
     @Override
     public int activeSessionCount() {
         return sessions.size();
+    }
+
+    private void validateSessionId(CallSessionId sessionId) {
+        Objects.requireNonNull(sessionId, "sessionId cannot be null");
     }
 }

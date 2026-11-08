@@ -39,7 +39,6 @@ public class AudioWebSocketHandler implements WebSocketHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AudioWebSocketHandler.class);
     private static final Pattern PATH_PATTERN = Pattern.compile("^/ws/calls/([^/]+)/audio/?$");
-    private static final String CALL_ID_VARIABLE = "callId";
 
     private final IngestAudioChunkUseCase ingestAudioChunkUseCase;
     private final ManageCallSessionUseCase manageCallSessionUseCase;
@@ -164,18 +163,14 @@ public class AudioWebSocketHandler implements WebSocketHandler {
     }
 
     private String extractCallId(WebSocketSession session) {
-        Object uriVars =
-                session.getAttributes().get(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-        if (uriVars instanceof Map<?, ?> map && map.containsKey(CALL_ID_VARIABLE)) {
-            return String.valueOf(map.get(CALL_ID_VARIABLE));
+        String callId = extractFromAttributes(session.getAttributes());
+        if (callId != null) {
+            return callId;
         }
 
-        Object handshakeVars =
-                session.getHandshakeInfo()
-                        .getAttributes()
-                        .get(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-        if (handshakeVars instanceof Map<?, ?> map && map.containsKey(CALL_ID_VARIABLE)) {
-            return String.valueOf(map.get(CALL_ID_VARIABLE));
+        callId = extractFromAttributes(session.getHandshakeInfo().getAttributes());
+        if (callId != null) {
+            return callId;
         }
 
         String path = getPath(session);
@@ -186,6 +181,14 @@ public class AudioWebSocketHandler implements WebSocketHandler {
             }
         }
 
+        return null;
+    }
+
+    private String extractFromAttributes(Map<String, Object> attributes) {
+        Object uriVars = attributes.get(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+        if (uriVars instanceof Map<?, ?> map && map.containsKey("callId")) {
+            return String.valueOf(map.get("callId"));
+        }
         return null;
     }
 
