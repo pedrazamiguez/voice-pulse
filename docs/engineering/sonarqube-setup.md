@@ -90,21 +90,35 @@ Standard application entrypoints and Spring Boot configuration classes that cont
 
 ## 5. Local Developer Execution
 
-Developers can run SonarQube analysis against the configured server before pushing or opening a pull request:
+Developers can run SonarQube analysis against the configured server before pushing or opening a pull request.
 
-### Prerequisites
+### Option A: Using `.env.local` (Recommended)
+Copy the template and configure your local credentials (this file is git-ignored):
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+```bash
+SONAR_HOST_URL=https://cantalobos.mooo.com
+SONAR_TOKEN=sqa_your_personal_token
+```
+
+Then execute:
+```bash
+make sonar
+```
+The `Makefile` automatically loads `.env` or `.env.local` if present.
+
+### Option B: Using Environment Variables
 Export the required environment variables:
 ```bash
 export SONAR_HOST_URL="https://your-sonarqube-host:9000"
 export SONAR_TOKEN="sqp_your_personal_token"
-```
-
-### Running Analysis via Makefile
-```bash
 make sonar
 ```
 
-Or pass the credentials inline:
+Or pass them inline:
 ```bash
 SONAR_HOST_URL="https://your-sonarqube-host:9000" SONAR_TOKEN="sqp_xxx" make sonar
 ```
@@ -118,7 +132,7 @@ The target executes:
     -Dsonar.qualitygate.timeout=300
 ```
 
-If `SONAR_HOST_URL` or `SONAR_TOKEN` is unset, the target halts immediately with an informative error message and non-zero exit code.
+If `SONAR_HOST_URL` or `SONAR_TOKEN` is unset in both environment variables and `.env.local`, the target halts immediately with an informative error message and non-zero exit code.
 
 ---
 

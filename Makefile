@@ -2,6 +2,11 @@
 # VoicePulse — Developer Bootstrap & Quality Gates
 # ─────────────────────────────────────────────────────────────────────────────
 
+-include .env
+-include .env.local
+export SONAR_HOST_URL
+export SONAR_TOKEN
+
 .PHONY: help setup hooks fast-check check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag knowledge-update sonar
 
 CYAN   := \033[0;36m
@@ -129,14 +134,14 @@ knowledge-update: ## Refresh all AI indexes (voicepulse-rag, graphify, codebase-
 	@graphify update . 2>/dev/null || true
 	@printf "$(GREEN)✅ All AI knowledge graphs up to date.$(NC)\n"
 
-sonar: ## Run SonarQube analysis locally (requires SONAR_HOST_URL & SONAR_TOKEN)
+sonar: ## Run SonarQube analysis locally (uses .env.local or SONAR_HOST_URL & SONAR_TOKEN)
 	@printf "$(YELLOW)⏳ Running SonarQube static analysis and quality gate...$(NC)\n"
 	@if [ -z "$$SONAR_HOST_URL" ]; then \
-		printf "$(RED)❌ SONAR_HOST_URL is not set. Export SONAR_HOST_URL or pass SONAR_HOST_URL=...$(NC)\n"; \
+		printf "$(RED)❌ SONAR_HOST_URL is not set. Set SONAR_HOST_URL in .env.local or export SONAR_HOST_URL=...$(NC)\n"; \
 		exit 1; \
 	fi
 	@if [ -z "$$SONAR_TOKEN" ]; then \
-		printf "$(RED)❌ SONAR_TOKEN is not set. Export SONAR_TOKEN or pass SONAR_TOKEN=...$(NC)\n"; \
+		printf "$(RED)❌ SONAR_TOKEN is not set. Set SONAR_TOKEN in .env.local or export SONAR_TOKEN=...$(NC)\n"; \
 		exit 1; \
 	fi
 	@$(MVN) clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
