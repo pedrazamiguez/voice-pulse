@@ -14,6 +14,8 @@ class VoicePulseSoftphone {
         this.workletNode = null;
         this.analyserNode = null;
         this.vuAnimId = null;
+        this.silentGainNode = null;
+        this.pendingTimestamps = [];
 
         this.callStartTime = null;
         this.callTimerId = null;
@@ -139,13 +141,7 @@ class VoicePulseSoftphone {
         this.log(`Initiating call session ${callId}...`, 'info');
 
         try {
-            // 1. Initialize Web Audio Context & Capture Microphone
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            this.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
-            if (this.audioContext.state === 'suspended') {
-                await this.audioContext.resume();
-            }
-
+            // 1. Capture Microphone First (triggers hardware sample rate negotiation on macOS/Bluetooth)
             this.log('Requesting microphone permission...', 'info');
             this.mediaStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -156,15 +152,37 @@ class VoicePulseSoftphone {
                 }
             });
 
+            // 2. Initialize Web Audio Context AFTER mic acquisition
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            this.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
+            if (this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+
+            // Auto-resume if audio hardware changes cause state interruption
+            this.audioContext.onstatechange = () => {
+                if (this.audioContext && this.audioContext.state === 'suspended' && this.isConnected) {
+                    this.audioContext.resume().catch(() => {});
+                }
+            };
+
             this.log(`Microphone access granted. Host sample rate: ${this.audioContext.sampleRate} Hz.`, 'success');
 
-            // 2. Load AudioWorklet Processor for 16 kHz Linear PCM downsampling
+            // 3. Load AudioWorklet Processor for 16 kHz Linear PCM downsampling
             await this.audioContext.audioWorklet.addModule('audio-processor.worklet.js');
             this.log('AudioWorklet module loaded: linear-pcm16-downsampler-processor.', 'info');
 
-            // 3. Connect Web Audio Graph
+            // 4. Connect Web Audio Graph
             const micSource = this.audioContext.createMediaStreamSource(this.mediaStream);
             this.workletNode = new AudioWorkletNode(this.audioContext, 'linear-pcm16-downsampler-processor');
+
+            // Chromium Web Audio pull-graph requirement:
+            // AudioWorkletNode must terminate at audioContext.destination to be pulled by the audio thread.
+            // Route through a muted GainNode (gain = 0.0) so the graph pulls frames without mic audio feedback.
+            this.silentGainNode = this.audioContext.createGain();
+            this.silentGainNode.gain.value = 0.0;
+            this.workletNode.connect(this.silentGainNode);
+            this.silentGainNode.connect(this.audioContext.destination);
 
             // Setup AnalyserNode for visual VU meter
             this.analyserNode = this.audioContext.createAnalyser();
@@ -206,9 +224,14 @@ class VoicePulseSoftphone {
             };
 
             // 5. Worklet Outbound PCM Audio Streaming
+            this.pendingTimestamps = [];
             this.workletNode.port.onmessage = (event) => {
                 if (event.data && event.data.type === 'pcm' && this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
                     const chunkBuffer = event.data.buffer;
+                    this.pendingTimestamps.push(performance.now());
+                    if (this.pendingTimestamps.length > 500) {
+                        this.pendingTimestamps.shift();
+                    }
                     this.ws.send(chunkBuffer);
                     this.metrics.packetsSent++;
                     this.metrics.bytesSent += chunkBuffer.byteLength;
@@ -225,10 +248,19 @@ class VoicePulseSoftphone {
     handleInboundAudio(arrayBuffer) {
         this.metrics.packetsRecv++;
         this.metrics.bytesRecv += arrayBuffer.byteLength;
+        if (this.pendingTimestamps && this.pendingTimestamps.length > 0) {
+            const sendTime = this.pendingTimestamps.shift();
+            const rtt = Math.round(performance.now() - sendTime);
+            this.metrics.latencyMs = rtt;
+        }
         this.updateTelemetryDom();
 
         if (!this.audioContext || this.audioContext.state === 'closed') {
             return;
+        }
+
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume().catch(() => {});
         }
 
         // Convert 16-bit signed Linear PCM to Float32
@@ -247,7 +279,7 @@ class VoicePulseSoftphone {
         source.connect(this.audioContext.destination);
 
         const now = this.audioContext.currentTime;
-        if (this.nextPlaybackTime < now) {
+        if (this.nextPlaybackTime < now || this.nextPlaybackTime > now + 0.1) {
             this.nextPlaybackTime = now + 0.025; // 25ms jitter buffer
         }
 
@@ -330,6 +362,9 @@ class VoicePulseSoftphone {
         this.dom.metricPacketsRecv.textContent = this.metrics.packetsRecv.toLocaleString();
         this.dom.metricBytesSent.textContent = `${(this.metrics.bytesSent / 1024).toFixed(1)} KB`;
         this.dom.metricBytesRecv.textContent = `${(this.metrics.bytesRecv / 1024).toFixed(1)} KB`;
+        if (this.metrics.latencyMs !== null) {
+            this.dom.metricLatency.textContent = `${this.metrics.latencyMs} ms`;
+        }
     }
 
     async disconnectCall(reason = 'Disconnected') {
@@ -354,6 +389,16 @@ class VoicePulseSoftphone {
             cancelAnimationFrame(this.vuAnimId);
             this.vuAnimId = null;
         }
+
+        if (this.silentGainNode) {
+            try {
+                this.silentGainNode.disconnect();
+            } catch (e) {
+                // Ignore disconnect error
+            }
+            this.silentGainNode = null;
+        }
+        this.pendingTimestamps = [];
 
         if (this.mediaStream) {
             this.mediaStream.getTracks().forEach(track => track.stop());
