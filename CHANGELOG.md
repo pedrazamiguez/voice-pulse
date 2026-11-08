@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(gateway): define domain models, audio frame records, and hexagonal ports ([#23](https://github.com/pedrazamiguez/voice-pulse/issues/23))
 - feat(ai-workflow): add vp-review-pr skill for automated PR compliance and plan validation ([#51](https://github.com/pedrazamiguez/voice-pulse/issues/51))
 - feat(gateway): implement reactive Netty AudioWebSocketHandler with ByteBuf memory safety ([#24](https://github.com/pedrazamiguez/voice-pulse/issues/24))
+- feat(softphone): implement browser AudioWorklet PCM downsampler and WebSocket client UI ([#25](https://github.com/pedrazamiguez/voice-pulse/issues/25))
 
 ### Tooling & Infrastructure
 - ci(changelog): exclude release lifecycle issues from automated changelog updates ([#49](https://github.com/pedrazamiguez/voice-pulse/issues/49))
