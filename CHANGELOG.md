@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-08
+
 ### Tooling & Infrastructure
 - chore(release): prepare release v0.1.0 ([#40](https://github.com/pedrazamiguez/voice-pulse/issues/40))
 - chore(release): prepare release ([#46](https://github.com/pedrazamiguez/voice-pulse/issues/46))
