@@ -269,7 +269,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 });
 
 describe('run (Octokit Integration)', () => {
-  it('fetches develop CHANGELOG.md, updates content, and commits with [skip ci]', async () => {
+  it('fetches develop CHANGELOG.md, updates content, and commits', async () => {
     const originalContent = `# Changelog\n\n## [Unreleased]\n\n### Added\n- Existing ([#1](url))\n`;
     let updatedPayload = null;
 
@@ -320,7 +320,7 @@ describe('run (Octokit Integration)', () => {
     assert.equal(updatedPayload.branch, 'develop');
     assert.equal(
       updatedPayload.message,
-      'docs(changelog): record completion of #29 [skip ci]'
+      'docs(changelog): record completion of #29'
     );
     assert.equal(updatedPayload.sha, 'mock-sha-1234');
     assert.equal(updatedPayload.author.name, 'github-actions[bot]');
