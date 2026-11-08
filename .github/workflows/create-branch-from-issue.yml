@@ -7,31 +7,50 @@ on:
 permissions:
   contents: write
   issues: write
+  pull-requests: write
 
 jobs:
   create-branch:
     name: Provision Branch
     runs-on: ubuntu-latest
+    outputs:
+      branch_name: ${{ steps.branch-meta.outputs.branch_name }}
+      base_branch: ${{ steps.branch-meta.outputs.base_branch }}
+      is_release: ${{ steps.branch-meta.outputs.is_release }}
+      is_created: ${{ steps.branch-meta.outputs.is_created }}
     steps:
-      - name: Create Git Branch from Issue
+      - name: Calculate Branch Metadata & Provision Ref
+        id: branch-meta
         uses: actions/github-script@v7
         with:
           script: |
             const label = context.payload.label.name;
             let prefix = '';
             let baseBranch = 'develop';
+            let isRelease = false;
 
-            if (label === 'bug') {
-              prefix = 'bugfix/';
+            if (label === 'release') {
+              prefix = 'release/';
               baseBranch = 'develop';
+              isRelease = true;
             } else if (label === 'hotfix') {
               prefix = 'hotfix/';
               baseBranch = 'main';
+            } else if (label === 'bug') {
+              prefix = 'bugfix/';
+              baseBranch = 'develop';
+            } else if (label === 'refactor') {
+              prefix = 'refactor/';
+              baseBranch = 'develop';
+            } else if (label === 'internal') {
+              prefix = 'internal/';
+              baseBranch = 'develop';
             } else if (['enhancement', 'feature', 'ci-cd', 'tooling', 'architecture', 'ai-workflow', 'documentation'].includes(label)) {
               prefix = 'feature/';
               baseBranch = 'develop';
             } else {
               core.info(`Label '${label}' does not trigger branch provisioning.`);
+              core.setOutput('is_created', 'false');
               return;
             }
 
@@ -50,6 +69,10 @@ jobs:
             const branchName = `${prefix}VP-${issueNumber}-${slug}`;
             core.info(`Target branch name: ${branchName} from base: ${baseBranch}`);
 
+            core.setOutput('branch_name', branchName);
+            core.setOutput('base_branch', baseBranch);
+            core.setOutput('is_release', isRelease ? 'true' : 'false');
+
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
@@ -61,6 +84,7 @@ jobs:
                 ref: `heads/${branchName}`
               });
               core.info(`Branch '${branchName}' already exists. Skipping creation.`);
+              core.setOutput('is_created', 'false');
               return;
             } catch (error) {
               if (error.status !== 404) {
@@ -85,6 +109,7 @@ jobs:
             });
 
             core.info(`Branch '${branchName}' created successfully.`);
+            core.setOutput('is_created', 'true');
 
             // Post comment on issue
             const branchUrl = `https://github.com/${owner}/${repo}/tree/${branchName}`;
@@ -93,4 +118,78 @@ jobs:
               repo,
               issue_number: issueNumber,
               body: `🚀 Automated branch [\`${branchName}\`](${branchUrl}) successfully provisioned from \`${baseBranch}\` for #${issueNumber}.`
+            });
+
+      - name: Checkout Release Branch
+        if: steps.branch-meta.outputs.is_release == 'true' && steps.branch-meta.outputs.is_created == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.branch-meta.outputs.branch_name }}
+
+      - name: Set up JDK 21
+        if: steps.branch-meta.outputs.is_release == 'true' && steps.branch-meta.outputs.is_created == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Strip SNAPSHOT & Stamp CHANGELOG
+        if: steps.branch-meta.outputs.is_release == 'true' && steps.branch-meta.outputs.is_created == 'true'
+        run: |
+          ./mvnw versions:set -DremoveSnapshot=true -DgenerateBackupPoms=false
+          VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          TODAY=$(date -u +'%Y-%m-%d')
+
+          # Update CHANGELOG.md: Replace '## [Unreleased]' with '## [$VERSION] - $TODAY'
+          if [ -f CHANGELOG.md ]; then
+            sed -i.bak "s/^## \[Unreleased\]/## [$VERSION] - $TODAY/" CHANGELOG.md
+            rm -f CHANGELOG.md.bak
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): prepare release v$VERSION [skip ci]"
+          git push origin ${{ steps.branch-meta.outputs.branch_name }}
+
+      - name: Auto-Create Release PR Targeting Main
+        if: steps.branch-meta.outputs.is_release == 'true' && steps.branch-meta.outputs.is_created == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branchName = '${{ steps.branch-meta.outputs.branch_name }}';
+            const issueNumber = context.payload.issue.number;
+            const rawTitle = context.payload.issue.title;
+            const cleanedTitle = rawTitle.replace(/^\[[^\]]+\]\s*/, '');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const isMajor = /\[x\]\s*Major Release/i.test(context.payload.issue.body || '');
+
+            const pr = await github.rest.pulls.create({
+              owner,
+              repo,
+              title: `[VP-${issueNumber}]: ${cleanedTitle}`,
+              head: branchName,
+              base: 'main',
+              body: `Automated release pull request for #${issueNumber}.\n\nCloses #${issueNumber}`
+            });
+
+            const prLabels = ['release'];
+            if (isMajor) {
+              prLabels.push('major');
+            }
+
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: pr.data.number,
+              labels: prLabels
+            });
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: `📋 Automated Release PR [#${pr.data.number}](${pr.data.html_url}) opened targeting \`main\`.`
             });

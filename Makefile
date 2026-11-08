@@ -128,10 +128,10 @@ test-rag: ## Run RAG unit and integration tests
 	@uv run scripts/test_rag.py
 	@printf "$(GREEN)✅ RAG tests passed.$(NC)\n"
 
-test-changelog: ## Run Node.js changelog automation unit tests
-	@printf "$(YELLOW)⏳ Running changelog automation test suite...$(NC)\n"
-	@node --test .github/scripts/update-changelog.test.js
-	@printf "$(GREEN)✅ Changelog automation tests passed.$(NC)\n"
+test-changelog: ## Run Node.js changelog and release automation unit tests
+	@printf "$(YELLOW)⏳ Running changelog & release automation test suite...$(NC)\n"
+	@node --test .github/scripts/*.test.js
+	@printf "$(GREEN)✅ Changelog & release automation tests passed.$(NC)\n"
 
 knowledge-update: ## Refresh all AI indexes (voicepulse-rag, graphify, codebase-memory)
 	@printf "$(YELLOW)⏳ Refreshing AI code graphs and RAG databases...$(NC)\n"
