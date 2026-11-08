@@ -157,6 +157,68 @@ describe('shouldProcessIssue', () => {
       shouldProcessIssue({ stateReason: 'completed', labels: [{ name: 'invalid' }] }),
       false
     );
+    assert.equal(
+      shouldProcessIssue({ stateReason: 'completed', labels: ['release'] }),
+      false
+    );
+    assert.equal(
+      shouldProcessIssue({ stateReason: 'completed', labels: [{ name: 'Release' }] }),
+      false
+    );
+  });
+
+  it('returns false when title matches chore(release):', () => {
+    assert.equal(
+      shouldProcessIssue({
+        stateReason: 'completed',
+        labels: ['tooling'],
+        title: 'chore(release): prepare release v0.2.0'
+      }),
+      false
+    );
+    assert.equal(
+      shouldProcessIssue({
+        stateReason: 'completed',
+        labels: [],
+        title: '[VP-40] chore(release): prepare release'
+      }),
+      false
+    );
+    assert.equal(
+      shouldProcessIssue({
+        stateReason: 'completed',
+        labels: [],
+        title: 'CHORE(RELEASE): cut release'
+      }),
+      false
+    );
+  });
+
+  it('returns true for standard deliverables (feat:, fix:, docs:)', () => {
+    assert.equal(
+      shouldProcessIssue({
+        stateReason: 'completed',
+        labels: ['enhancement'],
+        title: 'feat(gateway): implement websocket adapter'
+      }),
+      true
+    );
+    assert.equal(
+      shouldProcessIssue({
+        stateReason: 'completed',
+        labels: ['bug'],
+        title: 'fix(core): handle buffer underrun'
+      }),
+      true
+    );
+    assert.equal(
+      shouldProcessIssue({
+        stateReason: 'completed',
+        labels: ['documentation'],
+        title: 'docs(readme): update quickstart'
+      }),
+      true
+    );
   });
 });
 
@@ -328,5 +390,68 @@ describe('run (Octokit Integration)', () => {
     const decodedContent = Buffer.from(updatedPayload.content, 'base64').toString('utf8');
     assert.ok(decodedContent.includes('#29'));
     assert.ok(decodedContent.includes('### Tooling & Infrastructure'));
+  });
+
+  it('skips release issue without updating CHANGELOG.md via Octokit', async () => {
+    let getContentCalled = false;
+    let createOrUpdateCalled = false;
+
+    const mockGithub = {
+      rest: {
+        repos: {
+          getContent: async () => {
+            getContentCalled = true;
+            return { data: { content: '', sha: 'sha' } };
+          },
+          createOrUpdateFileContents: async () => {
+            createOrUpdateCalled = true;
+          }
+        }
+      }
+    };
+
+    const loggedMessages = [];
+    const mockCore = {
+      info: (msg) => { loggedMessages.push(msg); },
+      setFailed: (msg) => { throw new Error(msg); }
+    };
+
+    // Case 1: labeled as release
+    const mockContextReleaseLabel = {
+      repo: { owner: 'pedrazamiguez', repo: 'voice-pulse' },
+      payload: {
+        issue: {
+          number: 40,
+          title: 'chore(release): prepare release v0.1.0',
+          html_url: 'https://github.com/pedrazamiguez/voice-pulse/issues/40',
+          state_reason: 'completed',
+          labels: ['release']
+        }
+      }
+    };
+
+    await run({ github: mockGithub, context: mockContextReleaseLabel, core: mockCore });
+    assert.equal(getContentCalled, false);
+    assert.equal(createOrUpdateCalled, false);
+    assert.ok(loggedMessages.some(m => m.includes('Issue #40 skipped')));
+
+    // Case 2: title matching chore(release): without release label
+    const mockContextReleaseTitle = {
+      repo: { owner: 'pedrazamiguez', repo: 'voice-pulse' },
+      payload: {
+        issue: {
+          number: 46,
+          title: 'chore(release): prepare release',
+          html_url: 'https://github.com/pedrazamiguez/voice-pulse/issues/46',
+          state_reason: 'completed',
+          labels: ['tooling']
+        }
+      }
+    };
+
+    await run({ github: mockGithub, context: mockContextReleaseTitle, core: mockCore });
+    assert.equal(getContentCalled, false);
+    assert.equal(createOrUpdateCalled, false);
+    assert.ok(loggedMessages.some(m => m.includes('Issue #46 skipped')));
   });
 });

@@ -211,6 +211,8 @@ function computeNextVersion(currentVersion, { isMajor = false, isHotfix = false,
 
 /**
  * Replaces the ## [Unreleased] header in CHANGELOG.md with the stamped release header.
+ * If the unreleased section has no bullet items, injects a fallback maintenance entry
+ * to prevent blank release sections.
  *
  * @param {string} changelogContent
  * @param {string} version e.g. "0.1.0"
@@ -219,7 +221,8 @@ function computeNextVersion(currentVersion, { isMajor = false, isHotfix = false,
  */
 function stampChangelogRelease(changelogContent, version, dateStr) {
   const unreleasedRegex = /^(##\s+\[Unreleased\]\s*)$/m;
-  if (!unreleasedRegex.test(changelogContent)) {
+  const match = changelogContent.match(unreleasedRegex);
+  if (!match) {
     return {
       modified: false,
       content: changelogContent
@@ -227,8 +230,29 @@ function stampChangelogRelease(changelogContent, version, dateStr) {
   }
 
   const stampedHeader = `## [${version}] - ${dateStr}`;
-  const updatedContent = changelogContent.replace(unreleasedRegex, stampedHeader);
+  const postUnreleased = changelogContent.slice(match.index + match[0].length);
 
+  // Stop at next ## header or EOF
+  const nextHeaderMatch = postUnreleased.match(/\n##\s+\[/);
+  const unreleasedBody = nextHeaderMatch
+    ? postUnreleased.slice(0, nextHeaderMatch.index)
+    : postUnreleased;
+
+  const hasBullets = /^\s*-\s+/m.test(unreleasedBody);
+
+  if (!hasBullets) {
+    const pre = changelogContent.slice(0, match.index);
+    const remainingContent = nextHeaderMatch
+      ? postUnreleased.slice(nextHeaderMatch.index)
+      : '';
+    const updatedContent = `${pre}${stampedHeader}\n\n- Maintenance release with no user-facing changes.\n${remainingContent}`;
+    return {
+      modified: true,
+      content: updatedContent
+    };
+  }
+
+  const updatedContent = changelogContent.replace(unreleasedRegex, stampedHeader);
   return {
     modified: true,
     content: updatedContent
