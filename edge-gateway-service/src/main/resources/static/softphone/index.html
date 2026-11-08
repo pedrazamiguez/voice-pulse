@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>VoicePulse Softphone</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="brand">
+                <span class="brand-icon">⚡</span>
+                <h1>VoicePulse Softphone</h1>
+            </div>
+            <div class="hud-status">
+                <span class="status-label">Gateway Status:</span>
+                <span id="connection-badge" class="badge badge-disconnected" aria-live="polite">DISCONNECTED</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Call Configuration & Controls -->
+            <section class="card session-controls" aria-labelledby="controls-title">
+                <h2 id="controls-title" class="section-title">Call Session Controls</h2>
+                
+                <div class="form-group">
+                    <label for="call-id-input">Call Session ID (UUID)</label>
+                    <div class="input-action-group">
+                        <input type="text" id="call-id-input" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" spellcheck="false" autocomplete="off" />
+                        <button type="button" id="btn-generate-id" class="btn btn-secondary" title="Generate New UUID">New UUID</button>
+                    </div>
+                </div>
+
+                <div class="control-actions">
+                    <button type="button" id="btn-call" class="btn btn-primary">
+                        <span class="btn-icon">📞</span>
+                        <span id="btn-call-label">Start Call</span>
+                    </button>
+                    <button type="button" id="btn-mute" class="btn btn-secondary" disabled aria-pressed="false">
+                        <span class="btn-icon">🎤</span>
+                        <span id="btn-mute-label">Mute Mic</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Real-time Audio VU Meter -->
+            <section class="card audio-telemetry" aria-labelledby="audio-title">
+                <h2 id="audio-title" class="section-title">Acoustic Telemetry & VU Meter</h2>
+                
+                <div class="meter-wrapper">
+                    <div class="meter-label">
+                        <span>Microphone Input Level</span>
+                        <span id="vu-level-value" class="meter-value">0%</span>
+                    </div>
+                    <div class="vu-meter-bar-container">
+                        <div id="vu-meter-bar" class="vu-meter-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <div class="audio-specs">
+                    <div class="spec-item">
+                        <span class="spec-label">Audio Standard:</span>
+                        <span class="spec-value">16 kHz Linear PCM (Mono)</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Packet Sizing:</span>
+                        <span class="spec-value">20 ms (640 bytes / 320 samples)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Network & Stream Telemetry HUD -->
+            <section class="card stream-telemetry" aria-labelledby="telemetry-title">
+                <h2 id="telemetry-title" class="section-title">Stream Telemetry HUD</h2>
+                
+                <div class="telemetry-grid">
+                    <div class="telemetry-metric">
+                        <span class="metric-label">Call Duration</span>
+                        <span id="metric-duration" class="metric-value">00:00</span>
+                    </div>
+                    <div class="telemetry-metric">
+                        <span class="metric-label">Estimated Latency</span>
+                        <span id="metric-latency" class="metric-value">-- ms</span>
+                    </div>
+                    <div class="telemetry-metric">
+                        <span class="metric-label">Packets Sent</span>
+                        <span id="metric-packets-sent" class="metric-value">0</span>
+                    </div>
+                    <div class="telemetry-metric">
+                        <span class="metric-label">Packets Recv</span>
+                        <span id="metric-packets-recv" class="metric-value">0</span>
+                    </div>
+                    <div class="telemetry-metric">
+                        <span class="metric-label">Data Outbound</span>
+                        <span id="metric-bytes-sent" class="metric-value">0 KB</span>
+                    </div>
+                    <div class="telemetry-metric">
+                        <span class="metric-label">Data Inbound</span>
+                        <span id="metric-bytes-recv" class="metric-value">0 KB</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Telemetry Event Log -->
+            <section class="card event-log-section" aria-labelledby="log-title">
+                <div class="log-header">
+                    <h2 id="log-title" class="section-title">Session Activity Log</h2>
+                    <button type="button" id="btn-clear-log" class="btn btn-sm btn-subtle">Clear</button>
+                </div>
+                <div id="activity-log" class="activity-log" role="log" aria-live="polite">
+                    <div class="log-entry log-info">[System] Softphone initialized. Enter Call Session ID and click Start Call.</div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>VoicePulse Telephony Edge — RFC-0001 & RFC-0002 Compliant</p>
+        </footer>
+    </div>
+
+    <script src="softphone.js"></script>
+</body>
+</html>
