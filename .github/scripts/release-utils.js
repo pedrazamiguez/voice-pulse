@@ -355,7 +355,10 @@ function calculateBranchMetadata({ labelName, issueNumber, rawTitle, issueBody =
 
   const branchName = `${prefix}VP-${issueNumber}-${slug}`;
   const isMajor = /\[x\]\s*Major Release/i.test(issueBody || '');
-  const prTitle = `[VP-${issueNumber}]: ${(rawTitle || '').replace(/^\[[^\]]+\]\s*/, '')}`;
+  const cleanTitle = (rawTitle || '').replace(/^\[[^\]]+\]\s*/, '');
+  const prTitle = cleanTitle.endsWith(`(#${issueNumber})`)
+    ? cleanTitle
+    : `${cleanTitle} (#${issueNumber})`;
   const prBody = `Automated release pull request for #${issueNumber}.\n\nCloses #${issueNumber}`;
 
   return {

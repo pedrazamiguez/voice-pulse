@@ -23,7 +23,7 @@ test('calculateBranchMetadata — issue branching simulation', async (t) => {
     assert.equal(meta.branchName, 'release/VP-35-voicepulse-0-1-0-production-re');
     assert.equal(meta.isRelease, true);
     assert.equal(meta.isMajor, false);
-    assert.equal(meta.prTitle, '[VP-35]: feat(release): VoicePulse 0.1.0 production release');
+    assert.equal(meta.prTitle, 'feat(release): VoicePulse 0.1.0 production release (#35)');
     assert.match(meta.prBody, /Closes #35/);
   });
 
@@ -38,7 +38,7 @@ test('calculateBranchMetadata — issue branching simulation', async (t) => {
     assert.equal(meta.shouldCreate, true);
     assert.equal(meta.isRelease, true);
     assert.equal(meta.isMajor, true);
-    assert.equal(meta.prTitle, '[VP-36]: Release 1.0.0 breaking change');
+    assert.equal(meta.prTitle, 'Release 1.0.0 breaking change (#36)');
   });
 
   await t.test('provisions hotfix/* branch from main without auto-PR', () => {

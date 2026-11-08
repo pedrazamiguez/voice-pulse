@@ -1,6 +1,6 @@
 name: Release Request
 description: Trigger an automated production release lifecycle
-title: "chore(release): prepare release v"
+title: "chore(release): prepare release"
 labels: ["release"]
 body:
   - type: markdown
@@ -8,15 +8,6 @@ body:
       value: |
         ### 🚀 Production Release Request
         Submitting this issue automatically provisions a `release/VP-<issue_number>-<slug>` branch from `develop`, strips `-SNAPSHOT` versions, updates `CHANGELOG.md`, and opens an automated PR targeting `main`.
-
-  - type: input
-    id: version
-    attributes:
-      label: Target Version
-      description: The target semver release version (e.g., 0.2.0).
-      placeholder: 0.2.0
-    validations:
-      required: true
 
   - type: textarea
     id: release_summary

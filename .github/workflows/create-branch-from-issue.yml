@@ -190,10 +190,14 @@ jobs:
 
             const isMajor = /\[x\]\s*Major Release/i.test(context.payload.issue.body || '');
 
+            const prTitle = cleanedTitle.endsWith(`(#${issueNumber})`)
+              ? cleanedTitle
+              : `${cleanedTitle} (#${issueNumber})`;
+
             const pr = await github.rest.pulls.create({
               owner,
               repo,
-              title: `[VP-${issueNumber}]: ${cleanedTitle}`,
+              title: prTitle,
               head: branchName,
               base: 'main',
               body: `Automated release pull request for #${issueNumber}.\n\nCloses #${issueNumber}`
