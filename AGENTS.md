@@ -125,6 +125,12 @@ All issues and feature additions must follow the SDD workflow:
 1. **Plan First:** Invoke `.agents/skills/vp-plan-issue/SKILL.md` to produce an approved architecture change contract before creating or editing code files.
 2. **Execute with TDD:** Invoke `.agents/skills/vp-start-issue/SKILL.md` to implement domain unit tests first, followed by ports, and finally infrastructure adapters.
 3. **Verify Locally:** Invoke `.agents/skills/vp-verify-architecture/SKILL.md` to run ArchUnit tests and audit file line counts before opening a Pull Request.
+4. **Address Review Feedback:** Invoke `.agents/skills/vp-address-pr-comments/SKILL.md` to resolve PR review comments and CI feedback.
+
+### Scope Evolution & Realignment Skills
+* **In-Flight Scope Additions (Active Issues):** When new requirements or edge cases are uncovered during implementation, invoke `.agents/skills/vp-follow-up/SKILL.md` (Mode A) to append a structured `[SCOPE ADDENDUM]` to the active issue/plan without discarding current progress.
+* **Architectural Realignment (Invalidated Plans):** If major architectural blockers or contract breaks invalidate an active plan, invoke `.agents/skills/vp-replan-issue/SKILL.md` to draft a revised plan.
+* **Post-Merge Follow-Ups (Merged Work):** When follow-up enhancements or deferred edge cases are identified for merged/closed work, invoke `.agents/skills/vp-follow-up/SKILL.md` (Mode B) to spin off a new tracked GitHub issue explicitly linked to `#<parent_id>` and the merged PR.
 
 ---
 
