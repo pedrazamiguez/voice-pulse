@@ -143,6 +143,9 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+                        <systemPropertyVariables>
+                            <io.netty.leakDetection.level>PARANOID</io.netty.leakDetection.level>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
                 <plugin>

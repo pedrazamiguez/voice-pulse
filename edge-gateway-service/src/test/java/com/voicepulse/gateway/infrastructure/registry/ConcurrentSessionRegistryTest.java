@@ -188,4 +188,24 @@ class ConcurrentSessionRegistryTest {
 
         assertThat(registry.activeWebSocketSessionCount()).isZero();
     }
+
+    @Test
+    @DisplayName("Constructors initialize default and custom buffer capacity correctly")
+    void constructor_initializesBufferCapacity() {
+        ConcurrentSessionRegistry defaultRegistry = new ConcurrentSessionRegistry();
+        assertThat(defaultRegistry.getBufferCapacity())
+                .isEqualTo(ConcurrentSessionRegistry.DEFAULT_BUFFER_CAPACITY)
+                .isEqualTo(8192);
+
+        ConcurrentSessionRegistry customRegistry = new ConcurrentSessionRegistry(4096);
+        assertThat(customRegistry.getBufferCapacity()).isEqualTo(4096);
+
+        assertThatThrownBy(() -> new ConcurrentSessionRegistry(0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("bufferCapacity must be strictly positive");
+
+        assertThatThrownBy(() -> new ConcurrentSessionRegistry(-10))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("bufferCapacity must be strictly positive");
+    }
 }

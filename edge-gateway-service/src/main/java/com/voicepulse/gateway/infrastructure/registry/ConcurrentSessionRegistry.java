@@ -23,17 +23,34 @@ import reactor.core.publisher.Sinks;
  * backpressure protection and zero direct memory leaks.
  */
 @Component
-public class ConcurrentSessionRegistry implements SessionRegistryPort {
+public final class ConcurrentSessionRegistry implements SessionRegistryPort {
 
     private static final Logger log = LoggerFactory.getLogger(ConcurrentSessionRegistry.class);
-    private static final int DEFAULT_BUFFER_CAPACITY = 1024;
+    public static final int DEFAULT_BUFFER_CAPACITY = 8192;
 
+    private final int bufferCapacity;
     private final ConcurrentHashMap<CallSessionId, CallSession> callSessions =
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<CallSessionId, WebSocketSession> webSocketSessions =
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<CallSessionId, Sinks.Many<WebSocketMessage>> outboundSinks =
             new ConcurrentHashMap<>();
+
+    public ConcurrentSessionRegistry() {
+        this(DEFAULT_BUFFER_CAPACITY);
+    }
+
+    public ConcurrentSessionRegistry(int bufferCapacity) {
+        if (bufferCapacity <= 0) {
+            throw new IllegalArgumentException(
+                    "bufferCapacity must be strictly positive, was: " + bufferCapacity);
+        }
+        this.bufferCapacity = bufferCapacity;
+    }
+
+    public int getBufferCapacity() {
+        return bufferCapacity;
+    }
 
     // --- Domain SessionRegistryPort Implementation ---
 
@@ -86,7 +103,7 @@ public class ConcurrentSessionRegistry implements SessionRegistryPort {
                         .unicast()
                         .onBackpressureBuffer(
                                 new java.util.concurrent.LinkedBlockingQueue<WebSocketMessage>(
-                                        DEFAULT_BUFFER_CAPACITY));
+                                        bufferCapacity));
 
         webSocketSessions.put(sessionId, session);
         outboundSinks.put(sessionId, sink);
