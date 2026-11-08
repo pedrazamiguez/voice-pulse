@@ -4,7 +4,6 @@ on:
   workflow_run:
     workflows: ["Publish Release"]
     types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
       bump_type:
@@ -72,8 +71,9 @@ jobs:
             } else {
               // Inspect commit message or merged PR labels
               const commitMsg = execSync('git log -1 --pretty=%B', { encoding: 'utf8' });
-              if (/merge pull request #(\d+)/i.test(commitMsg)) {
-                const prNum = commitMsg.match(/merge pull request #(\d+)/i)[1];
+              const prMatch = commitMsg.match(/merge pull request #(\d+)/i) || commitMsg.match(/\(#(\d+)\)/);
+              if (prMatch) {
+                const prNum = prMatch[1];
                 try {
                   const prData = await github.rest.pulls.get({
                     owner: context.repo.owner,
