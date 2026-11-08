@@ -3,6 +3,7 @@ package com.voicepulse.gateway.infrastructure.ws;
 import com.voicepulse.gateway.domain.model.DisconnectReason;
 import com.voicepulse.gateway.domain.ports.inbound.IngestAudioChunkUseCase;
 import com.voicepulse.gateway.domain.ports.inbound.ManageCallSessionUseCase;
+import com.voicepulse.gateway.infrastructure.registry.ConcurrentSessionRegistry;
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallSessionId;
@@ -25,6 +26,7 @@ import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 
@@ -42,16 +44,20 @@ public class AudioWebSocketHandler implements WebSocketHandler {
 
     private final IngestAudioChunkUseCase ingestAudioChunkUseCase;
     private final ManageCallSessionUseCase manageCallSessionUseCase;
+    private final ConcurrentSessionRegistry sessionRegistry;
 
     public AudioWebSocketHandler(
             IngestAudioChunkUseCase ingestAudioChunkUseCase,
-            ManageCallSessionUseCase manageCallSessionUseCase) {
+            ManageCallSessionUseCase manageCallSessionUseCase,
+            ConcurrentSessionRegistry sessionRegistry) {
         this.ingestAudioChunkUseCase =
                 Objects.requireNonNull(
                         ingestAudioChunkUseCase, "ingestAudioChunkUseCase cannot be null");
         this.manageCallSessionUseCase =
                 Objects.requireNonNull(
                         manageCallSessionUseCase, "manageCallSessionUseCase cannot be null");
+        this.sessionRegistry =
+                Objects.requireNonNull(sessionRegistry, "sessionRegistry cannot be null");
     }
 
     @Override
@@ -82,11 +88,40 @@ public class AudioWebSocketHandler implements WebSocketHandler {
         }
 
         AtomicLong sequenceCounter = new AtomicLong(0L);
+        Flux<WebSocketMessage> outboundFlux = sessionRegistry.registerSession(sessionId, session);
 
-        return session.receive()
-                .flatMap(message -> processMessage(session, sessionId, sequenceCounter, message))
-                .doFinally(signalType -> handleSessionTermination(sessionId, signalType))
-                .then();
+        Mono<Void> inbound =
+                session.receive()
+                        .concatMap(
+                                message ->
+                                        processMessage(
+                                                session, sessionId, sequenceCounter, message))
+                        .doOnError(
+                                err ->
+                                        log.error(
+                                                "Inbound pipeline error for callId {}",
+                                                sessionId,
+                                                err))
+                        .then()
+                        .doFinally(
+                                signalType -> {
+                                    handleSessionTermination(sessionId, signalType);
+                                    sessionRegistry.unregisterSession(sessionId);
+                                });
+
+        Mono<Void> outbound =
+                session.send(outboundFlux)
+                        .doOnError(
+                                err ->
+                                        log.error(
+                                                "Outbound pipeline error for callId {}",
+                                                sessionId,
+                                                err));
+
+        return Mono.when(inbound, outbound)
+                .doOnError(
+                        err -> log.error("WebSocket handler error for callId {}", sessionId, err))
+                .doFinally(signalType -> sessionRegistry.unregisterSession(sessionId));
     }
 
     private Mono<Void> processMessage(
@@ -100,6 +135,7 @@ public class AudioWebSocketHandler implements WebSocketHandler {
         }
 
         DataBuffer dataBuffer = message.getPayload();
+        DataBufferUtils.retain(dataBuffer);
         int readableBytes = dataBuffer.readableByteCount();
 
         if (readableBytes > AudioChunk.MAX_CHUNK_SIZE_BYTES) {

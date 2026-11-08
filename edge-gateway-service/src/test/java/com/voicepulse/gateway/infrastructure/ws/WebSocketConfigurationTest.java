@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 
 import com.voicepulse.gateway.domain.ports.inbound.IngestAudioChunkUseCase;
 import com.voicepulse.gateway.domain.ports.inbound.ManageCallSessionUseCase;
+import com.voicepulse.gateway.infrastructure.registry.ConcurrentSessionRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.Ordered;
@@ -21,7 +22,9 @@ class WebSocketConfigurationTest {
         WebSocketConfiguration config = new WebSocketConfiguration();
         AudioWebSocketHandler handler =
                 new AudioWebSocketHandler(
-                        mock(IngestAudioChunkUseCase.class), mock(ManageCallSessionUseCase.class));
+                        mock(IngestAudioChunkUseCase.class),
+                        mock(ManageCallSessionUseCase.class),
+                        mock(ConcurrentSessionRegistry.class));
 
         HandlerMapping mapping = config.webSocketHandlerMapping(handler);
 
