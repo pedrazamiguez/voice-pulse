@@ -1,0 +1,101 @@
+name: SonarQube Analysis & Quality Gate
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  sonarqube:
+    name: SonarQube Analysis & Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (full git history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Grant execute permission for Maven Wrapper
+        run: chmod +x ./mvnw
+
+      - name: Build, Test & Analyze with SonarQube
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          ./mvnw -B clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=VoicePulse \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
+
+      - name: Notify Quality Gate Failure on PR
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            let dashboardUrl = '';
+            const reportPath = 'target/sonar/report-task.txt';
+            if (fs.existsSync(reportPath)) {
+              const content = fs.readFileSync(reportPath, 'utf8');
+              const match = content.match(/dashboardUrl=(.+)/);
+              if (match) {
+                dashboardUrl = match[1].trim();
+              }
+            }
+            if (!dashboardUrl) {
+              const hostUrl = process.env.SONAR_HOST_URL ? process.env.SONAR_HOST_URL.replace(/\/$/, '') : '';
+              dashboardUrl = hostUrl ? `${hostUrl}/dashboard?id=VoicePulse` : 'SonarQube Server';
+            }
+
+            const body = `### ❌ SonarQube Quality Gate Failed\n\n` +
+              `The SonarQube analysis for this pull request did not pass the Quality Gate.\n\n` +
+              `🔍 **Review detailed findings, code smells, vulnerabilities, and coverage metrics here:**\n` +
+              `[SonarQube Project Dashboard](${dashboardUrl})\n\n` +
+              `> *Please resolve identified issues or coverage deficits before merging into \`${context.payload.pull_request.base.ref}\`.*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: body
+            });
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
