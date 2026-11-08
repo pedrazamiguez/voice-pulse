@@ -23,7 +23,7 @@ import reactor.core.publisher.Sinks;
  * backpressure protection and zero direct memory leaks.
  */
 @Component
-public class ConcurrentSessionRegistry implements SessionRegistryPort {
+public final class ConcurrentSessionRegistry implements SessionRegistryPort {
 
     private static final Logger log = LoggerFactory.getLogger(ConcurrentSessionRegistry.class);
     public static final int DEFAULT_BUFFER_CAPACITY = 8192;

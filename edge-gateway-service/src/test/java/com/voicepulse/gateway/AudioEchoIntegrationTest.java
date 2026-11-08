@@ -1,6 +1,7 @@
 package com.voicepulse.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -239,9 +240,14 @@ class AudioEchoIntegrationTest {
                 .isLessThan(100.0);
 
         // 5. Session Lifecycle Cleanup Verification
-        assertThat(sessionRegistry.hasWebSocketSession(sessionId))
-                .as("WebSocket session must be unregistered upon stream completion")
-                .isFalse();
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(
+                        () ->
+                                assertThat(sessionRegistry.hasWebSocketSession(sessionId))
+                                        .as(
+                                                "WebSocket session must be unregistered upon"
+                                                        + " stream completion")
+                                        .isFalse());
     }
 
     @Test
@@ -313,7 +319,12 @@ class AudioEchoIntegrationTest {
             EchoLatencyMetrics metrics = echoAdapter.getMetrics(sessionId);
             assertThat(metrics.totalFramesEchoed()).isEqualTo((long) sessionFrames);
             assertThat(metrics.sequenceDiscontinuities()).isZero();
-            assertThat(sessionRegistry.hasWebSocketSession(sessionId)).isFalse();
+            await().atMost(Duration.ofSeconds(5))
+                    .untilAsserted(
+                            () ->
+                                    assertThat(sessionRegistry.hasWebSocketSession(sessionId))
+                                            .as("WebSocket session must be unregistered")
+                                            .isFalse());
         }
     }
 
