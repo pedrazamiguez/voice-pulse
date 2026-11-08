@@ -1,0 +1,50 @@
+name: Release Request
+description: Trigger an automated production release lifecycle
+title: "chore(release): prepare release v"
+labels: ["release"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🚀 Production Release Request
+        Submitting this issue automatically provisions a `release/VP-<issue_number>-<slug>` branch from `develop`, strips `-SNAPSHOT` versions, updates `CHANGELOG.md`, and opens an automated PR targeting `main`.
+
+  - type: input
+    id: version
+    attributes:
+      label: Target Version
+      description: The target semver release version (e.g., 0.2.0).
+      placeholder: 0.2.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: release_summary
+    attributes:
+      label: Release Summary & Highlights
+      description: Provide a concise summary of the primary highlights, key features, or fixes included in this release.
+      placeholder: |
+        - Highlight 1: Core domain capability...
+        - Highlight 2: Gateway streaming improvements...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: release_type
+    attributes:
+      label: Release Classification
+      description: Select if this release includes breaking changes requiring a major version bump.
+      options:
+        - label: Major Release (Breaking Changes)
+
+  - type: checkboxes
+    id: readiness_checklist
+    attributes:
+      label: Pre-Release Verification Checklist
+      options:
+        - label: All planned milestone features and bugfixes are merged to `develop`.
+          required: true
+        - label: CI build and test suite pass cleanly on `develop`.
+          required: true
+        - label: RFC invariants and architectural guardrails verified.
+          required: true
