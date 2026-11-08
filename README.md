@@ -132,19 +132,17 @@ voice-pulse/
 
 ## 6. Project Roadmap & Epics
 
-The platform is constructed across 7 phase-gated epics:
+The platform is engineered across 7 phase-gated epics. For detailed phase breakdowns, tracked GitHub issues, and execution plans, see [**ROADMAP.md**](ROADMAP.md).
 
-* **[Epic 1: Engineering Foundation, Tooling, & Agentic Workflow Setup](docs/plans/epic-1-foundation-plan.md)** *(Completed)*
-  - **Phase 0:** Repository entrypoints (`README.md`), `AGENTS.md` guardrails, and active SDD skills.
-  - **Phase 1:** Maven multi-module scaffolding, ArchUnit rules, Spotless formatting, compiler static analysis.
-  - **Phase 2:** Local containerized infrastructure (Kafka KRaft, Redis, Postgres), unified `Makefile`, pre-commit hooks.
-  - **Phase 3:** Living documentation, local CPU FastEmbed RAG, GitHub Actions CI/CD pipelines.
-* **[Epic 2: Ingestion Voice Gateway & Softphone Echo Loop](docs/plans/epic-2-gateway-plan.md)** *(In Planning)*
-* **Epic 3:** High-Throughput Kafka Event Bus & In-Order Worker Pool
-* **Epic 4:** Hexagonal Conversation Core, VAD & State Machine
-* **Epic 5:** Runtime MCP Tool Servers & AI Triage Synthesis
-* **Epic 6:** Operator Handoff, Redis Presence & Web Console
-* **Epic 7:** 10,000 Concurrent Calls Load Testing & Performance Hardening
+| Epic | Focus Area | Status |
+| :--- | :--- | :---: |
+| **Epic 1** | [Engineering Foundation, Tooling, & Agentic Workflow Setup](docs/plans/epic-1-foundation-plan.md) | **Completed** |
+| **Epic 2** | [Ingestion Voice Gateway & Softphone Echo Loop](docs/plans/epic-2-gateway-plan.md) | **In Progress** |
+| **Epic 3** | High-Throughput Kafka Event Bus & In-Order Worker Pool | Planned |
+| **Epic 4** | Hexagonal Conversation Core, VAD & State Machine | Planned |
+| **Epic 5** | Runtime MCP Tool Servers & AI Triage Synthesis | Planned |
+| **Epic 6** | Operator Handoff, Redis Presence & Web Console | Planned |
+| **Epic 7** | 10,000 Concurrent Calls Load Testing & Performance Hardening | Planned |
 
 ---
 
