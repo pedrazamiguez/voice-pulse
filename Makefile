@@ -6,6 +6,7 @@
 -include .env.local
 export SONAR_HOST_URL
 export SONAR_TOKEN
+export PATH := $(HOME)/.local/bin:$(PATH)
 
 .PHONY: help setup hooks fast-check check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag test-changelog knowledge-update sonar
 
@@ -137,6 +138,7 @@ knowledge-update: ## Refresh all AI indexes (voicepulse-rag, graphify, codebase-
 	@printf "$(YELLOW)⏳ Refreshing AI code graphs and RAG databases...$(NC)\n"
 	@uv run scripts/rag_indexer.py
 	@graphify update . 2>/dev/null || true
+	@codebase-memory-mcp cli index_repository "{\"repo_path\": \"$$(pwd)\"}" 2>/dev/null || true
 	@printf "$(GREEN)✅ All AI knowledge graphs up to date.$(NC)\n"
 
 sonar: ## Run SonarQube analysis locally (uses .env.local or SONAR_HOST_URL & SONAR_TOKEN)

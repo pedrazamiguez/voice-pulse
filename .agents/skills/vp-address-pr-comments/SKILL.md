@@ -33,6 +33,10 @@ Use this skill to fetch, diagnose, and resolve human code review feedback and au
 * Apply changes to local branch.
 * Run `vp-verify-architecture` (ArchUnit + 600-line audit).
 * Run test suite: `./mvnw test` (or `make test`).
+* Synchronize AI knowledge indexes to reflect review changes:
+  ```bash
+  make knowledge-update
+  ```
 
 ## 4. Push & Reply
 * Push commit to PR branch.

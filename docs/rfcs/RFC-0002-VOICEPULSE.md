@@ -1046,10 +1046,11 @@ ai-setup: ## Install & configure codebase-memory-mcp, Graphify, and local RAG
 rag-index: ## Build or update local documentation vector database
 	@uv run scripts/rag_indexer.py
 
-knowledge-update: ## Refresh all AI indexes (codebase-memory, graphify, voicepulse-rag)
+knowledge-update: ## Refresh all AI indexes (voicepulse-rag, graphify, codebase-memory)
 	@printf "$(YELLOW)⏳ Refreshing AI code graphs and RAG databases...$(NC)\n"
 	@uv run scripts/rag_indexer.py
 	@graphify update . 2>/dev/null || true
+	@codebase-memory-mcp cli index_repository "{\"repo_path\": \"$$(pwd)\"}" 2>/dev/null || true
 	@printf "$(GREEN)✅ All AI knowledge graphs up to date.$(NC)\n"
 
 doctor: ## Diagnose developer environment
