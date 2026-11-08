@@ -24,3 +24,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ci(sonar): integrate SonarQube static analysis and quality gates ([#28](https://github.com/pedrazamiguez/voice-pulse/issues/28))
 - ci(changelog): automate CHANGELOG.md updates upon issue completion ([#29](https://github.com/pedrazamiguez/voice-pulse/issues/29))
 - ci(release): implement automated release pipeline, branch enforcement, and post-release sync ([#32](https://github.com/pedrazamiguez/voice-pulse/issues/32))
+- ci(release): configure issue templates with auto-labeling and event trigger support ([#37](https://github.com/pedrazamiguez/voice-pulse/issues/37))
