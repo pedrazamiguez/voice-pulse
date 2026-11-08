@@ -90,4 +90,30 @@ class AudioChunkTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("pcmData is not sample-aligned");
     }
+
+    @Test
+    @DisplayName("equals and hashCode consider array content and other attributes")
+    void equalsAndHashCodeContract() {
+        byte[] pcm1 = new byte[] {0x01, 0x02};
+        byte[] pcm2 = new byte[] {0x01, 0x02};
+        byte[] pcmDifferent = new byte[] {0x01, 0x03};
+
+        AudioChunk chunk1 = new AudioChunk(sessionId, 1L, timestamp, pcm1, format);
+        AudioChunk chunk2 = new AudioChunk(sessionId, 1L, timestamp, pcm2, format);
+        AudioChunk chunk3 = new AudioChunk(sessionId, 1L, timestamp, pcmDifferent, format);
+        AudioChunk chunk4 = new AudioChunk(sessionId, 2L, timestamp, pcm1, format);
+
+        assertThat(chunk1)
+                .isEqualTo(chunk2)
+                .hasSameHashCodeAs(chunk2)
+                .isNotEqualTo(chunk3)
+                .isNotEqualTo(chunk4)
+                .isNotEqualTo(null)
+                .isNotEqualTo("otherType");
+
+        assertThat(chunk1.toString())
+                .contains(sessionId.toString())
+                .contains("sequenceNumber=1")
+                .contains("pcmDataBytes=2");
+    }
 }

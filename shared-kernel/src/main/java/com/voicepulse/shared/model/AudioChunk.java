@@ -1,6 +1,7 @@
 package com.voicepulse.shared.model;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -50,5 +51,42 @@ public record AudioChunk(
     @Override
     public byte[] pcmData() {
         return pcmData.clone();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof AudioChunk that)) {
+            return false;
+        }
+        return sequenceNumber == that.sequenceNumber
+                && Objects.equals(sessionId, that.sessionId)
+                && Objects.equals(timestamp, that.timestamp)
+                && Arrays.equals(pcmData, that.pcmData)
+                && Objects.equals(format, that.format);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(sessionId, sequenceNumber, timestamp, format);
+        result = 31 * result + Arrays.hashCode(pcmData);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "AudioChunk[sessionId="
+                + sessionId
+                + ", sequenceNumber="
+                + sequenceNumber
+                + ", timestamp="
+                + timestamp
+                + ", pcmDataBytes="
+                + pcmData.length
+                + ", format="
+                + format
+                + "]";
     }
 }

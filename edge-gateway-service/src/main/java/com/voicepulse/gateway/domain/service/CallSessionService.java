@@ -22,6 +22,8 @@ import java.util.Optional;
  */
 public class CallSessionService implements IngestAudioChunkUseCase, ManageCallSessionUseCase {
 
+    private static final String SESSION_ID_NULL_MSG = "sessionId cannot be null";
+
     private final SessionRegistryPort sessionRegistry;
     private final AudioFramePublisherPort audioFramePublisher;
 
@@ -35,7 +37,7 @@ public class CallSessionService implements IngestAudioChunkUseCase, ManageCallSe
 
     @Override
     public CallSession startSession(CallSessionId sessionId) {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        Objects.requireNonNull(sessionId, SESSION_ID_NULL_MSG);
         CallSession session = CallSession.start(sessionId, Instant.now());
         sessionRegistry.save(session);
         return session;
@@ -59,7 +61,7 @@ public class CallSessionService implements IngestAudioChunkUseCase, ManageCallSe
 
     @Override
     public void terminateSession(CallSessionId sessionId, DisconnectReason reason) {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        Objects.requireNonNull(sessionId, SESSION_ID_NULL_MSG);
         Objects.requireNonNull(reason, "reason cannot be null");
 
         CallSession session =
@@ -73,7 +75,7 @@ public class CallSessionService implements IngestAudioChunkUseCase, ManageCallSe
 
     @Override
     public Optional<CallSession> getSession(CallSessionId sessionId) {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        Objects.requireNonNull(sessionId, SESSION_ID_NULL_MSG);
         return sessionRegistry.findById(sessionId);
     }
 }
