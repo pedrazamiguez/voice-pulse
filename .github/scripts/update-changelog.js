@@ -363,7 +363,7 @@ async function run({ github, context, core }) {
     repo,
     path: 'CHANGELOG.md',
     branch: 'develop',
-    message: `docs(changelog): record completion of #${issueNumber} [skip ci]`,
+    message: `docs(changelog): record completion of #${issueNumber}`,
     content: Buffer.from(result.content, 'utf8').toString('base64'),
     sha: currentSha,
     committer: {
