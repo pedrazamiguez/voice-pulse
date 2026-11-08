@@ -39,6 +39,7 @@ public class AudioWebSocketHandler implements WebSocketHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AudioWebSocketHandler.class);
     private static final Pattern PATH_PATTERN = Pattern.compile("^/ws/calls/([^/]+)/audio/?$");
+    private static final String CALL_ID_VARIABLE = "callId";
 
     private final IngestAudioChunkUseCase ingestAudioChunkUseCase;
     private final ManageCallSessionUseCase manageCallSessionUseCase;
@@ -163,22 +164,18 @@ public class AudioWebSocketHandler implements WebSocketHandler {
     }
 
     private String extractCallId(WebSocketSession session) {
-        if (session.getAttributes() != null) {
-            Object uriVars =
-                    session.getAttributes().get(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-            if (uriVars instanceof Map<?, ?> map && map.containsKey("callId")) {
-                return String.valueOf(map.get("callId"));
-            }
+        Object uriVars =
+                session.getAttributes().get(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+        if (uriVars instanceof Map<?, ?> map && map.containsKey(CALL_ID_VARIABLE)) {
+            return String.valueOf(map.get(CALL_ID_VARIABLE));
         }
-        if (session.getHandshakeInfo() != null
-                && session.getHandshakeInfo().getAttributes() != null) {
-            Object uriVars =
-                    session.getHandshakeInfo()
-                            .getAttributes()
-                            .get(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-            if (uriVars instanceof Map<?, ?> map && map.containsKey("callId")) {
-                return String.valueOf(map.get("callId"));
-            }
+
+        Object handshakeVars =
+                session.getHandshakeInfo()
+                        .getAttributes()
+                        .get(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+        if (handshakeVars instanceof Map<?, ?> map && map.containsKey(CALL_ID_VARIABLE)) {
+            return String.valueOf(map.get(CALL_ID_VARIABLE));
         }
 
         String path = getPath(session);
@@ -193,10 +190,7 @@ public class AudioWebSocketHandler implements WebSocketHandler {
     }
 
     private String getPath(WebSocketSession session) {
-        if (session.getHandshakeInfo() == null) {
-            return null;
-        }
         URI uri = session.getHandshakeInfo().getUri();
-        return (uri != null) ? uri.getPath() : null;
+        return uri.getPath();
     }
 }

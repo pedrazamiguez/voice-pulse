@@ -127,7 +127,7 @@ class AudioWebSocketHandlerTest {
         verify(ingestAudioChunkUseCase, times(3)).ingestAudioChunk(captor.capture());
 
         var chunks = captor.getAllValues();
-        assertThat(chunks.get(0).sequenceNumber()).isEqualTo(0L);
+        assertThat(chunks.get(0).sequenceNumber()).isZero();
         assertThat(chunks.get(1).sequenceNumber()).isEqualTo(1L);
         assertThat(chunks.get(2).sequenceNumber()).isEqualTo(2L);
 
