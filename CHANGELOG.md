@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(ai): implement deepseek-r1:7b fallback provider with testcontainers ([#6](https://github.com/pedrazamiguez/voice-pulse/issues/6))
 - feat(rag): scaffold fastembed-rs native vector embedding provider ([#7](https://github.com/pedrazamiguez/voice-pulse/issues/7))
 - feat(tooling): configure Maven Wrapper for deterministic builds ([#15](https://github.com/pedrazamiguez/voice-pulse/issues/15))
+- feat(ai-workflow): introduce vp-follow-up skill for in-flight scope amendments and post-merge follow-ups ([#34](https://github.com/pedrazamiguez/voice-pulse/issues/34))
 
 ### Tooling & Infrastructure
 - ci: configure GitHub Actions CI pipeline ([#8](https://github.com/pedrazamiguez/voice-pulse/issues/8))
