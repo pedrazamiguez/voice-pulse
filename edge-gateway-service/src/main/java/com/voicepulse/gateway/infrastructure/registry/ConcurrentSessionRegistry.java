@@ -6,8 +6,7 @@ import com.voicepulse.shared.model.CallSessionId;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketMessage;
@@ -22,10 +21,10 @@ import reactor.core.publisher.Sinks;
  * connections alongside outbound reactive message sinks to support bidirectional streaming with
  * backpressure protection and zero direct memory leaks.
  */
+@Slf4j
 @Component
 public final class ConcurrentSessionRegistry implements SessionRegistryPort {
 
-    private static final Logger log = LoggerFactory.getLogger(ConcurrentSessionRegistry.class);
     public static final int DEFAULT_BUFFER_CAPACITY = 8192;
 
     private final int bufferCapacity;

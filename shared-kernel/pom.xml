@@ -17,6 +17,13 @@
     <description>Pure domain core models, value objects, and business records with zero framework dependencies</description>
 
     <dependencies>
+        <!-- Project Lombok (Architecture verification & testing) -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Test Dependencies (Pure Java Unit Testing) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

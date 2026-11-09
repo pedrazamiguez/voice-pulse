@@ -11,8 +11,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
@@ -24,19 +25,14 @@ import org.springframework.web.reactive.socket.WebSocketSession;
  * registered in {@link ConcurrentSessionRegistry}, tracks microsecond round-trip time (RTT), and
  * enforces monotonic sequence continuity monitoring.
  */
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class LoopbackAudioEchoAdapter implements AudioFramePublisherPort {
 
-    private static final Logger log = LoggerFactory.getLogger(LoopbackAudioEchoAdapter.class);
-
-    private final ConcurrentSessionRegistry sessionRegistry;
+    private final @NonNull ConcurrentSessionRegistry sessionRegistry;
     private final ConcurrentHashMap<CallSessionId, SessionTracker> sessionTrackers =
             new ConcurrentHashMap<>();
-
-    public LoopbackAudioEchoAdapter(ConcurrentSessionRegistry sessionRegistry) {
-        this.sessionRegistry =
-                Objects.requireNonNull(sessionRegistry, "sessionRegistry cannot be null");
-    }
 
     @Override
     public void publishAudioChunk(AudioChunk chunk) {

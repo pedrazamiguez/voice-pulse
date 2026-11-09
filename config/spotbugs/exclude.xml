@@ -16,4 +16,14 @@
     <Match>
         <Class name="~.*package-info" />
     </Match>
+
+    <!-- Suppress Spring dependency injection mutable reference exposure -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2" />
+    </Match>
+
+    <!-- Suppress constructor null-check exception throwing on managed components -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW" />
+    </Match>
 </FindBugsFilter>

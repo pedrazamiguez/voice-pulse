@@ -109,7 +109,7 @@ Auditors must enforce the following non-negotiable architectural rules:
 
 1. **Domain Core Purity (Hexagonal Architecture):**
    - Pure domain models and use cases (`..domain..`) must have **zero framework dependencies**:
-     - ❌ Forbidden: `org.springframework.*`, `io.netty.*`, `org.apache.kafka.*`, `jakarta.persistence.*`, `com.fasterxml.jackson.*`.
+     - ❌ Forbidden: `org.springframework.*`, `io.netty.*`, `org.apache.kafka.*`, `jakarta.persistence.*`, `com.fasterxml.jackson.*`, `lombok.*`.
      - ✅ Permitted: Standard Java 21 standard library, pure domain records, sealed interfaces.
    - Ports must reside in `..domain.ports.inbound` (`*UseCase`) or `..domain.ports.outbound` (`*Port`).
 
@@ -136,9 +136,9 @@ Auditors must enforce the following non-negotiable architectural rules:
    - No production Java source file may exceed 600 lines (`wc -l <file>`). Any file nearing 500 lines must extract collaborators.
 
 6. **Code Hygiene & Best Practices:**
-   - Zero field injection (No `@Autowired` on fields; constructor injection only).
+   - Zero field injection (No `@Autowired` on fields; constructor injection only. Use Lombok `@RequiredArgsConstructor` with `@NonNull` on required fields in infrastructure classes; pure standard Java constructors in domain).
    - No wildcard imports (`import java.util.*;` is prohibited).
-   - Structured SLF4J logging only (No `System.out.println()` or `System.err.println()`).
+   - Structured SLF4J logging only (No `System.out.println()` or `System.err.println()`. Use Lombok `@Slf4j` on infrastructure classes; prohibit manual `LoggerFactory.getLogger` boilerplate).
 
 ---
 
@@ -146,7 +146,7 @@ Auditors must enforce the following non-negotiable architectural rules:
 
 1. **TDD Layer Coverage:**
    - Verify pure domain unit tests (`*DomainTest`) test business logic with mock ports and no Spring context.
-   - Verify ArchUnit tests (`ArchitectureTest`) validate architecture boundaries.
+   - Verify ArchUnit tests (`ArchitectureTest`) validate architecture boundaries and zero Lombok domain contamination.
    - Verify integration tests run with `-Dio.netty.leakDetection.level=PARANOID`.
 
 2. **Disruption Hotline Edge Cases ([RFC-0003](file:///home/antigravity/pedrazamiguez/voice-pulse/docs/rfcs/RFC-0003-VOICEPULSE.md)):**
@@ -172,12 +172,12 @@ Brief description of the PR scope, linked issue (#<id>), and plan alignment stat
 - [x] No undeclared scope creep / Approved addendum present
 
 ## 2. Invariant Compliance Audit
-- [x] Domain Core Purity (Zero framework imports)
+- [x] Domain Core Purity (Zero framework/Lombok imports)
 - [x] Netty ByteBuf memory safety (Explicit release)
 - [x] Kafka partition key (callId)
 - [x] File line counts (All files <= 600 lines)
-- [x] Dependency injection (Constructor injection only)
-- [x] Structured SLF4J logging (Zero System.out)
+- [x] Dependency injection (Constructor injection only; @RequiredArgsConstructor in infrastructure)
+- [x] Structured SLF4J logging (Zero System.out; @Slf4j in infrastructure)
 
 ## 3. Findings
 

@@ -61,9 +61,9 @@ This skill executes the implementation phase of the Specification-Driven Develop
 Execute implementation in strict layers:
 
 ### Step 1: Pure Domain Layer (Hexagonal Core)
-* Implement pure Java `record` models and `sealed interface` state machines.
+* Implement pure Java `record` models and `sealed interface` state machines (zero Lombok, Spring, Netty, Kafka, or Jackson imports).
 * Write pure domain unit tests using JUnit 5 and AssertJ.
-* **Verification:** Run `./mvnw test -Dtest=*DomainTest` (or module equivalent). Must pass with zero Spring/Kafka dependencies.
+* **Verification:** Run `./mvnw test -Dtest=*DomainTest` (or module equivalent). Must pass with zero Spring/Kafka/Lombok dependencies.
 
 ### Step 2: Port Interfaces
 * Declare Inbound (`*UseCase`) and Outbound (`*Port`) Java interfaces in `..domain.ports..`.
@@ -72,6 +72,7 @@ Execute implementation in strict layers:
 ### Step 3: Infrastructure Adapters
 * Implement primary adapters (WebFlux WebSocket handlers, Kafka message listeners).
 * Implement secondary adapters (Kafka producers, PostgreSQL repositories, Redis clients).
+* Use Lombok `@Slf4j` for logging and `@RequiredArgsConstructor` (with `@NonNull` for required fields) for constructor-based dependency injection. Prohibit manual `LoggerFactory.getLogger` declarations.
 * Ensure all Netty `ByteBuf` instances are safely released in `finally` blocks.
 * Ensure all Kafka event records use `callId.toString()` as the partition key.
 

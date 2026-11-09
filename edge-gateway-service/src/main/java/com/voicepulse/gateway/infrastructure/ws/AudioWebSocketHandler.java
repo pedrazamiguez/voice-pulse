@@ -11,12 +11,12 @@ import io.netty.util.ReferenceCountUtil;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.NettyDataBuffer;
@@ -36,29 +36,16 @@ import reactor.core.publisher.SignalType;
  * <p>Listens at {@code /ws/calls/{callId}/audio}, enforces DoS frame boundaries (&lt;= 64 KB),
  * releases Netty ByteBuf memory deterministically, and dispatches frames to domain use cases.
  */
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class AudioWebSocketHandler implements WebSocketHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(AudioWebSocketHandler.class);
     private static final Pattern PATH_PATTERN = Pattern.compile("^/ws/calls/([^/]+)/audio/?$");
 
-    private final IngestAudioChunkUseCase ingestAudioChunkUseCase;
-    private final ManageCallSessionUseCase manageCallSessionUseCase;
-    private final ConcurrentSessionRegistry sessionRegistry;
-
-    public AudioWebSocketHandler(
-            IngestAudioChunkUseCase ingestAudioChunkUseCase,
-            ManageCallSessionUseCase manageCallSessionUseCase,
-            ConcurrentSessionRegistry sessionRegistry) {
-        this.ingestAudioChunkUseCase =
-                Objects.requireNonNull(
-                        ingestAudioChunkUseCase, "ingestAudioChunkUseCase cannot be null");
-        this.manageCallSessionUseCase =
-                Objects.requireNonNull(
-                        manageCallSessionUseCase, "manageCallSessionUseCase cannot be null");
-        this.sessionRegistry =
-                Objects.requireNonNull(sessionRegistry, "sessionRegistry cannot be null");
-    }
+    private final @NonNull IngestAudioChunkUseCase ingestAudioChunkUseCase;
+    private final @NonNull ManageCallSessionUseCase manageCallSessionUseCase;
+    private final @NonNull ConcurrentSessionRegistry sessionRegistry;
 
     @Override
     public Mono<Void> handle(WebSocketSession session) {

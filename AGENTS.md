@@ -17,6 +17,7 @@ VoicePulse enforces a strict separation between domain business logic, applicati
     - `org.apache.kafka.*` (No Kafka producers, consumers, or record metadata)
     - `jakarta.persistence.*` / `javax.persistence.*` (No JPA `@Entity`, `@Table`, `@Id`)
     - `com.fasterxml.jackson.*` (Domain models must not contain JSON serialization annotations)
+    - `lombok.*` (No `@Data`, `@Getter`, `@Setter`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@NoArgsConstructor`, `@Builder`, `@Slf4j`)
   - ✅ **Permitted in Domain:**
     - Standard Java 21 standard library (`java.time.*`, `java.util.*`, `java.math.*`).
     - Pure domain records (`record CallSessionId(...)`, `record AudioChunk(...)`).
@@ -107,9 +108,9 @@ When generating domain logic, prompts, or tests for the **SkyWay Airlines Intern
 ## 5. Code Quality, File Limits, & Formatting
 
 * **600-Line File Limit:** Production Java source files MUST NOT exceed **600 lines of code**. If a class approaches 500 lines, extract cohesive collaborators (strategy classes, validators, pipeline handlers) before adding new logic.
-* **Zero Field Injection:** Prohibit `@Autowired` on class fields. All dependencies MUST be injected via constructor injection (using standard Java constructors or Lombok `@RequiredArgsConstructor` where permitted).
+* **Zero Field Injection:** Prohibit `@Autowired` on class fields. All dependencies MUST be injected via constructor injection. In infrastructure adapters, configurations, and application services, use Lombok `@RequiredArgsConstructor` (with `@NonNull` for required fields) to eliminate constructor boilerplate. In `domain..` classes, use standard Java constructors with explicit validation (`Objects.requireNonNull`). Lombok is strictly prohibited in domain classes.
 * **No Wildcard Imports:** Explicit class imports only (e.g., `import java.util.List;`, NEVER `import java.util.*;`).
-* **Structured Logging Only:** **NEVER** use `System.out.println()` or `System.err.println()`. Use SLF4J with structured key-value logging:
+* **Structured Logging Only:** **NEVER** use `System.out.println()` or `System.err.println()`. Use SLF4J with structured key-value logging. Prohibit manual `private static final Logger log = LoggerFactory.getLogger(...)` declarations in infrastructure and application classes; use Lombok `@Slf4j` instead. Domain classes must remain pure and do not log directly:
   ```java
   log.info("Audio frame ingested", kv("callId", callId), kv("seq", sequenceNumber), kv("bytes", frameSize));
   ```

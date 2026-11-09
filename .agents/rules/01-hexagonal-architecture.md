@@ -16,6 +16,7 @@ VoicePulse enforces Hexagonal Architecture across all services (`conversation-en
     - `jakarta.persistence.*` / `javax.persistence.*`
     - `com.fasterxml.jackson.*`
     - `reactor.core.*` (keep Reactor in adapters and use standard CompletableFuture or pure synchronous domain returns where possible)
+    - `lombok.*` (No Lombok annotations; domain relies solely on pure Java 21 records and standard Java constructors)
   - ✅ **Permitted:**
     - `java.lang.*`, `java.util.*`, `java.time.*`, `java.math.*`
     - Pure records, value objects, domain entities, and domain exceptions.
@@ -65,4 +66,4 @@ public interface TicketRepositoryPort {
 * Primary adapters depend on Inbound Ports to trigger domain actions.
 * Secondary adapters implement Outbound Ports to fulfill domain I/O needs.
 * **Dependency Rule:** Infrastructure $\rightarrow$ Domain. The domain package NEVER imports or references any class in `infrastructure.*` or `application.*`.
-* All wiring is performed in an application configuration layer via Constructor Injection. Field injection (`@Autowired`) is strictly prohibited.
+* All wiring is performed via Constructor Injection. In infrastructure adapters, configuration classes, and application services, use Lombok `@RequiredArgsConstructor` (with `@NonNull` on required fields) and `@Slf4j` to eliminate boilerplate. Field injection (`@Autowired`) is strictly prohibited. Lombok annotations are strictly forbidden in `domain..` classes.

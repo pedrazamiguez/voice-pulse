@@ -35,6 +35,13 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!-- Project Lombok (Infrastructure Logging & Injection) -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

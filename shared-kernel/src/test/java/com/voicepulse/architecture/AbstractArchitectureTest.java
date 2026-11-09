@@ -3,6 +3,7 @@ package com.voicepulse.architecture;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,7 +49,8 @@ public abstract class AbstractArchitectureTest {
                         "org.apache.kafka..",
                         "com.fasterxml.jackson..",
                         "jakarta.persistence..",
-                        "javax.persistence..")
+                        "javax.persistence..",
+                        "lombok..")
                 .allowEmptyShould(true);
     }
 
@@ -58,9 +60,23 @@ public abstract class AbstractArchitectureTest {
 
         @Test
         @DisplayName(
-                "Domain must NOT depend on Spring, Netty, Kafka, Jackson, or Jakarta Persistence")
+                "Domain must NOT depend on Spring, Netty, Kafka, Jackson, Jakarta Persistence, or"
+                        + " Lombok")
         void domainMustBePure() {
             domainMustBePureRule().check(classes);
+        }
+
+        @Test
+        @DisplayName("Domain classes must NOT depend on Lombok (zero Lombok contamination)")
+        void domainMustNotDependOnLombok() {
+            noClasses()
+                    .that()
+                    .resideInAPackage("..domain..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAPackage("lombok..")
+                    .allowEmptyShould(true)
+                    .check(classes);
         }
 
         @Test
@@ -159,8 +175,8 @@ public abstract class AbstractArchitectureTest {
                             .filter(path -> path.toString().endsWith(".java"))
                             .forEach(
                                     path -> {
-                                        try {
-                                            long lineCount = Files.lines(path).count();
+                                        try (Stream<String> lines = Files.lines(path)) {
+                                            long lineCount = lines.count();
                                             assertTrue(
                                                     lineCount <= 600,
                                                     "File "
@@ -217,6 +233,85 @@ public abstract class AbstractArchitectureTest {
                     walk.sorted(Comparator.reverseOrder())
                             .map(Path::toFile)
                             .forEach(java.io.File::delete);
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("ArchUnit rule must fail when Lombok is imported in domain")
+        void archUnitFailsOnLombokInDomain() throws IOException {
+            Path tempDir = Files.createTempDirectory("archtest-illegal-domain-lombok");
+            try {
+                Path pkgDir = tempDir.resolve("com/voicepulse/synthetic/domain");
+                Files.createDirectories(pkgDir);
+
+                ClassWriter cw = new ClassWriter(0);
+                cw.visit(
+                        Opcodes.V21,
+                        Opcodes.ACC_PUBLIC,
+                        "com/voicepulse/synthetic/domain/LombokContaminatedDomainService",
+                        null,
+                        "java/lang/Object",
+                        null);
+                AnnotationVisitor av = cw.visitAnnotation("Llombok/Generated;", true);
+                if (av != null) {
+                    av.visitEnd();
+                }
+                cw.visitEnd();
+
+                Files.write(
+                        pkgDir.resolve("LombokContaminatedDomainService.class"), cw.toByteArray());
+
+                JavaClasses syntheticClasses = new ClassFileImporter().importPath(tempDir);
+                AssertionError error =
+                        assertThrows(
+                                AssertionError.class,
+                                () -> domainMustBePureRule().check(syntheticClasses));
+                assertTrue(
+                        error.getMessage().contains("LombokContaminatedDomainService")
+                                || error.getMessage().contains("lombok"),
+                        "Expected failure message mentioning Lombok violation, but got: "
+                                + error.getMessage());
+            } finally {
+                try (Stream<Path> walk = Files.walk(tempDir)) {
+                    walk.sorted(Comparator.reverseOrder())
+                            .map(Path::toFile)
+                            .forEach(java.io.File::delete);
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("Domain layer must have zero Lombok imports in source code")
+        void noLombokInDomainSource() throws IOException {
+            Path srcMain = Path.of("src", "main", "java");
+            if (Files.exists(srcMain)) {
+                try (Stream<Path> stream = Files.walk(srcMain)) {
+                    stream.filter(Files::isRegularFile)
+                            .filter(path -> path.toString().endsWith(".java"))
+                            .filter(path -> path.toString().replace('\\', '/').contains("/domain/"))
+                            .forEach(
+                                    path -> {
+                                        try {
+                                            java.util.List<String> lines = Files.readAllLines(path);
+                                            boolean hasLombokImport =
+                                                    lines.stream()
+                                                            .anyMatch(
+                                                                    l ->
+                                                                            l.trim()
+                                                                                    .startsWith(
+                                                                                            "import"
+                                                                                                + " lombok"));
+                                            assertFalse(
+                                                    hasLombokImport,
+                                                    "Domain source file "
+                                                            + path
+                                                            + " must not import Lombok; keep domain"
+                                                            + " pure Java 21");
+                                        } catch (IOException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    });
                 }
             }
         }
