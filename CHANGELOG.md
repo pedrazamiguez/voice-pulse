@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - refactor(tooling): introduce Lombok for infrastructure logging and constructor injection with domain purity guardrails ([#59](https://github.com/pedrazamiguez/voice-pulse/issues/59))
+- refactor(gateway): decompose LoopbackAudioEchoAdapter and extract dedicated telemetry tracker and URI parser ([#85](https://github.com/pedrazamiguez/voice-pulse/issues/85))
 
 ### Tooling & Infrastructure
 - ci(tooling): automate dependency updates with versions-maven-plugin and weekly PR workflow ([#78](https://github.com/pedrazamiguez/voice-pulse/issues/78))
