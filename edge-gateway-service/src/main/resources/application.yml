@@ -11,8 +11,28 @@ spring:
       value-serializer: com.voicepulse.shared.infrastructure.kafka.serializer.AudioChunkEnvelopeSerializer
 
 voicepulse:
+  kafka:
+    topics:
+      raw:
+        name: telephony.calls.raw
+        partitions: 12
+        replication-factor: 1
+        retention: 1h
+        segment-bytes: 52428800
+      control:
+        name: telephony.calls.control
+        partitions: 12
+        replication-factor: 1
+        retention: 1h
+      dlq:
+        name: telephony.calls.dlq
+        partitions: 3
+        replication-factor: 1
+        retention: 336h
   gateway:
     audio-publisher: kafka
     kafka:
       topic: telephony.calls.raw
       send-timeout: 3s
+      buffer-memory: 33554432
+      max-block-timeout: 3s
