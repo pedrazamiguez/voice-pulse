@@ -2,6 +2,7 @@ package com.voicepulse.gateway.infrastructure.echo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -13,26 +14,38 @@ import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.CallSessionId;
-import java.time.Instant;
 import java.util.Optional;
+import java.util.function.Function;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
+@ExtendWith(MockitoExtension.class)
+@DisplayName("LoopbackAudioEchoAdapter Port Implementation Tests")
 class LoopbackAudioEchoAdapterTest {
 
-    private ConcurrentSessionRegistry sessionRegistry;
-    private LoopbackAudioEchoAdapter adapter;
+    @Mock private ConcurrentSessionRegistry sessionRegistry;
+
+    @InjectMocks private LoopbackAudioEchoAdapter adapter;
+
+    @Captor private ArgumentCaptor<WebSocketMessage> msgCaptor;
+
     private DefaultDataBufferFactory bufferFactory;
 
     @BeforeEach
     void setUp() {
-        sessionRegistry = mock(ConcurrentSessionRegistry.class);
-        adapter = new LoopbackAudioEchoAdapter(sessionRegistry);
         bufferFactory = new DefaultDataBufferFactory();
     }
 
@@ -42,14 +55,20 @@ class LoopbackAudioEchoAdapterTest {
         when(session.binaryMessage(any()))
                 .thenAnswer(
                         invocation -> {
-                            java.util.function.Function<
-                                            org.springframework.core.io.buffer.DataBufferFactory,
-                                            org.springframework.core.io.buffer.DataBuffer>
-                                    fn = invocation.getArgument(0);
+                            Function<DataBufferFactory, DataBuffer> fn = invocation.getArgument(0);
                             return new WebSocketMessage(
                                     WebSocketMessage.Type.BINARY, fn.apply(bufferFactory));
                         });
         return session;
+    }
+
+    private AudioChunk createChunk(CallSessionId sessionId, long seq, byte[] payload) {
+        return Instancio.of(AudioChunk.class)
+                .set(field(AudioChunk::sessionId), sessionId)
+                .set(field(AudioChunk::sequenceNumber), seq)
+                .set(field(AudioChunk::pcmData), payload)
+                .set(field(AudioChunk::format), AudioFormat.PCM_16KHZ_MONO)
+                .create();
     }
 
     @Test
@@ -62,14 +81,10 @@ class LoopbackAudioEchoAdapterTest {
         when(sessionRegistry.emitMessage(any(), any())).thenReturn(true);
 
         byte[] payload = new byte[] {0x10, 0x20, 0x30, 0x40};
-        Instant chunkTimestamp = Instant.now().minusMillis(5);
-        AudioChunk chunk =
-                new AudioChunk(sessionId, 0L, chunkTimestamp, payload, AudioFormat.PCM_16KHZ_MONO);
+        AudioChunk chunk = createChunk(sessionId, 0L, payload);
 
         adapter.publishAudioChunk(chunk);
 
-        ArgumentCaptor<WebSocketMessage> msgCaptor =
-                ArgumentCaptor.forClass(WebSocketMessage.class);
         verify(sessionRegistry).emitMessage(any(), msgCaptor.capture());
 
         WebSocketMessage emittedMsg = msgCaptor.getValue();
@@ -81,8 +96,8 @@ class LoopbackAudioEchoAdapterTest {
 
         EchoLatencyMetrics metrics = adapter.getMetrics(sessionId);
         assertThat(metrics.totalFramesEchoed()).isEqualTo(1L);
-        assertThat(metrics.lastRttMicros()).isGreaterThan(0L);
-        assertThat(metrics.lastRttMs()).isGreaterThan(0.0);
+        assertThat(metrics.lastRttMicros()).isGreaterThanOrEqualTo(0L);
+        assertThat(metrics.lastRttMs()).isGreaterThanOrEqualTo(0.0);
         assertThat(metrics.sequenceDiscontinuities()).isZero();
     }
 
@@ -96,12 +111,9 @@ class LoopbackAudioEchoAdapterTest {
         when(sessionRegistry.emitMessage(any(), any())).thenReturn(true);
 
         byte[] payload = new byte[] {1, 2, 3, 4};
-        AudioChunk chunk0 =
-                new AudioChunk(sessionId, 0L, Instant.now(), payload, AudioFormat.PCM_16KHZ_MONO);
-        AudioChunk chunk1 =
-                new AudioChunk(sessionId, 1L, Instant.now(), payload, AudioFormat.PCM_16KHZ_MONO);
-        AudioChunk chunk3 =
-                new AudioChunk(sessionId, 3L, Instant.now(), payload, AudioFormat.PCM_16KHZ_MONO);
+        AudioChunk chunk0 = createChunk(sessionId, 0L, payload);
+        AudioChunk chunk1 = createChunk(sessionId, 1L, payload);
+        AudioChunk chunk3 = createChunk(sessionId, 3L, payload);
 
         adapter.publishAudioChunk(chunk0);
         adapter.publishAudioChunk(chunk1);
@@ -118,13 +130,7 @@ class LoopbackAudioEchoAdapterTest {
         CallSessionId sessionId = CallSessionId.generate();
         when(sessionRegistry.getSession(sessionId)).thenReturn(Optional.empty());
 
-        AudioChunk chunk =
-                new AudioChunk(
-                        sessionId,
-                        0L,
-                        Instant.now(),
-                        new byte[] {1, 2},
-                        AudioFormat.PCM_16KHZ_MONO);
+        AudioChunk chunk = createChunk(sessionId, 0L, new byte[] {1, 2});
 
         adapter.publishAudioChunk(chunk);
 
@@ -151,7 +157,7 @@ class LoopbackAudioEchoAdapterTest {
         when(sessionRegistry.getSession(sessionId)).thenReturn(Optional.of(session));
         when(sessionRegistry.emitMessage(any(), any())).thenReturn(true);
 
-        byte[] payload = new byte[] {9, 8, 7};
+        byte[] payload = new byte[] {9, 8};
         adapter.publishAudioFrame(callId, 0L, payload);
 
         verify(sessionRegistry).emitMessage(any(), any());

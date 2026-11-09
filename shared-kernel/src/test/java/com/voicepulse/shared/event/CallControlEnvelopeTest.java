@@ -2,10 +2,12 @@ package com.voicepulse.shared.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallId;
 import java.time.Instant;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +21,13 @@ class CallControlEnvelopeTest {
     @Test
     @DisplayName("Should construct CallStarted with valid attributes and enforce constraints")
     void shouldConstructCallStarted() {
-        CallStarted event = new CallStarted(CALL_ID, 0L, NOW, FORMAT);
+        CallStarted event =
+                Instancio.of(CallStarted.class)
+                        .set(field(CallStarted::callId), CALL_ID)
+                        .set(field(CallStarted::sequenceNumber), 0L)
+                        .set(field(CallStarted::timestamp), NOW)
+                        .set(field(CallStarted::format), FORMAT)
+                        .create();
 
         assertThat(event.callId()).isEqualTo(CALL_ID);
         assertThat(event.sequenceNumber()).isZero();
@@ -43,7 +51,13 @@ class CallControlEnvelopeTest {
     @Test
     @DisplayName("Should construct CallTerminated with valid attributes and enforce constraints")
     void shouldConstructCallTerminated() {
-        CallTerminated event = new CallTerminated(CALL_ID, 5L, NOW, "CLIENT_HANGUP");
+        CallTerminated event =
+                Instancio.of(CallTerminated.class)
+                        .set(field(CallTerminated::callId), CALL_ID)
+                        .set(field(CallTerminated::sequenceNumber), 5L)
+                        .set(field(CallTerminated::timestamp), NOW)
+                        .set(field(CallTerminated::reason), "CLIENT_HANGUP")
+                        .create();
 
         assertThat(event.callId()).isEqualTo(CALL_ID);
         assertThat(event.sequenceNumber()).isEqualTo(5L);
@@ -71,7 +85,13 @@ class CallControlEnvelopeTest {
     @DisplayName(
             "Should construct BargeInInterrupt with valid attributes and secondary constructor")
     void shouldConstructBargeInInterrupt() {
-        BargeInInterrupt event = new BargeInInterrupt(CALL_ID, 12L, NOW, 350L);
+        BargeInInterrupt event =
+                Instancio.of(BargeInInterrupt.class)
+                        .set(field(BargeInInterrupt::callId), CALL_ID)
+                        .set(field(BargeInInterrupt::sequenceNumber), 12L)
+                        .set(field(BargeInInterrupt::timestamp), NOW)
+                        .set(field(BargeInInterrupt::playbackOffsetMs), 350L)
+                        .create();
 
         assertThat(event.callId()).isEqualTo(CALL_ID);
         assertThat(event.sequenceNumber()).isEqualTo(12L);
@@ -99,7 +119,14 @@ class CallControlEnvelopeTest {
     @DisplayName(
             "Should construct BackpressureSignal with valid attributes and secondary constructor")
     void shouldConstructBackpressureSignal() {
-        BackpressureSignal event = new BackpressureSignal(CALL_ID, 20L, NOW, true, 85);
+        BackpressureSignal event =
+                Instancio.of(BackpressureSignal.class)
+                        .set(field(BackpressureSignal::callId), CALL_ID)
+                        .set(field(BackpressureSignal::sequenceNumber), 20L)
+                        .set(field(BackpressureSignal::timestamp), NOW)
+                        .set(field(BackpressureSignal::pauseRequested), true)
+                        .set(field(BackpressureSignal::bufferFillRatioPercent), 85)
+                        .create();
 
         assertThat(event.callId()).isEqualTo(CALL_ID);
         assertThat(event.sequenceNumber()).isEqualTo(20L);
@@ -135,10 +162,38 @@ class CallControlEnvelopeTest {
     @Test
     @DisplayName("Should perform exhaustive pattern matching across CallControlEnvelope hierarchy")
     void shouldPerformExhaustivePatternMatching() {
-        CallControlEnvelope started = new CallStarted(CALL_ID, 0L, NOW, FORMAT);
-        CallControlEnvelope terminated = new CallTerminated(CALL_ID, 1L, NOW, "NORMAL");
-        CallControlEnvelope bargeIn = new BargeInInterrupt(CALL_ID, 2L, NOW, 100L);
-        CallControlEnvelope backpressure = new BackpressureSignal(CALL_ID, 3L, NOW, true, 90);
+        CallControlEnvelope started =
+                Instancio.of(CallStarted.class)
+                        .set(field(CallStarted::callId), CALL_ID)
+                        .set(field(CallStarted::sequenceNumber), 0L)
+                        .set(field(CallStarted::timestamp), NOW)
+                        .set(field(CallStarted::format), FORMAT)
+                        .create();
+
+        CallControlEnvelope terminated =
+                Instancio.of(CallTerminated.class)
+                        .set(field(CallTerminated::callId), CALL_ID)
+                        .set(field(CallTerminated::sequenceNumber), 1L)
+                        .set(field(CallTerminated::timestamp), NOW)
+                        .set(field(CallTerminated::reason), "NORMAL")
+                        .create();
+
+        CallControlEnvelope bargeIn =
+                Instancio.of(BargeInInterrupt.class)
+                        .set(field(BargeInInterrupt::callId), CALL_ID)
+                        .set(field(BargeInInterrupt::sequenceNumber), 2L)
+                        .set(field(BargeInInterrupt::timestamp), NOW)
+                        .set(field(BargeInInterrupt::playbackOffsetMs), 100L)
+                        .create();
+
+        CallControlEnvelope backpressure =
+                Instancio.of(BackpressureSignal.class)
+                        .set(field(BackpressureSignal::callId), CALL_ID)
+                        .set(field(BackpressureSignal::sequenceNumber), 3L)
+                        .set(field(BackpressureSignal::timestamp), NOW)
+                        .set(field(BackpressureSignal::pauseRequested), true)
+                        .set(field(BackpressureSignal::bufferFillRatioPercent), 90)
+                        .create();
 
         assertThat(describeEnvelope(started)).isEqualTo("STARTED:0");
         assertThat(describeEnvelope(terminated)).isEqualTo("TERMINATED:NORMAL");

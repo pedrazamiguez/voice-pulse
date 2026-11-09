@@ -2,10 +2,12 @@ package com.voicepulse.gateway.infrastructure.registry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 
 import com.voicepulse.gateway.domain.model.CallSession;
 import com.voicepulse.shared.model.CallSessionId;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +79,7 @@ class ConcurrentSessionRegistryTest {
                 .expectNext(message)
                 .then(() -> registry.unregisterSession(sessionId))
                 .expectComplete()
-                .verify(java.time.Duration.ofSeconds(2));
+                .verify(Duration.ofSeconds(2));
 
         assertThat(registry.getSession(sessionId)).isEmpty();
         assertThat(registry.hasWebSocketSession(sessionId)).isFalse();
@@ -180,13 +182,18 @@ class ConcurrentSessionRegistryTest {
         executor.shutdown();
 
         assertThat(completed).isTrue();
-        assertThat(registry.activeWebSocketSessionCount()).isEqualTo(threadCount);
+        await().atMost(Duration.ofSeconds(2))
+                .untilAsserted(
+                        () ->
+                                assertThat(registry.activeWebSocketSessionCount())
+                                        .isEqualTo(threadCount));
 
         for (CallSessionId id : sessionIds) {
             registry.unregisterSession(id);
         }
 
-        assertThat(registry.activeWebSocketSessionCount()).isZero();
+        await().atMost(Duration.ofSeconds(2))
+                .untilAsserted(() -> assertThat(registry.activeWebSocketSessionCount()).isZero());
     }
 
     @Test

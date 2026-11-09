@@ -110,13 +110,19 @@ When generating domain logic, prompts, or tests for the **SkyWay Airlines Intern
 
 * **600-Line File Limit:** Production Java source files MUST NOT exceed **600 lines of code**. If a class approaches 500 lines, extract cohesive collaborators (strategy classes, validators, pipeline handlers) before adding new logic.
 * **Zero Field Injection:** Prohibit `@Autowired` on class fields. All dependencies MUST be injected via constructor injection. In infrastructure adapters, configurations, and application services, use Lombok `@RequiredArgsConstructor` (with `@NonNull` for required fields) to eliminate constructor boilerplate. In `domain..` classes, use standard Java constructors with explicit validation (`Objects.requireNonNull`). Lombok is strictly prohibited in domain classes.
-* **No Wildcard Imports:** Explicit class imports only (e.g., `import java.util.List;`, NEVER `import java.util.*;`).
+* **Import Hygiene & Zero Inline FQNs:** Explicit class imports only (e.g., `import java.util.List;`, NEVER wildcard `import java.util.*;`). Inline fully qualified class names (e.g., `java.util.UUID.randomUUID()`, `java.time.Instant.now()`) are strictly forbidden across both production (`src/main/java`) and test (`src/test/java`) source code. All types must be cleanly imported at the top of the file. Enforced by ArchUnit.
 * **Structured Logging Only:** **NEVER** use `System.out.println()` or `System.err.println()`. Use SLF4J with structured key-value logging. Prohibit manual `private static final Logger log = LoggerFactory.getLogger(...)` declarations in infrastructure and application classes; use Lombok `@Slf4j` instead. Domain classes must remain pure and do not log directly:
   ```java
   log.info("Audio frame ingested", kv("callId", callId), kv("seq", sequenceNumber), kv("bytes", frameSize));
   ```
 * **Deterministic Build Tooling:** All builds, tests, and plugin executions MUST use the Maven Wrapper (`./mvnw` or `$(MVN)`) or unified Makefile targets. Never invoke ambient system `mvn` directly.
 * **Formatting:** All Java code must format cleanly with Google Java Format (AOSP style, 4-space indent) via `./mvnw spotless:apply` (or `make format`).
+
+### Testing Standards & Tooling
+* **Instancio Fixtures for State & Payload Generation:** Tests MUST use Instancio (`org.instancio.Instancio`) to create domain models, event envelopes, and DTO fixtures rather than error-prone manual multi-argument constructors or copy-pasted test data. Custom generator specs must be used for domain-constrained fields (e.g. 6-character alphanumeric PNRs).
+* **Idiomatic Mockito for Ports & Adapters:** Unit tests for ports, adapters, and domain services MUST use Mockito with the JUnit Jupiter extension (`@ExtendWith(MockitoExtension.class)`), `@Mock`, `@InjectMocks`, and `@Captor ArgumentCaptor<T>` with strict stub verification. Never maintain handwritten ad-hoc test doubles.
+* **Awaitility for Asynchronous Verification:** Asynchronous, reactive, or concurrent state transitions, queue consumption, and registry lookups MUST use Awaitility (`await().atMost(...).untilAsserted(...)`) rather than `Thread.sleep()` or fragile countdown latches.
+* **WireMock for HTTP/REST Integration:** External HTTP/REST integrations and downstream service clients must be verified using WireMock with explicit request matching and deterministic response stubbing.
 
 ### Object Mapping & Data Transformation Standards
 * **Mandatory MapStruct for Structural/Wide DTOs:** When transforming data between infrastructure transport payloads (e.g., MCP JSON DTOs, REST DTOs, persistence entities) and pure domain models or records, use formal MapStruct interfaces residing strictly in `infrastructure.<adapter>.mapper`.

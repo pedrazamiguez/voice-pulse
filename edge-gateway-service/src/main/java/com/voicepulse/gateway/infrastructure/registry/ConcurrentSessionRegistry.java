@@ -6,6 +6,7 @@ import com.voicepulse.shared.model.CallSessionId;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Component;
@@ -101,8 +102,7 @@ public final class ConcurrentSessionRegistry implements SessionRegistryPort {
                 Sinks.many()
                         .unicast()
                         .onBackpressureBuffer(
-                                new java.util.concurrent.LinkedBlockingQueue<WebSocketMessage>(
-                                        bufferCapacity));
+                                new LinkedBlockingQueue<WebSocketMessage>(bufferCapacity));
 
         webSocketSessions.put(sessionId, session);
         outboundSinks.put(sessionId, sink);

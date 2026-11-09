@@ -2,6 +2,7 @@ package com.voicepulse.shared.infrastructure.kafka.serializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 
 import com.voicepulse.shared.event.BackpressureSignal;
 import com.voicepulse.shared.event.BargeInInterrupt;
@@ -13,6 +14,7 @@ import com.voicepulse.shared.model.CallId;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import org.apache.kafka.common.errors.SerializationException;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +46,13 @@ class CallControlEnvelopeSerializationTest {
     @Test
     @DisplayName("Should serialize and deserialize CallStarted event with polymorphic fidelity")
     void shouldRoundTripCallStarted() {
-        CallStarted event = new CallStarted(CALL_ID, 0L, NOW, FORMAT);
+        CallStarted event =
+                Instancio.of(CallStarted.class)
+                        .set(field(CallStarted::callId), CALL_ID)
+                        .set(field(CallStarted::sequenceNumber), 0L)
+                        .set(field(CallStarted::timestamp), NOW)
+                        .set(field(CallStarted::format), FORMAT)
+                        .create();
 
         byte[] bytes = serializer.serialize(TOPIC, event);
         assertThat(bytes).isNotNull();
@@ -62,7 +70,13 @@ class CallControlEnvelopeSerializationTest {
     @Test
     @DisplayName("Should serialize and deserialize CallTerminated event with polymorphic fidelity")
     void shouldRoundTripCallTerminated() {
-        CallTerminated event = new CallTerminated(CALL_ID, 10L, NOW, "CLIENT_HANGUP");
+        CallTerminated event =
+                Instancio.of(CallTerminated.class)
+                        .set(field(CallTerminated::callId), CALL_ID)
+                        .set(field(CallTerminated::sequenceNumber), 10L)
+                        .set(field(CallTerminated::timestamp), NOW)
+                        .set(field(CallTerminated::reason), "CLIENT_HANGUP")
+                        .create();
 
         byte[] bytes = serializer.serialize(TOPIC, event);
         assertThat(bytes).isNotNull();
@@ -81,7 +95,13 @@ class CallControlEnvelopeSerializationTest {
     @DisplayName(
             "Should serialize and deserialize BargeInInterrupt event with polymorphic fidelity")
     void shouldRoundTripBargeInInterrupt() {
-        BargeInInterrupt event = new BargeInInterrupt(CALL_ID, 15L, NOW, 420L);
+        BargeInInterrupt event =
+                Instancio.of(BargeInInterrupt.class)
+                        .set(field(BargeInInterrupt::callId), CALL_ID)
+                        .set(field(BargeInInterrupt::sequenceNumber), 15L)
+                        .set(field(BargeInInterrupt::timestamp), NOW)
+                        .set(field(BargeInInterrupt::playbackOffsetMs), 420L)
+                        .create();
 
         byte[] bytes = serializer.serialize(TOPIC, event);
         assertThat(bytes).isNotNull();
@@ -100,7 +120,14 @@ class CallControlEnvelopeSerializationTest {
     @DisplayName(
             "Should serialize and deserialize BackpressureSignal event with polymorphic fidelity")
     void shouldRoundTripBackpressureSignal() {
-        BackpressureSignal event = new BackpressureSignal(CALL_ID, 25L, NOW, true, 80);
+        BackpressureSignal event =
+                Instancio.of(BackpressureSignal.class)
+                        .set(field(BackpressureSignal::callId), CALL_ID)
+                        .set(field(BackpressureSignal::sequenceNumber), 25L)
+                        .set(field(BackpressureSignal::timestamp), NOW)
+                        .set(field(BackpressureSignal::pauseRequested), true)
+                        .set(field(BackpressureSignal::bufferFillRatioPercent), 80)
+                        .create();
 
         byte[] bytes = serializer.serialize(TOPIC, event);
         assertThat(bytes).isNotNull();
