@@ -1,6 +1,7 @@
 package com.voicepulse.conversation.infrastructure.kafka.consumer;
 
 import com.voicepulse.shared.event.AudioChunkEnvelope;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,7 +22,10 @@ import org.springframework.stereotype.Component;
         matchIfMissing = true)
 public class KafkaAudioStreamConsumer {
 
+    private final AtomicInteger processedChunksCount = new AtomicInteger(0);
+
     @KafkaListener(
+            id = "audioStreamListener",
             topics = "${voicepulse.kafka.topics.raw.name:telephony.calls.raw}",
             groupId = "${voicepulse.conversation.kafka.consumer-group:conversation-engine-workers}",
             containerFactory = "kafkaListenerContainerFactory")
@@ -30,11 +34,17 @@ public class KafkaAudioStreamConsumer {
             @Header(KafkaHeaders.RECEIVED_KEY) String callId,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset) {
+        processedChunksCount.incrementAndGet();
         log.debug(
-                "Consumed audio chunk: callId={}, seq={}, partition={}, offset={}",
+                "Consumed audio chunk: callId={}, seq={}, partition={}, offset={}, totalCount={}",
                 callId,
                 envelope.sequenceNumber(),
                 partition,
-                offset);
+                offset,
+                processedChunksCount.get());
+    }
+
+    public int getProcessedChunksCount() {
+        return processedChunksCount.get();
     }
 }
