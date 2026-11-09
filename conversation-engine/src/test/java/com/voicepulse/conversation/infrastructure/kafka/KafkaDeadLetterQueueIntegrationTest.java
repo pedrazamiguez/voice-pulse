@@ -2,6 +2,7 @@ package com.voicepulse.conversation.infrastructure.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.voicepulse.conversation.infrastructure.kafka.consumer.KafkaAudioStreamConsumer;
 import com.voicepulse.shared.event.AudioChunkEnvelope;
@@ -150,25 +151,27 @@ class KafkaDeadLetterQueueIntegrationTest {
                 .untilAsserted(
                         () -> {
                             ConsumerRecords<String, byte[]> records =
-                                    KafkaTestUtils.getRecords(dlqConsumer, Duration.ofMillis(500));
-                            assertThat(records).isNotEmpty();
+                                    dlqConsumer.poll(Duration.ofMillis(300));
+                            for (ConsumerRecord<String, byte[]> record : records) {
+                                if (callId.toString().equals(record.key())) {
+                                    assertThat(record.value()).isEqualTo(corruptedBytes);
 
-                            ConsumerRecord<String, byte[]> record = records.iterator().next();
-                            assertThat(record.key()).isEqualTo(callId.toString());
-                            assertThat(record.value()).isEqualTo(corruptedBytes);
+                                    Header originalTopicHeader =
+                                            record.headers().lastHeader("kafka_dlt-original-topic");
+                                    assertThat(originalTopicHeader).isNotNull();
+                                    assertThat(
+                                                    new String(
+                                                            originalTopicHeader.value(),
+                                                            StandardCharsets.UTF_8))
+                                            .isEqualTo(RAW_TOPIC);
 
-                            Header originalTopicHeader =
-                                    record.headers().lastHeader("kafka_dlt-original-topic");
-                            assertThat(originalTopicHeader).isNotNull();
-                            assertThat(
-                                            new String(
-                                                    originalTopicHeader.value(),
-                                                    StandardCharsets.UTF_8))
-                                    .isEqualTo(RAW_TOPIC);
-
-                            Header exceptionHeader =
-                                    record.headers().lastHeader("kafka_dlt-exception-fqcn");
-                            assertThat(exceptionHeader).isNotNull();
+                                    Header exceptionHeader =
+                                            record.headers().lastHeader("kafka_dlt-exception-fqcn");
+                                    assertThat(exceptionHeader).isNotNull();
+                                    return;
+                                }
+                            }
+                            fail("DLQ record for callId " + callId + " not yet received");
                         });
     }
 
@@ -176,7 +179,6 @@ class KafkaDeadLetterQueueIntegrationTest {
     @DisplayName(
             "Consumer remains operational and ingests valid frames following a corrupted payload")
     void consumerContinuesProcessingValidFrames_afterCorruptedPayload() {
-        int initialCount = audioConsumer.getProcessedChunksCount();
         CallId corruptedCallId = CallId.generate();
         byte[] corruptedBytes = new byte[] {0x00, 0x01, 0x02};
         rawByteProducer.send(
@@ -187,12 +189,16 @@ class KafkaDeadLetterQueueIntegrationTest {
                 .untilAsserted(
                         () -> {
                             ConsumerRecords<String, byte[]> records =
-                                    KafkaTestUtils.getRecords(dlqConsumer, Duration.ofMillis(500));
-                            assertThat(records).isNotEmpty();
-                            ConsumerRecord<String, byte[]> dlqRecord = records.iterator().next();
-                            assertThat(dlqRecord.key()).isEqualTo(corruptedCallId.toString());
+                                    dlqConsumer.poll(Duration.ofMillis(300));
+                            for (ConsumerRecord<String, byte[]> record : records) {
+                                if (corruptedCallId.toString().equals(record.key())) {
+                                    return;
+                                }
+                            }
+                            fail("DLQ record for corruptedCallId not yet received");
                         });
 
+        int initialCount = audioConsumer.getProcessedChunksCount();
         CallId validCallId = CallId.generate();
         AudioChunkEnvelope validEnvelope =
                 new AudioChunkEnvelope(
