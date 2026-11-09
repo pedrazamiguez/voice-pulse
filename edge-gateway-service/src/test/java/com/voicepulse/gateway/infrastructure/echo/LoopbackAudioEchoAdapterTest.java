@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.instancio.Select.field;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,8 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
@@ -38,7 +39,9 @@ class LoopbackAudioEchoAdapterTest {
 
     @Mock private ConcurrentSessionRegistry sessionRegistry;
 
-    @InjectMocks private LoopbackAudioEchoAdapter adapter;
+    @Spy private EchoLatencyTracker latencyTracker = new EchoLatencyTracker();
+
+    private LoopbackAudioEchoAdapter adapter;
 
     @Captor private ArgumentCaptor<WebSocketMessage> msgCaptor;
 
@@ -46,6 +49,7 @@ class LoopbackAudioEchoAdapterTest {
 
     @BeforeEach
     void setUp() {
+        adapter = new LoopbackAudioEchoAdapter(sessionRegistry, latencyTracker);
         bufferFactory = new DefaultDataBufferFactory();
     }
 
@@ -72,7 +76,9 @@ class LoopbackAudioEchoAdapterTest {
     }
 
     @Test
-    @DisplayName("publishAudioChunk echoes binary frame to active WebSocketSession and updates RTT")
+    @DisplayName(
+            "publishAudioChunk echoes binary frame to active WebSocketSession and delegates to"
+                    + " latencyTracker")
     void publishAudioChunk_echoesBinaryFrameAndUpdatesRtt() {
         CallSessionId sessionId = CallSessionId.generate();
         WebSocketSession session = createMockSession();
@@ -86,6 +92,7 @@ class LoopbackAudioEchoAdapterTest {
         adapter.publishAudioChunk(chunk);
 
         verify(sessionRegistry).emitMessage(any(), msgCaptor.capture());
+        verify(latencyTracker).record(eq(sessionId), eq(0L), any(Long.class));
 
         WebSocketMessage emittedMsg = msgCaptor.getValue();
         assertThat(emittedMsg.getType()).isEqualTo(WebSocketMessage.Type.BINARY);
@@ -102,7 +109,7 @@ class LoopbackAudioEchoAdapterTest {
     }
 
     @Test
-    @DisplayName("publishAudioChunk detects sequence gaps and records discontinuities")
+    @DisplayName("publishAudioChunk detects sequence gaps and records discontinuities via tracker")
     void publishAudioChunk_detectsSequenceGaps() {
         CallSessionId sessionId = CallSessionId.generate();
         WebSocketSession session = createMockSession();
@@ -161,6 +168,7 @@ class LoopbackAudioEchoAdapterTest {
         adapter.publishAudioFrame(callId, 0L, payload);
 
         verify(sessionRegistry).emitMessage(any(), any());
+        verify(latencyTracker).record(eq(sessionId), eq(0L), any(Long.class));
         EchoLatencyMetrics metrics = adapter.getMetrics(sessionId);
         assertThat(metrics.totalFramesEchoed()).isEqualTo(1L);
     }
@@ -171,7 +179,9 @@ class LoopbackAudioEchoAdapterTest {
         CallSessionId sessionId = CallSessionId.generate();
         CallId callId = sessionId.toCallId();
 
-        assertThatThrownBy(() -> new LoopbackAudioEchoAdapter(null))
+        assertThatThrownBy(() -> new LoopbackAudioEchoAdapter(null, latencyTracker))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new LoopbackAudioEchoAdapter(sessionRegistry, null))
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> adapter.publishAudioChunk(null))
                 .isInstanceOf(NullPointerException.class);

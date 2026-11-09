@@ -26,6 +26,8 @@ class WebSocketConfigurationTest {
 
     @Mock private ConcurrentSessionRegistry sessionRegistry;
 
+    @Mock private WebSocketCallUriParser uriParser;
+
     @InjectMocks private AudioWebSocketHandler handler;
 
     @Test
