@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(tooling): overhaul vp-start-issue definition of done with automated PR creation and CI verification gate ([#74](https://github.com/pedrazamiguez/voice-pulse/issues/74))
 - feat(arch): standardize object mapping with MapStruct and establish agent directives ([#73](https://github.com/pedrazamiguez/voice-pulse/issues/73))
 - feat(tooling): establish testing standards with Instancio, Mockito, Awaitability, and enforce import hygiene ([#77](https://github.com/pedrazamiguez/voice-pulse/issues/77))
+- feat(gateway): implement reactive KafkaAudioFramePublisher adapter with partition key mandate ([#64](https://github.com/pedrazamiguez/voice-pulse/issues/64))
 
 ### Changed
 - refactor(tooling): introduce Lombok for infrastructure logging and constructor injection with domain purity guardrails ([#59](https://github.com/pedrazamiguez/voice-pulse/issues/59))
