@@ -2,6 +2,7 @@ package com.voicepulse.conversation.infrastructure.kafka.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.voicepulse.conversation.infrastructure.kafka.worker.PinnedAudioWorkerPool;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.config.TopicConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +38,7 @@ class ConversationKafkaConsumerConfigurationTest {
                     assertThat(properties.consumerGroup()).isEqualTo("conversation-engine-workers");
                     assertThat(properties.concurrency()).isEqualTo(3);
                     assertThat(properties.autoOffsetReset()).isEqualTo("earliest");
+                    assertThat(properties.workerPoolSize()).isEqualTo(8);
 
                     assertThat(context).hasBean("audioStreamConsumerFactory");
                     assertThat(context).hasBean("dlqProducerFactory");
@@ -44,11 +46,13 @@ class ConversationKafkaConsumerConfigurationTest {
                     assertThat(context).hasBean("dlqRecoverer");
                     assertThat(context).hasBean("kafkaCommonErrorHandler");
                     assertThat(context).hasBean("kafkaListenerContainerFactory");
+                    assertThat(context).hasBean("pinnedAudioWorkerPool");
 
                     assertThat(context).hasSingleBean(ConsumerFactory.class);
                     assertThat(context).hasSingleBean(KafkaTemplate.class);
                     assertThat(context).hasSingleBean(DeadLetterPublishingRecoverer.class);
                     assertThat(context).hasSingleBean(CommonErrorHandler.class);
+                    assertThat(context).hasSingleBean(PinnedAudioWorkerPool.class);
 
                     assertThat(context).hasSingleBean(KafkaTopicProperties.class);
                     assertThat(context).hasBean("telephonyCallsRawTopic");
@@ -86,6 +90,7 @@ class ConversationKafkaConsumerConfigurationTest {
                             assertThat(context).doesNotHaveBean("dlqKafkaTemplate");
                             assertThat(context).doesNotHaveBean("dlqRecoverer");
                             assertThat(context).doesNotHaveBean("kafkaCommonErrorHandler");
+                            assertThat(context).doesNotHaveBean("pinnedAudioWorkerPool");
                             assertThat(context).doesNotHaveBean("telephonyCallsRawTopic");
                             assertThat(context).doesNotHaveBean("telephonyCallsControlTopic");
                             assertThat(context).doesNotHaveBean("telephonyCallsDlqTopic");
@@ -100,6 +105,7 @@ class ConversationKafkaConsumerConfigurationTest {
                         "voicepulse.conversation.kafka.consumer-group=custom-workers",
                         "voicepulse.conversation.kafka.concurrency=6",
                         "voicepulse.conversation.kafka.auto-offset-reset=latest",
+                        "voicepulse.conversation.kafka.worker-pool-size=16",
                         "voicepulse.kafka.topics.dlq.name=telephony.calls.custom-dlq",
                         "voicepulse.kafka.topics.dlq.partitions=5",
                         "voicepulse.kafka.topics.dlq.retention=72h")
@@ -110,6 +116,7 @@ class ConversationKafkaConsumerConfigurationTest {
                             assertThat(properties.consumerGroup()).isEqualTo("custom-workers");
                             assertThat(properties.concurrency()).isEqualTo(6);
                             assertThat(properties.autoOffsetReset()).isEqualTo("latest");
+                            assertThat(properties.workerPoolSize()).isEqualTo(16);
 
                             NewTopic dlqTopic =
                                     context.getBean("telephonyCallsDlqTopic", NewTopic.class);
