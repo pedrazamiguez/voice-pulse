@@ -110,7 +110,7 @@ class SoftphoneWebConfigurationTest {
                 .expectStatus()
                 .isOk()
                 .expectHeader()
-                .contentTypeCompatibleWith(MediaType.valueOf("application/javascript"))
+                .contentTypeCompatibleWith(MediaType.valueOf("text/javascript"))
                 .expectBody(String.class)
                 .value(body -> assertThat(body).contains("VoicePulseSoftphone"));
     }
@@ -125,7 +125,7 @@ class SoftphoneWebConfigurationTest {
                 .expectStatus()
                 .isOk()
                 .expectHeader()
-                .contentTypeCompatibleWith(MediaType.valueOf("application/javascript"))
+                .contentTypeCompatibleWith(MediaType.valueOf("text/javascript"))
                 .expectBody(String.class)
                 .value(body -> assertThat(body).contains("LinearPcm16DownsamplerProcessor"));
     }
