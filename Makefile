@@ -8,7 +8,7 @@ export SONAR_HOST_URL
 export SONAR_TOKEN
 export PATH := $(HOME)/.local/bin:$(PATH)
 
-.PHONY: help setup hooks fast-check pre-pr check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag test-changelog knowledge-update sonar
+.PHONY: help setup hooks fast-check pre-pr check arch-check format test deps-check deps-update docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag test-changelog knowledge-update sonar
 
 CYAN   := \033[0;36m
 GREEN  := \033[0;32m
@@ -73,6 +73,17 @@ test: ## Run unit tests across all modules
 	@printf "$(YELLOW)⏳ Running unit tests across all modules...$(NC)\n"
 	@$(MVN) test -q
 	@printf "$(GREEN)✅ Unit tests passed.$(NC)\n"
+
+deps-check: ## Check for dependency and plugin updates
+	@printf "$(YELLOW)⏳ Checking for available dependency updates...$(NC)\n"
+	@$(MVN) versions:display-property-updates -DallowMajorUpdates=false
+	@printf "$(GREEN)✅ Dependency update check complete.$(NC)\n"
+
+deps-update: ## Update project dependency version properties to latest stable versions
+	@printf "$(YELLOW)⏳ Updating dependency versions in pom.xml...$(NC)\n"
+	@$(MVN) versions:update-properties -DallowMajorUpdates=false
+	@$(MVN) spotless:apply -q
+	@printf "$(GREEN)✅ Dependency versions updated and formatted.$(NC)\n"
 
 docker-infra: ## Start local Kafka KRaft, Redis, and PostgreSQL
 	@printf "$(YELLOW)⏳ Starting local Docker infrastructure...$(NC)\n"
