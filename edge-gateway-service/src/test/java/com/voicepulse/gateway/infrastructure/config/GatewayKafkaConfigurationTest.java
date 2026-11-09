@@ -26,24 +26,26 @@ class GatewayKafkaConfigurationTest {
 
     @Test
     @DisplayName(
-            "Kafka producer beans and publisher are loaded by default when audio-publisher is"
-                    + " kafka")
-    void whenAudioPublisherIsKafka_beansAreLoadedWithDefaults() {
+            "Kafka producer beans and publisher are loaded from configuration when audio-publisher"
+                    + " is kafka")
+    void whenAudioPublisherIsKafka_beansAreLoadedWithProperties() {
         contextRunner
-                .withPropertyValues("spring.kafka.bootstrap-servers=localhost:9092")
+                .withPropertyValues(
+                        "spring.kafka.bootstrap-servers=localhost:9092",
+                        "voicepulse.gateway.kafka.topic=telephony.calls.raw",
+                        "voicepulse.gateway.kafka.send-timeout=3s",
+                        "voicepulse.gateway.kafka.buffer-memory=33554432",
+                        "voicepulse.gateway.kafka.max-block-timeout=3s")
                 .run(
                         context -> {
                             assertThat(context).hasSingleBean(GatewayKafkaProperties.class);
                             GatewayKafkaProperties properties =
                                     context.getBean(GatewayKafkaProperties.class);
-                            assertThat(properties.topic())
-                                    .isEqualTo(GatewayKafkaProperties.DEFAULT_TOPIC);
-                            assertThat(properties.sendTimeout())
-                                    .isEqualTo(GatewayKafkaProperties.DEFAULT_TIMEOUT);
-                            assertThat(properties.bufferMemory())
-                                    .isEqualTo(GatewayKafkaProperties.DEFAULT_BUFFER_MEMORY);
+                            assertThat(properties.topic()).isEqualTo("telephony.calls.raw");
+                            assertThat(properties.sendTimeout()).isEqualTo(Duration.ofSeconds(3));
+                            assertThat(properties.bufferMemory()).isEqualTo(33554432L);
                             assertThat(properties.maxBlockTimeout())
-                                    .isEqualTo(GatewayKafkaProperties.DEFAULT_MAX_BLOCK_TIMEOUT);
+                                    .isEqualTo(Duration.ofSeconds(3));
 
                             assertThat(context).hasBean("audioChunkProducerFactory");
                             assertThat(context).hasBean("audioChunkKafkaTemplate");

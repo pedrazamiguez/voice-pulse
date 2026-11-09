@@ -25,22 +25,37 @@ class ConversationKafkaConsumerConfigurationTest {
                                     ConversationKafkaTopicConfiguration.class));
 
     @Test
-    @DisplayName("Kafka consumer, DLQ recoverer, and topic beans are loaded by default")
-    void whenKafkaEnabled_beansAreLoadedWithDefaults() {
+    @DisplayName("Kafka consumer, DLQ recoverer, and topic beans are loaded from configuration")
+    void whenKafkaEnabled_beansAreLoadedWithConfiguredProperties() {
         contextRunner
-                .withPropertyValues("spring.kafka.bootstrap-servers=localhost:9092")
+                .withPropertyValues(
+                        "spring.kafka.bootstrap-servers=localhost:9092",
+                        "voicepulse.kafka.topics.raw.name=telephony.calls.raw",
+                        "voicepulse.kafka.topics.raw.partitions=12",
+                        "voicepulse.kafka.topics.raw.replication-factor=1",
+                        "voicepulse.kafka.topics.raw.retention=1h",
+                        "voicepulse.kafka.topics.raw.segment-bytes=52428800",
+                        "voicepulse.kafka.topics.control.name=telephony.calls.control",
+                        "voicepulse.kafka.topics.control.partitions=12",
+                        "voicepulse.kafka.topics.control.replication-factor=1",
+                        "voicepulse.kafka.topics.control.retention=1h",
+                        "voicepulse.kafka.topics.dlq.name=telephony.calls.dlq",
+                        "voicepulse.kafka.topics.dlq.partitions=3",
+                        "voicepulse.kafka.topics.dlq.replication-factor=1",
+                        "voicepulse.kafka.topics.dlq.retention=336h",
+                        "voicepulse.conversation.kafka.enabled=true",
+                        "voicepulse.conversation.kafka.consumer-group=conversation-engine-workers",
+                        "voicepulse.conversation.kafka.concurrency=3",
+                        "voicepulse.conversation.kafka.auto-offset-reset=earliest")
                 .run(
                         context -> {
                             assertThat(context).hasSingleBean(ConversationKafkaProperties.class);
                             ConversationKafkaProperties properties =
                                     context.getBean(ConversationKafkaProperties.class);
                             assertThat(properties.consumerGroup())
-                                    .isEqualTo(ConversationKafkaProperties.DEFAULT_GROUP_ID);
-                            assertThat(properties.concurrency())
-                                    .isEqualTo(ConversationKafkaProperties.DEFAULT_CONCURRENCY);
-                            assertThat(properties.autoOffsetReset())
-                                    .isEqualTo(
-                                            ConversationKafkaProperties.DEFAULT_AUTO_OFFSET_RESET);
+                                    .isEqualTo("conversation-engine-workers");
+                            assertThat(properties.concurrency()).isEqualTo(3);
+                            assertThat(properties.autoOffsetReset()).isEqualTo("earliest");
 
                             assertThat(context).hasBean("audioStreamConsumerFactory");
                             assertThat(context).hasBean("dlqProducerFactory");
@@ -107,6 +122,12 @@ class ConversationKafkaConsumerConfigurationTest {
                         "voicepulse.conversation.kafka.consumer-group=custom-workers",
                         "voicepulse.conversation.kafka.concurrency=6",
                         "voicepulse.conversation.kafka.auto-offset-reset=latest",
+                        "voicepulse.kafka.topics.raw.name=telephony.calls.raw",
+                        "voicepulse.kafka.topics.raw.partitions=12",
+                        "voicepulse.kafka.topics.raw.retention=1h",
+                        "voicepulse.kafka.topics.control.name=telephony.calls.control",
+                        "voicepulse.kafka.topics.control.partitions=12",
+                        "voicepulse.kafka.topics.control.retention=1h",
                         "voicepulse.kafka.topics.dlq.name=telephony.calls.custom-dlq",
                         "voicepulse.kafka.topics.dlq.partitions=5",
                         "voicepulse.kafka.topics.dlq.retention=72h")

@@ -46,12 +46,7 @@ class KafkaAudioFrameDispatcherTest {
     @BeforeEach
     void setUp() {
         metricsTracker = new KafkaPublisherMetricsTracker();
-        properties =
-                new GatewayKafkaProperties(
-                        TOPIC,
-                        TIMEOUT,
-                        GatewayKafkaProperties.DEFAULT_BUFFER_MEMORY,
-                        GatewayKafkaProperties.DEFAULT_MAX_BLOCK_TIMEOUT);
+        properties = new GatewayKafkaProperties(TOPIC, TIMEOUT, 33554432L, Duration.ofSeconds(3));
         dispatcher = new KafkaAudioFrameDispatcher(kafkaTemplate, properties, metricsTracker);
     }
 

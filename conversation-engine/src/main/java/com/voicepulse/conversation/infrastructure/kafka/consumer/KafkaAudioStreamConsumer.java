@@ -26,8 +26,8 @@ public class KafkaAudioStreamConsumer {
 
     @KafkaListener(
             id = "audioStreamListener",
-            topics = "${voicepulse.kafka.topics.raw.name:telephony.calls.raw}",
-            groupId = "${voicepulse.conversation.kafka.consumer-group:conversation-engine-workers}",
+            topics = "${voicepulse.kafka.topics.raw.name}",
+            groupId = "${voicepulse.conversation.kafka.consumer-group}",
             containerFactory = "kafkaListenerContainerFactory")
     public void onAudioChunk(
             @Payload AudioChunkEnvelope envelope,
