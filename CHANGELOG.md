@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- refactor(tooling): introduce Lombok for infrastructure logging and constructor injection with domain purity guardrails ([#59](https://github.com/pedrazamiguez/voice-pulse/issues/59))
+
 ## [0.3.0] - 2026-11-08
 ### Added
 - feat(gateway): define domain models, audio frame records, and hexagonal ports ([#23](https://github.com/pedrazamiguez/voice-pulse/issues/23))
