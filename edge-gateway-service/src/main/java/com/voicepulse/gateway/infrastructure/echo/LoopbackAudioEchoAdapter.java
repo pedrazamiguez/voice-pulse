@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
@@ -28,6 +29,10 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(
+        prefix = "voicepulse.gateway",
+        name = "audio-publisher",
+        havingValue = "loopback")
 public class LoopbackAudioEchoAdapter implements AudioFramePublisherPort {
 
     private final @NonNull ConcurrentSessionRegistry sessionRegistry;

@@ -6,6 +6,7 @@ import com.voicepulse.gateway.domain.service.CallSessionService;
 import com.voicepulse.gateway.infrastructure.echo.LoopbackAudioEchoAdapter;
 import com.voicepulse.gateway.infrastructure.registry.ConcurrentSessionRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,8 +28,12 @@ public class GatewayDomainConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    public AudioFramePublisherPort audioFramePublisherPort(
+    @ConditionalOnProperty(
+            prefix = "voicepulse.gateway",
+            name = "audio-publisher",
+            havingValue = "loopback")
+    @ConditionalOnMissingBean(AudioFramePublisherPort.class)
+    public AudioFramePublisherPort loopbackAudioFramePublisherPort(
             ConcurrentSessionRegistry concurrentSessionRegistry) {
         return new LoopbackAudioEchoAdapter(concurrentSessionRegistry);
     }
