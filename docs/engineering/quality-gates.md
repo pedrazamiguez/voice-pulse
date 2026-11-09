@@ -14,6 +14,7 @@
     - `org.apache.kafka.*` (No Kafka producers, consumers, or headers)
     - `jakarta.persistence.*` / `javax.persistence.*` (No JPA `@Entity`, `@Table`)
     - `com.fasterxml.jackson.*` (No `@JsonProperty`, `@JsonSerialize`)
+    - `lombok.*` (No `@Data`, `@Getter`, `@Setter`, `@RequiredArgsConstructor`, `@Slf4j`)
   - ✅ **Permitted in Domain:**
     - Standard Java 21 runtime (`java.time.*`, `java.util.*`, `java.math.*`).
     - Pure domain records (`record CallSessionId(...)`, `record AudioChunk(...)`).
@@ -31,7 +32,7 @@
 
 ### 2. Zero Field Injection
 * Prohibit `@Autowired` on class fields.
-* All dependencies MUST be injected via constructor injection (using standard Java constructors or Lombok `@RequiredArgsConstructor`).
+* All dependencies MUST be injected via constructor injection. In infrastructure adapters, configuration classes, and application services, use Lombok `@RequiredArgsConstructor` (with `@NonNull` for required fields) to eliminate boilerplate. In `domain..` classes, use standard Java constructors with explicit validation. Lombok is forbidden in domain classes.
 
 ### 3. No Wildcard Imports
 * Prohibit wildcard imports (e.g., `import java.util.*;`).
@@ -39,7 +40,7 @@
 
 ### 4. Structured SLF4J Logging Only
 * **Zero Console Prints:** `System.out.println()` and `System.err.println()` are strictly prohibited.
-* Use SLF4J structured key-value logging:
+* Use SLF4J structured key-value logging. Prohibit manual `LoggerFactory.getLogger(...)` boilerplate in infrastructure and application classes; use Lombok `@Slf4j` instead. Domain classes must remain pure and do not log directly:
   ```java
   log.info("Call session state transitioned",
       kv("callId", callId),

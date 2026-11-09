@@ -21,7 +21,7 @@ Run the ArchUnit test suite to assert domain purity, port definitions, and forbi
 ```
 
 * **Expected Result:** Build SUCCESS.
-* **Failure Remediation:** If a domain class imports Spring, Netty, Kafka, or Jackson, remove the import immediately and relocate transport logic into an infrastructure adapter.
+* **Failure Remediation:** If a domain class imports Spring, Netty, Kafka, Jackson, or Lombok, remove the import immediately and relocate transport logic into an infrastructure adapter.
 
 ---
 
@@ -37,8 +37,8 @@ find . -type f -name "*.java" ! -path "*/test/*" ! -path "*/target/*" ! -path "*
 
 ---
 
-## 3. Formatting & Static Analysis
-Check code style and compiler warnings:
+## 3. Formatting, Static Analysis & Lombok Hygiene
+Check code style, Lombok annotations, and compiler warnings:
 
 ```bash
 # Check Spotless formatting
@@ -50,6 +50,8 @@ Check code style and compiler warnings:
 # Run SpotBugs & compiler checks
 ./mvnw compile spotbugs:check
 ```
+
+* **Lombok Hygiene Check:** Verify infrastructure classes and configuration classes use `@Slf4j` and `@RequiredArgsConstructor` (with `@NonNull` for required fields), and zero manual `LoggerFactory.getLogger` calls remain. Verify zero Lombok imports exist in `domain..` packages.
 
 ---
 
