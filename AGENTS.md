@@ -18,6 +18,7 @@ VoicePulse enforces a strict separation between domain business logic, applicati
     - `jakarta.persistence.*` / `javax.persistence.*` (No JPA `@Entity`, `@Table`, `@Id`)
     - `com.fasterxml.jackson.*` (Domain models must not contain JSON serialization annotations)
     - `lombok.*` (No `@Data`, `@Getter`, `@Setter`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@NoArgsConstructor`, `@Builder`, `@Slf4j`)
+    - `org.mapstruct.*` (No `@Mapper`, `@Mapping`; mappers belong strictly in `infrastructure.<adapter>.mapper`)
   - ✅ **Permitted in Domain:**
     - Standard Java 21 standard library (`java.time.*`, `java.util.*`, `java.math.*`).
     - Pure domain records (`record CallSessionId(...)`, `record AudioChunk(...)`).
@@ -116,6 +117,14 @@ When generating domain logic, prompts, or tests for the **SkyWay Airlines Intern
   ```
 * **Deterministic Build Tooling:** All builds, tests, and plugin executions MUST use the Maven Wrapper (`./mvnw` or `$(MVN)`) or unified Makefile targets. Never invoke ambient system `mvn` directly.
 * **Formatting:** All Java code must format cleanly with Google Java Format (AOSP style, 4-space indent) via `./mvnw spotless:apply` (or `make format`).
+
+### Object Mapping & Data Transformation Standards
+* **Mandatory MapStruct for Structural/Wide DTOs:** When transforming data between infrastructure transport payloads (e.g., MCP JSON DTOs, REST DTOs, persistence entities) and pure domain models or records, use formal MapStruct interfaces residing strictly in `infrastructure.<adapter>.mapper`.
+* **Compile-Time Safety & Error Policy:** All mappers must enforce `unmappedTargetPolicy = ReportingPolicy.ERROR` (configured globally via `-Amapstruct.unmappedTargetPolicy=ERROR` and on `@Mapper`) so missing or unmapped target fields fail the build at compile time.
+* **Prohibition of Inline `new ObjectMapper()` & Reflection Mapping:** Never instantiate `new ObjectMapper()` inside methods or use runtime reflection (`objectMapper.convertValue(...)`) for object transformation. In real-time telephony pipelines, dynamic reflection induces garbage collection churn and latency spikes.
+* **Pattern Matching for Polymorphic Sealed Hierarchies:** Use MapStruct for structural/wide DTO transformations; leverage Java 21 exhaustive pattern matching (`switch`) for sealed event hierarchies (e.g., `CallControlEnvelope`).
+* **Constructor Injection of Mappers:** Generated MapStruct Spring beans (`componentModel = "spring"`) must be injected into adapters via constructor injection (`@RequiredArgsConstructor` with `@NonNull`).
+* **Preserve Domain Core Purity:** MapStruct annotations (`@Mapper`, `@Mapping`) and generated mappers belong strictly in `infrastructure.<adapter>.mapper`, never in `domain..`.
 
 ---
 

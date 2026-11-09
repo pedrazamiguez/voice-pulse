@@ -26,4 +26,9 @@
     <Match>
         <Bug pattern="CT_CONSTRUCTOR_THROW" />
     </Match>
+
+    <!-- Suppress checks on MapStruct generated mapper implementation classes -->
+    <Match>
+        <Class name="~.*MapperImpl" />
+    </Match>
 </FindBugsFilter>

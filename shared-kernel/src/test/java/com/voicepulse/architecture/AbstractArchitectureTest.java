@@ -50,7 +50,8 @@ public abstract class AbstractArchitectureTest {
                         "com.fasterxml.jackson..",
                         "jakarta.persistence..",
                         "javax.persistence..",
-                        "lombok..")
+                        "lombok..",
+                        "org.mapstruct..")
                 .allowEmptyShould(true);
     }
 
@@ -60,8 +61,8 @@ public abstract class AbstractArchitectureTest {
 
         @Test
         @DisplayName(
-                "Domain must NOT depend on Spring, Netty, Kafka, Jackson, Jakarta Persistence, or"
-                        + " Lombok")
+                "Domain must NOT depend on Spring, Netty, Kafka, Jackson, Jakarta Persistence,"
+                        + " Lombok, or MapStruct")
         void domainMustBePure() {
             domainMustBePureRule().check(classes);
         }
@@ -138,6 +139,20 @@ public abstract class AbstractArchitectureTest {
                     .haveSimpleNameEndingWith("Listener")
                     .orShould()
                     .haveSimpleNameEndingWith("Consumer")
+                    .allowEmptyShould(true)
+                    .check(classes);
+        }
+
+        @Test
+        @DisplayName("Mappers must reside in infrastructure.<adapter>.mapper package")
+        void mappersMustResideInInfrastructureMapperPackage() {
+            classes()
+                    .that()
+                    .haveSimpleNameEndingWith("Mapper")
+                    .and()
+                    .haveSimpleNameNotEndingWith("package-info")
+                    .should()
+                    .resideInAPackage("..infrastructure..mapper..")
                     .allowEmptyShould(true)
                     .check(classes);
         }
@@ -308,6 +323,86 @@ public abstract class AbstractArchitectureTest {
                                                             + path
                                                             + " must not import Lombok; keep domain"
                                                             + " pure Java 21");
+                                        } catch (IOException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    });
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("ArchUnit rule must fail when MapStruct is imported in domain")
+        void archUnitFailsOnMapStructInDomain() throws IOException {
+            Path tempDir = Files.createTempDirectory("archtest-illegal-domain-mapstruct");
+            try {
+                Path pkgDir = tempDir.resolve("com/voicepulse/synthetic/domain");
+                Files.createDirectories(pkgDir);
+
+                ClassWriter cw = new ClassWriter(0);
+                cw.visit(
+                        Opcodes.V21,
+                        Opcodes.ACC_PUBLIC,
+                        "com/voicepulse/synthetic/domain/MapStructContaminatedDomainService",
+                        null,
+                        "java/lang/Object",
+                        null);
+                AnnotationVisitor av = cw.visitAnnotation("Lorg/mapstruct/Mapper;", true);
+                if (av != null) {
+                    av.visitEnd();
+                }
+                cw.visitEnd();
+
+                Files.write(
+                        pkgDir.resolve("MapStructContaminatedDomainService.class"),
+                        cw.toByteArray());
+
+                JavaClasses syntheticClasses = new ClassFileImporter().importPath(tempDir);
+                AssertionError error =
+                        assertThrows(
+                                AssertionError.class,
+                                () -> domainMustBePureRule().check(syntheticClasses));
+                assertTrue(
+                        error.getMessage().contains("MapStructContaminatedDomainService")
+                                || error.getMessage().contains("mapstruct"),
+                        "Expected failure message mentioning MapStruct violation, but got: "
+                                + error.getMessage());
+            } finally {
+                try (Stream<Path> walk = Files.walk(tempDir)) {
+                    walk.sorted(Comparator.reverseOrder())
+                            .map(Path::toFile)
+                            .forEach(java.io.File::delete);
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("Domain layer must have zero MapStruct imports in source code")
+        void noMapStructInDomainSource() throws IOException {
+            Path srcMain = Path.of("src", "main", "java");
+            if (Files.exists(srcMain)) {
+                try (Stream<Path> stream = Files.walk(srcMain)) {
+                    stream.filter(Files::isRegularFile)
+                            .filter(path -> path.toString().endsWith(".java"))
+                            .filter(path -> path.toString().replace('\\', '/').contains("/domain/"))
+                            .forEach(
+                                    path -> {
+                                        try {
+                                            java.util.List<String> lines = Files.readAllLines(path);
+                                            boolean hasMapStructImport =
+                                                    lines.stream()
+                                                            .anyMatch(
+                                                                    l ->
+                                                                            l.trim()
+                                                                                    .startsWith(
+                                                                                            "import"
+                                                                                                + " org.mapstruct"));
+                                            assertFalse(
+                                                    hasMapStructImport,
+                                                    "Domain source file "
+                                                            + path
+                                                            + " must not import MapStruct; keep"
+                                                            + " domain pure Java 21");
                                         } catch (IOException e) {
                                             throw new RuntimeException(e);
                                         }
