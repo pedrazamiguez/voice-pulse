@@ -331,41 +331,57 @@ function extractReleaseNotes(changelogContent, version) {
 }
 
 /**
- * Calculates branch naming and metadata from an issue labeled event.
+ * Calculates branch naming and metadata from an issue's labels and metadata.
+ * Supports both an array of label names (labelNames) and/or a single labelName.
  *
  * @param {object} param0
- * @param {string} param0.labelName
+ * @param {string} [param0.labelName]
+ * @param {Array<string|{name: string}>} [param0.labelNames]
  * @param {number|string} param0.issueNumber
  * @param {string} param0.rawTitle
  * @param {string} [param0.issueBody]
  * @returns {{shouldCreate: boolean, branchName?: string, baseBranch?: string, isRelease?: boolean, isMajor?: boolean, prTitle?: string, prBody?: string}}
  */
-function calculateBranchMetadata({ labelName, issueNumber, rawTitle, issueBody = '' }) {
+function calculateBranchMetadata({ labelName, labelNames, issueNumber, rawTitle, issueBody = '' }) {
+  const rawCollection = [];
+  if (Array.isArray(labelNames)) {
+    rawCollection.push(...labelNames.map(l => (typeof l === 'string' ? l : (l && l.name ? l.name : ''))));
+  }
+  if (labelName) {
+    rawCollection.push(labelName);
+  }
+  const normalizedLabels = [...new Set(rawCollection.filter(Boolean))];
+
   let prefix = '';
   let baseBranch = 'develop';
   let isRelease = false;
 
-  if (labelName === 'release') {
+  if (normalizedLabels.includes('release')) {
     prefix = 'release/';
     baseBranch = 'develop';
     isRelease = true;
-  } else if (labelName === 'hotfix') {
+  } else if (normalizedLabels.includes('hotfix')) {
     prefix = 'hotfix/';
     baseBranch = 'main';
-  } else if (labelName === 'bug') {
+  } else if (normalizedLabels.includes('bug')) {
     prefix = 'bugfix/';
     baseBranch = 'develop';
-  } else if (labelName === 'refactor') {
+  } else if (normalizedLabels.includes('refactor')) {
     prefix = 'refactor/';
     baseBranch = 'develop';
-  } else if (labelName === 'internal') {
+  } else if (normalizedLabels.includes('internal')) {
     prefix = 'internal/';
     baseBranch = 'develop';
-  } else if (['enhancement', 'feature', 'ci-cd', 'tooling', 'architecture', 'ai-workflow', 'documentation'].includes(labelName)) {
-    prefix = 'feature/';
-    baseBranch = 'develop';
   } else {
-    return { shouldCreate: false };
+    const featureLabel = normalizedLabels.find(l =>
+      ['enhancement', 'feature', 'ci-cd', 'tooling', 'architecture', 'ai-workflow', 'documentation'].includes(l)
+    );
+    if (featureLabel) {
+      prefix = 'feature/';
+      baseBranch = 'develop';
+    } else {
+      return { shouldCreate: false };
+    }
   }
 
   // 1. Remove bracketed prefixes (e.g. [VP-08], [EPIC-01])
