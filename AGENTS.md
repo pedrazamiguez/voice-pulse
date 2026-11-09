@@ -124,8 +124,8 @@ When generating domain logic, prompts, or tests for the **SkyWay Airlines Intern
 All issues and feature additions must follow the SDD workflow:
 0. **Create Issue (If New):** Invoke `.agents/skills/vp-create-issue/SKILL.md` to convert ideas, bug reports, or screenshots into structured GitHub issues with human approval.
 1. **Plan First:** Invoke `.agents/skills/vp-plan-issue/SKILL.md` to produce an approved architecture change contract before creating or editing code files.
-2. **Execute with TDD:** Invoke `.agents/skills/vp-start-issue/SKILL.md` to implement domain unit tests first, followed by ports, and finally infrastructure adapters.
-3. **Verify Locally:** Invoke `.agents/skills/vp-verify-architecture/SKILL.md` to run ArchUnit tests and audit file line counts before opening a Pull Request.
+2. **Execute with TDD & Verify CI (Definition of Done):** Invoke `.agents/skills/vp-start-issue/SKILL.md` to implement domain unit tests first, followed by ports, and finally infrastructure adapters. The implementation task is ONLY considered done when the dedicated branch is pushed, the Pull Request targeting `develop` is autonomously opened, and all remote GitHub Actions CI status checks pass (`✓`).
+3. **Verify Locally (Pre-PR Gate):** Invoke `.agents/skills/vp-verify-architecture/SKILL.md` or `make pre-pr` to run ArchUnit tests, 600-line audit, Spotless, and SpotBugs compiler audits before pushing.
 4. **Review PR:** Invoke `.agents/skills/vp-review-pr/SKILL.md` to audit PR diffs against approved issue plans, CI status checks, and architectural invariants before merging.
 5. **Address Review Feedback:** Invoke `.agents/skills/vp-address-pr-comments/SKILL.md` to resolve PR review comments and CI feedback.
 
@@ -164,5 +164,14 @@ Every agent and human contributor MUST adhere to these strict operational constr
 * Always refer to phases descriptively (e.g. `Phase 1: Domain Models & Ports`) or use the true GitHub-generated `#<id>` once created.
 
 ### Human Approval Gate for GitHub Mutations
-* ❌ **NEVER execute `gh issue create`, `gh pr merge`, or repository state mutations autonomously.**
-* Always present the complete drafted specification (Title, Labels, Epic association, and Markdown Body) in chat and wait for explicit human approval before running creation commands.
+To maximize agentic velocity while ensuring strict human governance over repository state and code merges:
+* ✅ **Autonomous Agent Operations (Permitted without approval prompts):**
+  - Creating and switching to dedicated task branches (`feature/*`, `bugfix/*`, `internal/*`).
+  - Committing and pushing to the dedicated remote task branch.
+  - Autonomously opening Pull Requests targeting `develop` via `gh pr create` upon completing local quality verification (`make pre-pr`).
+  - Polling and self-healing remote CI checks until 100% green (`✓`).
+* ❌ **Human-Gated Operations (Strict Developer Approval Required):**
+  - **NEVER** execute `gh issue create` autonomously without presenting the complete drafted specification and receiving explicit human confirmation.
+  - **NEVER** execute `gh pr review --approve` or `gh pr review --request-changes` autonomously without human review confirmation.
+  - **NEVER** execute `gh pr merge` autonomously. Code merges are strictly human privileges.
+  - **NEVER** commit or push directly to protected branches (`main`, `develop`).

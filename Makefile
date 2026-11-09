@@ -8,7 +8,7 @@ export SONAR_HOST_URL
 export SONAR_TOKEN
 export PATH := $(HOME)/.local/bin:$(PATH)
 
-.PHONY: help setup hooks fast-check check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag test-changelog knowledge-update sonar
+.PHONY: help setup hooks fast-check pre-pr check arch-check format test docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag test-changelog knowledge-update sonar
 
 CYAN   := \033[0;36m
 GREEN  := \033[0;32m
@@ -39,6 +39,11 @@ fast-check: ## Rapid incremental check (Spotless + ArchUnit, < 15s)
 	@printf "$(YELLOW)⏳ Running fast quality gate (Spotless + ArchUnit)...$(NC)\n"
 	@$(MVN) spotless:check test -Dtest=ArchitectureTest -q
 	@printf "$(GREEN)✅ Fast check passed (< 15s).$(NC)\n"
+
+pre-pr: arch-check ## Complete pre-PR gate (ArchUnit, 600-line audit, Spotless, SpotBugs)
+	@printf "$(YELLOW)⏳ Running pre-PR static analysis & compiler audits...$(NC)\n"
+	@$(MVN) spotless:check test-compile spotbugs:check -q
+	@printf "$(GREEN)✅ Pre-PR verification passed (Spotless, SpotBugs, ArchUnit, 600-line ceiling).$(NC)\n"
 
 check: arch-check ## Full cold check (clean, verify, spotbugs, jacoco, arch-check, sonar)
 	@printf "$(YELLOW)⏳ Running full cold verification gate...$(NC)\n"
