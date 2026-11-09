@@ -79,4 +79,15 @@ class AudioFormatTest {
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("encoding cannot be null");
     }
+
+    @Test
+    @DisplayName("AudioEncoding resolves stable wireId bidirectionally")
+    void audioEncodingWireIdResolves() {
+        assertThat(AudioEncoding.LINEAR_PCM.wireId()).isZero();
+        assertThat(AudioEncoding.fromWireId((byte) 0)).isEqualTo(AudioEncoding.LINEAR_PCM);
+
+        assertThatThrownBy(() -> AudioEncoding.fromWireId((byte) 99))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unknown AudioEncoding wireId: 99");
+    }
 }
