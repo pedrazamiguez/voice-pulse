@@ -45,6 +45,7 @@
         <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
         <maven-wrapper-plugin.version>3.3.4</maven-wrapper-plugin.version>
         <sonar-maven-plugin.version>5.0.0.4389</sonar-maven-plugin.version>
+        <versions-maven-plugin.version>2.18.0</versions-maven-plugin.version>
 
         <!-- SonarQube Static Analysis & Quality Gate -->
         <sonar.projectKey>VoicePulse</sonar.projectKey>
@@ -259,6 +260,16 @@
                         </execution>
                     </executions>
                 </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>versions-maven-plugin</artifactId>
+                    <version>${versions-maven-plugin.version}</version>
+                    <configuration>
+                        <rulesUri>file://${session.executionRootDirectory}/config/versions/rules.xml</rulesUri>
+                        <generateBackupPoms>false</generateBackupPoms>
+                        <excludeProperties>java.version,maven.compiler.source,maven.compiler.target,maven.compiler.release,project.build.sourceEncoding,project.reporting.outputEncoding</excludeProperties>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -266,6 +277,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
