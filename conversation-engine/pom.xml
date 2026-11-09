@@ -42,6 +42,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- MapStruct for Compile-Time Object Mapping -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
