@@ -10,12 +10,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
+import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class GatewayKafkaConfigurationTest {
 
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
+                    .withInitializer(new ConfigDataApplicationContextInitializer())
                     .withConfiguration(
                             AutoConfigurations.of(
                                     KafkaAutoConfiguration.class, GatewayKafkaConfiguration.class))
@@ -26,26 +28,24 @@ class GatewayKafkaConfigurationTest {
 
     @Test
     @DisplayName(
-            "Kafka producer beans and publisher are loaded by default when audio-publisher is"
-                    + " kafka")
-    void whenAudioPublisherIsKafka_beansAreLoadedWithDefaults() {
-        contextRunner
-                .withPropertyValues("spring.kafka.bootstrap-servers=localhost:9092")
-                .run(
-                        context -> {
-                            assertThat(context).hasSingleBean(GatewayKafkaProperties.class);
-                            GatewayKafkaProperties properties =
-                                    context.getBean(GatewayKafkaProperties.class);
-                            assertThat(properties.topic())
-                                    .isEqualTo(GatewayKafkaProperties.DEFAULT_TOPIC);
-                            assertThat(properties.sendTimeout())
-                                    .isEqualTo(GatewayKafkaProperties.DEFAULT_TIMEOUT);
+            "Kafka producer beans and publisher are loaded from application.yml when"
+                    + " audio-publisher is kafka")
+    void whenAudioPublisherIsKafka_beansAreLoadedFromApplicationYml() {
+        contextRunner.run(
+                context -> {
+                    assertThat(context).hasSingleBean(GatewayKafkaProperties.class);
+                    GatewayKafkaProperties properties =
+                            context.getBean(GatewayKafkaProperties.class);
+                    assertThat(properties.topic()).isEqualTo("telephony.calls.raw");
+                    assertThat(properties.sendTimeout()).isEqualTo(Duration.ofSeconds(3));
+                    assertThat(properties.bufferMemory()).isEqualTo(33554432L);
+                    assertThat(properties.maxBlockTimeout()).isEqualTo(Duration.ofSeconds(3));
 
-                            assertThat(context).hasBean("audioChunkProducerFactory");
-                            assertThat(context).hasBean("audioChunkKafkaTemplate");
-                            assertThat(context).hasSingleBean(KafkaAudioFramePublisher.class);
-                            assertThat(context).hasSingleBean(KafkaAudioFrameDispatcher.class);
-                        });
+                    assertThat(context).hasBean("audioChunkProducerFactory");
+                    assertThat(context).hasBean("audioChunkKafkaTemplate");
+                    assertThat(context).hasSingleBean(KafkaAudioFramePublisher.class);
+                    assertThat(context).hasSingleBean(KafkaAudioFrameDispatcher.class);
+                });
     }
 
     @Test
@@ -64,13 +64,14 @@ class GatewayKafkaConfigurationTest {
     }
 
     @Test
-    @DisplayName("Custom topic and send timeout properties bind successfully")
-    void whenCustomKafkaPropertiesConfigured_bindsProperly() {
+    @DisplayName("Custom producer backpressure properties override defaults cleanly")
+    void whenCustomKafkaPropertiesConfigured_overridesDefaults() {
         contextRunner
                 .withPropertyValues(
-                        "spring.kafka.bootstrap-servers=localhost:9092",
                         "voicepulse.gateway.kafka.topic=telephony.calls.custom",
-                        "voicepulse.gateway.kafka.send-timeout=5s")
+                        "voicepulse.gateway.kafka.send-timeout=5s",
+                        "voicepulse.gateway.kafka.buffer-memory=16777216",
+                        "voicepulse.gateway.kafka.max-block-timeout=2s")
                 .run(
                         context -> {
                             assertThat(context).hasSingleBean(GatewayKafkaProperties.class);
@@ -78,6 +79,9 @@ class GatewayKafkaConfigurationTest {
                                     context.getBean(GatewayKafkaProperties.class);
                             assertThat(properties.topic()).isEqualTo("telephony.calls.custom");
                             assertThat(properties.sendTimeout()).isEqualTo(Duration.ofSeconds(5));
+                            assertThat(properties.bufferMemory()).isEqualTo(16777216L);
+                            assertThat(properties.maxBlockTimeout())
+                                    .isEqualTo(Duration.ofSeconds(2));
                         });
     }
 }

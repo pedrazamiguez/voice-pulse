@@ -16,3 +16,5 @@ voicepulse:
     kafka:
       topic: telephony.calls.raw
       send-timeout: 3s
+      buffer-memory: 33554432
+      max-block-timeout: 3s

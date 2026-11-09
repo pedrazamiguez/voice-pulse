@@ -3,3 +3,29 @@ spring:
     name: conversation-engine
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+voicepulse:
+  kafka:
+    topics:
+      raw:
+        name: telephony.calls.raw
+        partitions: 12
+        replication-factor: 1
+        retention: 1h
+        segment-bytes: 52428800
+      control:
+        name: telephony.calls.control
+        partitions: 12
+        replication-factor: 1
+        retention: 1h
+      dlq:
+        name: telephony.calls.dlq
+        partitions: 3
+        replication-factor: 1
+        retention: 336h
+  conversation:
+    kafka:
+      enabled: true
+      consumer-group: conversation-engine-workers
+      concurrency: 3
+      auto-offset-reset: earliest

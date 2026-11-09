@@ -32,12 +32,17 @@ import org.springframework.kafka.core.ProducerFactory;
 public class GatewayKafkaConfiguration {
 
     private final @NonNull KafkaProperties kafkaProperties;
+    private final @NonNull GatewayKafkaProperties gatewayKafkaProperties;
 
     @Bean
     public ProducerFactory<String, AudioChunkEnvelope> audioChunkProducerFactory() {
         Map<String, Object> props = new HashMap<>(kafkaProperties.buildProducerProperties());
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AudioChunkEnvelopeSerializer.class);
+        props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, gatewayKafkaProperties.bufferMemory());
+        props.put(
+                ProducerConfig.MAX_BLOCK_MS_CONFIG,
+                (int) gatewayKafkaProperties.maxBlockTimeout().toMillis());
         return new DefaultKafkaProducerFactory<>(props);
     }
 
