@@ -1,31 +1,38 @@
 package com.voicepulse.gateway.infrastructure.ws;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import com.voicepulse.gateway.domain.ports.inbound.IngestAudioChunkUseCase;
 import com.voicepulse.gateway.domain.ports.inbound.ManageCallSessionUseCase;
 import com.voicepulse.gateway.infrastructure.registry.ConcurrentSessionRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.Ordered;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter;
 
+@ExtendWith(MockitoExtension.class)
+@DisplayName("WebSocketConfiguration Unit Tests")
 class WebSocketConfigurationTest {
+
+    @Mock private IngestAudioChunkUseCase ingestAudioChunkUseCase;
+
+    @Mock private ManageCallSessionUseCase manageCallSessionUseCase;
+
+    @Mock private ConcurrentSessionRegistry sessionRegistry;
+
+    @InjectMocks private AudioWebSocketHandler handler;
 
     @Test
     @DisplayName(
             "WebSocketConfiguration registers HandlerMapping with correct URL pattern and order")
     void webSocketHandlerMapping_configuresUrlAndPriority() {
         WebSocketConfiguration config = new WebSocketConfiguration();
-        AudioWebSocketHandler handler =
-                new AudioWebSocketHandler(
-                        mock(IngestAudioChunkUseCase.class),
-                        mock(ManageCallSessionUseCase.class),
-                        mock(ConcurrentSessionRegistry.class));
-
         HandlerMapping mapping = config.webSocketHandlerMapping(handler);
 
         assertThat(mapping).isInstanceOf(SimpleUrlHandlerMapping.class);

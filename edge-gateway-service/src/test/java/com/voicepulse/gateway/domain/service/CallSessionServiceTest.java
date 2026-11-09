@@ -2,6 +2,12 @@ package com.voicepulse.gateway.domain.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import com.voicepulse.gateway.domain.exception.CallSessionNotFoundException;
 import com.voicepulse.gateway.domain.model.CallSession;
@@ -11,30 +17,32 @@ import com.voicepulse.gateway.domain.ports.outbound.AudioFramePublisherPort;
 import com.voicepulse.gateway.domain.ports.outbound.SessionRegistryPort;
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
-import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.CallSessionId;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import org.junit.jupiter.api.BeforeEach;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
+@DisplayName("CallSessionService Domain Service Tests")
 class CallSessionServiceTest {
 
-    private InMemorySessionRegistry registry;
-    private RecordingAudioFramePublisher publisher;
-    private CallSessionService service;
+    @Mock private SessionRegistryPort registry;
 
-    @BeforeEach
-    void setUp() {
-        registry = new InMemorySessionRegistry();
-        publisher = new RecordingAudioFramePublisher();
-        service = new CallSessionService(registry, publisher);
-    }
+    @Mock private AudioFramePublisherPort publisher;
+
+    @InjectMocks private CallSessionService service;
+
+    @Captor private ArgumentCaptor<AudioChunk> chunkCaptor;
+
+    @Captor private ArgumentCaptor<CallSession> sessionCaptor;
 
     @Test
     @DisplayName("startSession creates, registers, and returns active CallSession")
@@ -45,51 +53,65 @@ class CallSessionServiceTest {
 
         assertThat(session).isNotNull();
         assertThat(session.id()).isEqualTo(sessionId);
-        assertThat(registry.findById(sessionId)).contains(session);
-        assertThat(registry.activeSessionCount()).isEqualTo(1);
+        verify(registry).save(sessionCaptor.capture());
+        assertThat(sessionCaptor.getValue().id()).isEqualTo(sessionId);
     }
 
     @Test
     @DisplayName("ingestAudioChunk validates, transitions session, and dispatches to publisher")
     void ingestAudioChunkDispatches() {
         CallSessionId sessionId = CallSessionId.generate();
-        service.startSession(sessionId);
+        CallSession session = CallSession.start(sessionId, Instant.now());
+        when(registry.findById(sessionId)).thenReturn(Optional.of(session));
 
         AudioChunk chunk =
-                new AudioChunk(
-                        sessionId, 0L, Instant.now(), new byte[640], AudioFormat.PCM_16KHZ_MONO);
+                Instancio.of(AudioChunk.class)
+                        .set(field(AudioChunk::sessionId), sessionId)
+                        .set(field(AudioChunk::sequenceNumber), 0L)
+                        .set(field(AudioChunk::pcmData), new byte[640])
+                        .set(field(AudioChunk::format), AudioFormat.PCM_16KHZ_MONO)
+                        .create();
+
         service.ingestAudioChunk(chunk);
 
-        CallSession session = registry.findById(sessionId).orElseThrow();
+        verify(publisher).publishAudioChunk(chunkCaptor.capture());
+        assertThat(chunkCaptor.getValue()).isEqualTo(chunk);
+        verify(registry).save(session);
         assertThat(session.state()).isInstanceOf(CallSessionState.Streaming.class);
-        assertThat(publisher.publishedChunks).hasSize(1);
-        assertThat(publisher.publishedChunks.getFirst()).isEqualTo(chunk);
+        verifyNoMoreInteractions(publisher);
     }
 
     @Test
     @DisplayName("ingestAudioChunk throws CallSessionNotFoundException for unknown session")
     void ingestAudioChunkUnknownSessionThrows() {
         CallSessionId unknownId = CallSessionId.generate();
+        when(registry.findById(unknownId)).thenReturn(Optional.empty());
+
         AudioChunk chunk =
-                new AudioChunk(
-                        unknownId, 0L, Instant.now(), new byte[640], AudioFormat.PCM_16KHZ_MONO);
+                Instancio.of(AudioChunk.class)
+                        .set(field(AudioChunk::sessionId), unknownId)
+                        .set(field(AudioChunk::sequenceNumber), 0L)
+                        .set(field(AudioChunk::pcmData), new byte[640])
+                        .set(field(AudioChunk::format), AudioFormat.PCM_16KHZ_MONO)
+                        .create();
 
         assertThatThrownBy(() -> service.ingestAudioChunk(chunk))
                 .isInstanceOf(CallSessionNotFoundException.class)
                 .hasMessageContaining("Session not found: " + unknownId);
 
-        assertThat(publisher.publishedChunks).isEmpty();
+        verify(publisher, never()).publishAudioChunk(any());
     }
 
     @Test
     @DisplayName("terminateSession transitions session to Disconnected and updates registry")
     void terminateSessionTransitionsAndUpdates() {
         CallSessionId sessionId = CallSessionId.generate();
-        service.startSession(sessionId);
+        CallSession session = CallSession.start(sessionId, Instant.now());
+        when(registry.findById(sessionId)).thenReturn(Optional.of(session));
 
         service.terminateSession(sessionId, DisconnectReason.CLIENT_HANGUP);
 
-        CallSession session = registry.findById(sessionId).orElseThrow();
+        verify(registry).save(session);
         assertThat(session.state()).isInstanceOf(CallSessionState.Disconnected.class);
     }
 
@@ -97,6 +119,7 @@ class CallSessionServiceTest {
     @DisplayName("terminateSession throws CallSessionNotFoundException for unknown session")
     void terminateSessionUnknownThrows() {
         CallSessionId unknownId = CallSessionId.generate();
+        when(registry.findById(unknownId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(
                         () -> service.terminateSession(unknownId, DisconnectReason.CLIENT_HANGUP))
@@ -108,53 +131,11 @@ class CallSessionServiceTest {
     @DisplayName("getSession returns session if present")
     void getSessionPresent() {
         CallSessionId sessionId = CallSessionId.generate();
-        CallSession started = service.startSession(sessionId);
+        CallSession session = CallSession.start(sessionId, Instant.now());
+        when(registry.findById(sessionId)).thenReturn(Optional.of(session));
 
         Optional<CallSession> retrieved = service.getSession(sessionId);
 
-        assertThat(retrieved).contains(started);
-    }
-
-    private static class InMemorySessionRegistry implements SessionRegistryPort {
-        private final Map<CallSessionId, CallSession> map = new ConcurrentHashMap<>();
-
-        @Override
-        public void save(CallSession session) {
-            map.put(session.id(), session);
-        }
-
-        @Override
-        public Optional<CallSession> findById(CallSessionId sessionId) {
-            return Optional.ofNullable(map.get(sessionId));
-        }
-
-        @Override
-        public void remove(CallSessionId sessionId) {
-            map.remove(sessionId);
-        }
-
-        @Override
-        public boolean exists(CallSessionId sessionId) {
-            return map.containsKey(sessionId);
-        }
-
-        @Override
-        public int activeSessionCount() {
-            return map.size();
-        }
-    }
-
-    private static class RecordingAudioFramePublisher implements AudioFramePublisherPort {
-        private final List<AudioChunk> publishedChunks = new ArrayList<>();
-
-        @Override
-        public void publishAudioFrame(CallId callId, long sequenceNumber, byte[] audioPayload) {
-            // Implemented by default publishAudioChunk
-        }
-
-        @Override
-        public void publishAudioChunk(AudioChunk chunk) {
-            publishedChunks.add(chunk);
-        }
+        assertThat(retrieved).contains(session);
     }
 }

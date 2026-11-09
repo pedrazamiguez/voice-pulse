@@ -1,6 +1,7 @@
 package com.voicepulse.gateway.infrastructure.echo;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.voicepulse.shared.model.CallSessionId;
 import java.net.URI;
@@ -79,9 +80,8 @@ class LoopbackEchoIntegrationTest {
                         })
                 .block(Duration.ofSeconds(5));
 
-        completionSignal.asMono().block(Duration.ofSeconds(5));
-
-        assertThat(receivedChunks).hasSize(1);
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(receivedChunks).hasSize(1));
         assertThat(receivedChunks.getFirst()).isEqualTo(sentChunk);
 
         EchoLatencyMetrics metrics = echoAdapter.getMetrics(sessionId);
@@ -145,9 +145,8 @@ class LoopbackEchoIntegrationTest {
                         })
                 .block(Duration.ofSeconds(5));
 
-        completionSignal.asMono().block(Duration.ofSeconds(5));
-
-        assertThat(receivedChunks).hasSize(frameCount);
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(receivedChunks).hasSize(frameCount));
         for (int i = 0; i < frameCount; i++) {
             assertThat(receivedChunks.get(i)).isEqualTo(expectedChunks.get(i));
         }

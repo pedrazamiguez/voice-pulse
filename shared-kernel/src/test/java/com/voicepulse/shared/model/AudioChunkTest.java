@@ -2,11 +2,14 @@ package com.voicepulse.shared.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 
 import java.time.Instant;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@DisplayName("AudioChunk Domain Model Tests")
 class AudioChunkTest {
 
     private final CallSessionId sessionId = CallSessionId.generate();
@@ -14,11 +17,28 @@ class AudioChunkTest {
     private final AudioFormat format = AudioFormat.PCM_16KHZ_MONO;
     private final byte[] sampleData = new byte[640]; // 20ms of 16 kHz mono PCM
 
+    private AudioChunk createValidChunk() {
+        return Instancio.of(AudioChunk.class)
+                .set(field(AudioChunk::sessionId), sessionId)
+                .set(field(AudioChunk::sequenceNumber), 0L)
+                .set(field(AudioChunk::timestamp), timestamp)
+                .set(field(AudioChunk::pcmData), sampleData)
+                .set(field(AudioChunk::format), format)
+                .create();
+    }
+
     @Test
     @DisplayName("valid AudioChunk stores attributes and ensures defensive copying")
     void validAudioChunkCreationAndImmutability() {
         byte[] original = new byte[] {0x01, 0x02, 0x03, 0x04};
-        AudioChunk chunk = new AudioChunk(sessionId, 42L, timestamp, original, format);
+        AudioChunk chunk =
+                Instancio.of(AudioChunk.class)
+                        .set(field(AudioChunk::sessionId), sessionId)
+                        .set(field(AudioChunk::sequenceNumber), 42L)
+                        .set(field(AudioChunk::timestamp), timestamp)
+                        .set(field(AudioChunk::pcmData), original)
+                        .set(field(AudioChunk::format), format)
+                        .create();
 
         assertThat(chunk.sessionId()).isEqualTo(sessionId);
         assertThat(chunk.sequenceNumber()).isEqualTo(42L);
@@ -40,19 +60,48 @@ class AudioChunkTest {
     @Test
     @DisplayName("rejects null fields")
     void nullFieldsThrow() {
-        assertThatThrownBy(() -> new AudioChunk(null, 0L, timestamp, sampleData, format))
+        AudioChunk base = createValidChunk();
+        assertThatThrownBy(
+                        () ->
+                                new AudioChunk(
+                                        null,
+                                        base.sequenceNumber(),
+                                        base.timestamp(),
+                                        base.pcmData(),
+                                        base.format()))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("sessionId cannot be null");
 
-        assertThatThrownBy(() -> new AudioChunk(sessionId, 0L, null, sampleData, format))
+        assertThatThrownBy(
+                        () ->
+                                new AudioChunk(
+                                        base.sessionId(),
+                                        base.sequenceNumber(),
+                                        null,
+                                        base.pcmData(),
+                                        base.format()))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("timestamp cannot be null");
 
-        assertThatThrownBy(() -> new AudioChunk(sessionId, 0L, timestamp, null, format))
+        assertThatThrownBy(
+                        () ->
+                                new AudioChunk(
+                                        base.sessionId(),
+                                        base.sequenceNumber(),
+                                        base.timestamp(),
+                                        null,
+                                        base.format()))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("pcmData cannot be null");
 
-        assertThatThrownBy(() -> new AudioChunk(sessionId, 0L, timestamp, sampleData, null))
+        assertThatThrownBy(
+                        () ->
+                                new AudioChunk(
+                                        base.sessionId(),
+                                        base.sequenceNumber(),
+                                        base.timestamp(),
+                                        base.pcmData(),
+                                        null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("format cannot be null");
     }
@@ -60,7 +109,15 @@ class AudioChunkTest {
     @Test
     @DisplayName("rejects negative sequence numbers")
     void negativeSequenceNumberThrows() {
-        assertThatThrownBy(() -> new AudioChunk(sessionId, -1L, timestamp, sampleData, format))
+        AudioChunk base = createValidChunk();
+        assertThatThrownBy(
+                        () ->
+                                new AudioChunk(
+                                        base.sessionId(),
+                                        -1L,
+                                        base.timestamp(),
+                                        base.pcmData(),
+                                        base.format()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("sequenceNumber cannot be negative");
     }
@@ -68,7 +125,15 @@ class AudioChunkTest {
     @Test
     @DisplayName("rejects empty payload")
     void emptyPayloadThrows() {
-        assertThatThrownBy(() -> new AudioChunk(sessionId, 0L, timestamp, new byte[0], format))
+        AudioChunk base = createValidChunk();
+        assertThatThrownBy(
+                        () ->
+                                new AudioChunk(
+                                        base.sessionId(),
+                                        base.sequenceNumber(),
+                                        base.timestamp(),
+                                        new byte[0],
+                                        base.format()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("pcmData cannot be empty");
     }
@@ -76,8 +141,16 @@ class AudioChunkTest {
     @Test
     @DisplayName("rejects payloads exceeding 64 KB DoS ceiling")
     void oversizedPayloadThrows() {
+        AudioChunk base = createValidChunk();
         byte[] oversized = new byte[65538]; // 64 KB + 2 bytes
-        assertThatThrownBy(() -> new AudioChunk(sessionId, 0L, timestamp, oversized, format))
+        assertThatThrownBy(
+                        () ->
+                                new AudioChunk(
+                                        base.sessionId(),
+                                        base.sequenceNumber(),
+                                        base.timestamp(),
+                                        oversized,
+                                        base.format()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("pcmData exceeds 64 KB DoS limit");
     }
@@ -85,8 +158,16 @@ class AudioChunkTest {
     @Test
     @DisplayName("rejects payload that is not sample-aligned (odd number of bytes for 16-bit PCM)")
     void misalignedPayloadThrows() {
+        AudioChunk base = createValidChunk();
         byte[] oddData = new byte[3]; // odd length
-        assertThatThrownBy(() -> new AudioChunk(sessionId, 0L, timestamp, oddData, format))
+        assertThatThrownBy(
+                        () ->
+                                new AudioChunk(
+                                        base.sessionId(),
+                                        base.sequenceNumber(),
+                                        base.timestamp(),
+                                        oddData,
+                                        base.format()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("pcmData is not sample-aligned");
     }
@@ -98,22 +179,37 @@ class AudioChunkTest {
         byte[] pcm2 = new byte[] {0x01, 0x02};
         byte[] pcmDifferent = new byte[] {0x01, 0x03};
 
-        AudioChunk chunk1 = new AudioChunk(sessionId, 1L, timestamp, pcm1, format);
-        AudioChunk chunk2 = new AudioChunk(sessionId, 1L, timestamp, pcm2, format);
-        AudioChunk chunk3 = new AudioChunk(sessionId, 1L, timestamp, pcmDifferent, format);
-        AudioChunk chunk4 = new AudioChunk(sessionId, 2L, timestamp, pcm1, format);
+        AudioChunk chunk1 =
+                Instancio.of(AudioChunk.class)
+                        .set(field(AudioChunk::sessionId), sessionId)
+                        .set(field(AudioChunk::sequenceNumber), 1L)
+                        .set(field(AudioChunk::timestamp), timestamp)
+                        .set(field(AudioChunk::pcmData), pcm1)
+                        .set(field(AudioChunk::format), format)
+                        .create();
 
-        assertThat(chunk1)
-                .isEqualTo(chunk2)
-                .hasSameHashCodeAs(chunk2)
-                .isNotEqualTo(chunk3)
-                .isNotEqualTo(chunk4)
-                .isNotEqualTo(null)
-                .isNotEqualTo("otherType");
+        AudioChunk chunk2 =
+                Instancio.of(AudioChunk.class)
+                        .set(field(AudioChunk::sessionId), sessionId)
+                        .set(field(AudioChunk::sequenceNumber), 1L)
+                        .set(field(AudioChunk::timestamp), timestamp)
+                        .set(field(AudioChunk::pcmData), pcm2)
+                        .set(field(AudioChunk::format), format)
+                        .create();
 
-        assertThat(chunk1.toString())
-                .contains(sessionId.toString())
-                .contains("sequenceNumber=1")
-                .contains("pcmDataBytes=2");
+        AudioChunk chunkDiff =
+                Instancio.of(AudioChunk.class)
+                        .set(field(AudioChunk::sessionId), sessionId)
+                        .set(field(AudioChunk::sequenceNumber), 1L)
+                        .set(field(AudioChunk::timestamp), timestamp)
+                        .set(field(AudioChunk::pcmData), pcmDifferent)
+                        .set(field(AudioChunk::format), format)
+                        .create();
+
+        assertThat(chunk1).isEqualTo(chunk2);
+        assertThat(chunk1.hashCode()).isEqualTo(chunk2.hashCode());
+        assertThat(chunk1).isNotEqualTo(chunkDiff);
+        assertThat(chunk1).isNotEqualTo(null);
+        assertThat(chunk1).isNotEqualTo("string");
     }
 }

@@ -2,12 +2,14 @@ package com.voicepulse.shared.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.CallSessionId;
 import java.time.Instant;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +25,13 @@ class AudioChunkEnvelopeTest {
     @DisplayName("Should successfully construct an AudioChunkEnvelope with valid attributes")
     void shouldConstructValidEnvelope() {
         AudioChunkEnvelope envelope =
-                new AudioChunkEnvelope(CALL_ID, 0L, NOW, FORMAT, VALID_PAYLOAD);
+                Instancio.of(AudioChunkEnvelope.class)
+                        .set(field(AudioChunkEnvelope::callId), CALL_ID)
+                        .set(field(AudioChunkEnvelope::sequenceNumber), 0L)
+                        .set(field(AudioChunkEnvelope::timestamp), NOW)
+                        .set(field(AudioChunkEnvelope::format), FORMAT)
+                        .set(field(AudioChunkEnvelope::payload), VALID_PAYLOAD)
+                        .create();
 
         assertThat(envelope.callId()).isEqualTo(CALL_ID);
         assertThat(envelope.sequenceNumber()).isZero();
@@ -90,7 +98,14 @@ class AudioChunkEnvelopeTest {
     @DisplayName("Should enforce defensive copying on input and output arrays")
     void shouldDefensivelyCopyPayload() {
         byte[] original = new byte[] {0x10, 0x20};
-        AudioChunkEnvelope envelope = new AudioChunkEnvelope(CALL_ID, 1L, NOW, FORMAT, original);
+        AudioChunkEnvelope envelope =
+                Instancio.of(AudioChunkEnvelope.class)
+                        .set(field(AudioChunkEnvelope::callId), CALL_ID)
+                        .set(field(AudioChunkEnvelope::sequenceNumber), 1L)
+                        .set(field(AudioChunkEnvelope::timestamp), NOW)
+                        .set(field(AudioChunkEnvelope::format), FORMAT)
+                        .set(field(AudioChunkEnvelope::payload), original)
+                        .create();
 
         // Mutating input array after construction
         original[0] = (byte) 0xFF;

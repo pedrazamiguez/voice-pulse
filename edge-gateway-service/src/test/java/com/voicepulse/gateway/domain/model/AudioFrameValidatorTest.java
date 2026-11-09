@@ -2,12 +2,14 @@ package com.voicepulse.gateway.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 
 import com.voicepulse.gateway.domain.exception.InvalidAudioFrameException;
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallSessionId;
 import java.time.Instant;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,8 +21,14 @@ class AudioFrameValidatorTest {
     @Test
     @DisplayName("valid 20ms 16 kHz mono chunk passes validation")
     void validStandardChunkPasses() {
-        byte[] pcm = new byte[640]; // 20ms at 16 kHz Mono
-        AudioChunk chunk = new AudioChunk(sessionId, 0L, now, pcm, AudioFormat.PCM_16KHZ_MONO);
+        AudioChunk chunk =
+                Instancio.of(AudioChunk.class)
+                        .set(field(AudioChunk::sessionId), sessionId)
+                        .set(field(AudioChunk::sequenceNumber), 0L)
+                        .set(field(AudioChunk::timestamp), now)
+                        .set(field(AudioChunk::pcmData), new byte[640])
+                        .set(field(AudioChunk::format), AudioFormat.PCM_16KHZ_MONO)
+                        .create();
 
         assertThatCode(() -> AudioFrameValidator.validate(chunk)).doesNotThrowAnyException();
     }

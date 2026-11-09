@@ -2,6 +2,7 @@ package com.voicepulse.shared.infrastructure.kafka.serializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 
 import com.voicepulse.shared.event.AudioChunkEnvelope;
 import com.voicepulse.shared.model.AudioFormat;
@@ -9,6 +10,7 @@ import com.voicepulse.shared.model.CallId;
 import java.time.Instant;
 import java.util.Arrays;
 import org.apache.kafka.common.errors.SerializationException;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +47,13 @@ class AudioChunkEnvelopeSerializationTest {
         Arrays.fill(pcmPayload, (byte) 0x2A);
 
         AudioChunkEnvelope original =
-                new AudioChunkEnvelope(CALL_ID, 123L, NOW, FORMAT, pcmPayload);
+                Instancio.of(AudioChunkEnvelope.class)
+                        .set(field(AudioChunkEnvelope::callId), CALL_ID)
+                        .set(field(AudioChunkEnvelope::sequenceNumber), 123L)
+                        .set(field(AudioChunkEnvelope::timestamp), NOW)
+                        .set(field(AudioChunkEnvelope::format), FORMAT)
+                        .set(field(AudioChunkEnvelope::payload), pcmPayload)
+                        .create();
 
         byte[] serialized = serializer.serialize(TOPIC, original);
         assertThat(serialized).isNotNull();
