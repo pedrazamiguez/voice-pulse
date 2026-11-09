@@ -1,6 +1,7 @@
 package com.voicepulse.gateway.infrastructure.ws;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
@@ -52,15 +53,20 @@ class AudioWebSocketHandlerTest {
     @Mock private ManageCallSessionUseCase manageCallSessionUseCase;
 
     private ConcurrentSessionRegistry sessionRegistry;
+    private WebSocketCallUriParser uriParser;
     private AudioWebSocketHandler handler;
     private NettyDataBufferFactory bufferFactory;
 
     @BeforeEach
     void setUp() {
         sessionRegistry = new ConcurrentSessionRegistry();
+        uriParser = new WebSocketCallUriParser();
         handler =
                 new AudioWebSocketHandler(
-                        ingestAudioChunkUseCase, manageCallSessionUseCase, sessionRegistry);
+                        ingestAudioChunkUseCase,
+                        manageCallSessionUseCase,
+                        sessionRegistry,
+                        uriParser);
         bufferFactory = new NettyDataBufferFactory(PooledByteBufAllocator.DEFAULT);
     }
 
@@ -294,5 +300,36 @@ class AudioWebSocketHandlerTest {
         // After completion, session should be unregistered cleanly
         assertThat(sessionRegistry.hasWebSocketSession(sessionId)).isFalse();
         assertThat(sessionRegistry.activeWebSocketSessionCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("Null constructor arguments throw NullPointerException")
+    void nullConstructorArguments_throwNullPointerException() {
+        assertThatThrownBy(
+                        () ->
+                                new AudioWebSocketHandler(
+                                        null, manageCallSessionUseCase, sessionRegistry, uriParser))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(
+                        () ->
+                                new AudioWebSocketHandler(
+                                        ingestAudioChunkUseCase, null, sessionRegistry, uriParser))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(
+                        () ->
+                                new AudioWebSocketHandler(
+                                        ingestAudioChunkUseCase,
+                                        manageCallSessionUseCase,
+                                        null,
+                                        uriParser))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(
+                        () ->
+                                new AudioWebSocketHandler(
+                                        ingestAudioChunkUseCase,
+                                        manageCallSessionUseCase,
+                                        sessionRegistry,
+                                        null))
+                .isInstanceOf(NullPointerException.class);
     }
 }
