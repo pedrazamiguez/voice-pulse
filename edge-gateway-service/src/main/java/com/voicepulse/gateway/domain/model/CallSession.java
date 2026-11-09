@@ -14,6 +14,7 @@ import java.util.Objects;
  */
 public class CallSession {
 
+    private final Object lock = new Object();
     private final CallSessionId id;
     private final Instant createdAt;
     private CallSessionState state;
@@ -42,36 +43,41 @@ public class CallSession {
      * @throws InvalidAudioFrameException if sequence number is not strictly monotonic
      * @throws IllegalArgumentException if session ID does not match
      */
-    public synchronized void acceptChunk(AudioChunk chunk) {
-        Objects.requireNonNull(chunk, "chunk cannot be null");
+    public void acceptChunk(AudioChunk chunk) {
+        synchronized (lock) {
+            Objects.requireNonNull(chunk, "chunk cannot be null");
 
-        if (!this.id.equals(chunk.sessionId())) {
-            throw new IllegalArgumentException(
-                    "Session ID mismatch: expected " + this.id + " but got " + chunk.sessionId());
-        }
+            if (!this.id.equals(chunk.sessionId())) {
+                throw new IllegalArgumentException(
+                        "Session ID mismatch: expected "
+                                + this.id
+                                + " but got "
+                                + chunk.sessionId());
+            }
 
-        if (this.state instanceof CallSessionState.Disconnected) {
-            throw new IllegalSessionStateException(
-                    "Cannot process audio chunk on terminated session: " + this.id);
-        }
+            if (this.state instanceof CallSessionState.Disconnected) {
+                throw new IllegalSessionStateException(
+                        "Cannot process audio chunk on terminated session: " + this.id);
+            }
 
-        if (chunk.sequenceNumber() <= this.lastSequenceNumber) {
-            throw new InvalidAudioFrameException(
-                    "Out-of-order sequence number: received "
-                            + chunk.sequenceNumber()
-                            + ", expected > "
-                            + this.lastSequenceNumber);
-        }
+            if (chunk.sequenceNumber() <= this.lastSequenceNumber) {
+                throw new InvalidAudioFrameException(
+                        "Out-of-order sequence number: received "
+                                + chunk.sequenceNumber()
+                                + ", expected > "
+                                + this.lastSequenceNumber);
+            }
 
-        this.lastSequenceNumber = chunk.sequenceNumber();
-        this.lastActivityAt = chunk.timestamp();
+            this.lastSequenceNumber = chunk.sequenceNumber();
+            this.lastActivityAt = chunk.timestamp();
 
-        if (this.state instanceof CallSessionState.Connected) {
-            this.state = new CallSessionState.Streaming(chunk.timestamp(), 1L);
-        } else if (this.state instanceof CallSessionState.Streaming current) {
-            this.state =
-                    new CallSessionState.Streaming(
-                            current.startedStreamingAt(), current.framesReceived() + 1L);
+            if (this.state instanceof CallSessionState.Connected) {
+                this.state = new CallSessionState.Streaming(chunk.timestamp(), 1L);
+            } else if (this.state instanceof CallSessionState.Streaming current) {
+                this.state =
+                        new CallSessionState.Streaming(
+                                current.startedStreamingAt(), current.framesReceived() + 1L);
+            }
         }
     }
 
@@ -81,16 +87,18 @@ public class CallSession {
      * @param reason reason for disconnection
      * @param disconnectedAt timestamp of disconnection
      */
-    public synchronized void terminate(DisconnectReason reason, Instant disconnectedAt) {
-        Objects.requireNonNull(reason, "reason cannot be null");
-        Objects.requireNonNull(disconnectedAt, "disconnectedAt cannot be null");
+    public void terminate(DisconnectReason reason, Instant disconnectedAt) {
+        synchronized (lock) {
+            Objects.requireNonNull(reason, "reason cannot be null");
+            Objects.requireNonNull(disconnectedAt, "disconnectedAt cannot be null");
 
-        if (this.state instanceof CallSessionState.Disconnected) {
-            return; // Idempotent
+            if (this.state instanceof CallSessionState.Disconnected) {
+                return; // Idempotent
+            }
+
+            this.lastActivityAt = disconnectedAt;
+            this.state = new CallSessionState.Disconnected(disconnectedAt, reason);
         }
-
-        this.lastActivityAt = disconnectedAt;
-        this.state = new CallSessionState.Disconnected(disconnectedAt, reason);
     }
 
     public CallSessionId id() {
@@ -101,15 +109,21 @@ public class CallSession {
         return createdAt;
     }
 
-    public synchronized CallSessionState state() {
-        return state;
+    public CallSessionState state() {
+        synchronized (lock) {
+            return state;
+        }
     }
 
-    public synchronized long lastSequenceNumber() {
-        return lastSequenceNumber;
+    public long lastSequenceNumber() {
+        synchronized (lock) {
+            return lastSequenceNumber;
+        }
     }
 
-    public synchronized Instant lastActivityAt() {
-        return lastActivityAt;
+    public Instant lastActivityAt() {
+        synchronized (lock) {
+            return lastActivityAt;
+        }
     }
 }
