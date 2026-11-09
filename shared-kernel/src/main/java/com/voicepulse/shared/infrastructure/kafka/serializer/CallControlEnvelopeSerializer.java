@@ -1,5 +1,6 @@
 package com.voicepulse.shared.infrastructure.kafka.serializer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -68,7 +69,7 @@ public class CallControlEnvelopeSerializer implements Serializer<CallControlEnve
             }
 
             return OBJECT_MAPPER.writeValueAsBytes(root);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             throw new SerializationException("Failed to serialize CallControlEnvelope to JSON", e);
         }
     }
