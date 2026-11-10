@@ -5,8 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
+## [0.4.0] - 2026-11-10
 ### Added
 - feat(kafka): define domain audio event envelopes, control schemas, and binary serializers ([#63](https://github.com/pedrazamiguez/voice-pulse/issues/63))
 - feat(tooling): overhaul vp-start-issue definition of done with automated PR creation and CI verification gate ([#74](https://github.com/pedrazamiguez/voice-pulse/issues/74))
