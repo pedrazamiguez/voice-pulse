@@ -19,6 +19,8 @@ import com.voicepulse.conversation.domain.statemachine.CallSessionState;
 import com.voicepulse.conversation.domain.statemachine.ConversationSession;
 import com.voicepulse.conversation.domain.vad.BargeInEvaluationResult;
 import com.voicepulse.conversation.domain.vad.BargeInEvaluator;
+import com.voicepulse.conversation.domain.vad.SyntheticAudioTestFactory;
+import com.voicepulse.conversation.domain.vad.TrailingSilenceEvaluator;
 import com.voicepulse.conversation.domain.vad.TurnPhase;
 import com.voicepulse.shared.event.BargeInInterrupt;
 import com.voicepulse.shared.model.AudioChunk;
@@ -81,6 +83,8 @@ class ConversationOrchestratorServiceTest {
         assertThat(session.callId()).isEqualTo(callId);
         assertThat(session.state()).isInstanceOf(CallSessionState.Greeting.class);
         assertThat(session.turnPhase()).isEqualTo(TurnPhase.BOT_SPEAKING);
+        assertThat(session.lastBotPrompt()).isPresent();
+        assertThat(session.lastBotPrompt().get()).contains("Airline Disruption Hotline");
 
         verify(statePublisher).publishStateTransition(transitionCaptor.capture());
         CallStateTransitioned event = transitionCaptor.getValue();
@@ -111,6 +115,8 @@ class ConversationOrchestratorServiceTest {
 
         assertThat(session.state()).isEqualTo(targetState);
         assertThat(session.turnCount()).isEqualTo(1);
+        assertThat(session.lastBotPrompt()).contains("Please confirm.");
+        assertThat(session.lastTurnLatencyNanos()).isEqualTo(500_000L);
 
         verify(statePublisher).publishTurnCompleted(turnCompletedCaptor.capture());
         TurnCompleted turnEvent = turnCompletedCaptor.getValue();
@@ -165,6 +171,41 @@ class ConversationOrchestratorServiceTest {
 
         verify(bargeInEvaluator, never()).evaluate(any(byte[].class), eq(true));
         verify(callControlDispatcher, never()).dispatch(any());
+    }
+
+    @Test
+    @DisplayName(
+            "processAudioChunk detects 500ms trailing silence turn boundary and resets evaluator")
+    void processAudioChunk_trailingSilenceReached_incrementsTurnCountAndResetsEvaluator() {
+        sessionRegistry.getOrCreate(callId, now);
+        CallSessionId sessionId = CallSessionId.fromCallId(callId);
+        byte[] speechFrame = SyntheticAudioTestFactory.generateSpeechBurstFrame((short) 8000);
+        byte[] silenceFrame = SyntheticAudioTestFactory.generateSilenceFrame();
+
+        for (long seq = 0; seq < 3; seq++) {
+            service.processAudioChunk(
+                    new AudioChunk(
+                            sessionId,
+                            seq,
+                            now.plusMillis(seq * 20),
+                            speechFrame,
+                            AudioFormat.PCM_16KHZ_MONO));
+        }
+
+        for (long seq = 3; seq < 28; seq++) {
+            service.processAudioChunk(
+                    new AudioChunk(
+                            sessionId,
+                            seq,
+                            now.plusMillis(seq * 20),
+                            silenceFrame,
+                            AudioFormat.PCM_16KHZ_MONO));
+        }
+
+        TrailingSilenceEvaluator evaluator =
+                sessionRegistry.getOrCreateTrailingSilenceEvaluator(callId);
+        assertThat(evaluator.completedTurnCount()).isEqualTo(1);
+        assertThat(evaluator.isTurnComplete()).isFalse();
     }
 
     @Test
