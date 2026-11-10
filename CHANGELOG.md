@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - refactor(tooling): introduce Lombok for infrastructure logging and constructor injection with domain purity guardrails ([#59](https://github.com/pedrazamiguez/voice-pulse/issues/59))
 - refactor(gateway): decompose LoopbackAudioEchoAdapter and extract dedicated telemetry tracker and URI parser ([#85](https://github.com/pedrazamiguez/voice-pulse/issues/85))
+- Epic 3: High-Throughput Kafka Event Bus & In-Order Worker Pool ([#68](https://github.com/pedrazamiguez/voice-pulse/issues/68))
 
 ### Fixed
 - fix(ci): resolve webhook race condition and unhandled 422 errors in branch provisioning workflow ([#87](https://github.com/pedrazamiguez/voice-pulse/issues/87))
