@@ -86,14 +86,20 @@ Examine current codebase capabilities across completed epics:
    - Strict `callId.toString()` partitioning key mandate.
    - Sequential, pinned in-order worker pool consumer in `conversation-engine`.
    - Dead-letter queue (`telephony.calls.dlq`) fallback and consumer lag metrics.
+4. **Epic 4 (Hexagonal Conversation Core, VAD & State Machine):**
+   - Pure domain `ConversationSession` state machine using Java 21 `sealed interface CallSessionState`.
+   - Real-time DSP `VoiceActivityDetector` (< 1ms RMS energy evaluation) and 500ms `TrailingSilenceEvaluator`.
+   - Acoustic NATO phonetic PNR verifier (`Alpha-8-Foxtrot-9-Xray-2`) and 25-word turn brevity guardrail.
+   - Real-time caller barge-in evaluation and `BargeInInterrupt` dispatch on `telephony.calls.control` with < 50ms edge buffer purging.
+   - Deterministic sub-50ms `MockLlmConversationProcessor` and `DisruptionTicketAssembler` producing `AirlineDisruptionTicket`.
 
 ### Step 2.2: Generate Executive Briefing Report
 Format the response using the following structure:
 * **Repository & Branch Context:** Active branch, latest commit, working tree state.
 * **Roadmap Milestone Progress Matrix:** Table listing all 7 epics with badges (`[COMPLETED]`, `[NEXT UP]`, `[PLANNED]`).
-* **What Works Today (Plain English):** Highlighting audio ingestion, softphone UI, Kafka streaming, and memory safety.
-* **Current Limitations & Context:** Explain that conversational dialog, VAD barge-in, and MCP tool servers are planned for Epics 4–6.
-* **Why No UI for Back-End Phases:** Clarify why Epic 3 (Kafka streaming) is verified headlessly via Testcontainers rather than browser softphone (full end-to-end dialog and inbound TTS synthesis wire together in Epic 4).
+* **What Works Today (Plain English):** Highlighting audio ingestion, softphone UI, Kafka streaming, VAD barge-in, state machine, and memory safety.
+* **Current Limitations & Context:** Explain that runtime MCP tool servers, live LLM/STT/TTS synthesis, and the Operator Web Console are planned for Epics 5–6.
+* **Why No UI for Back-End Phases:** Clarify why Epics 3–4 (Kafka streaming, VAD, and conversational state machine) are verified via Testcontainers or terminal logs while the Operator Web Console arrives in Epic 6.
 * **Active Epic & Next Steps:** Outline the immediate next milestone.
 
 ---
@@ -103,7 +109,7 @@ Format the response using the following structure:
 Invoke via `/vp-manage-roadmap mode=test [target_epic=<id>]`.
 
 ### Step 3.1: Determine Scope
-* If `target_epic` is specified (e.g. `2`, `epic-2`, `3`), output the dedicated verification playbook for that milestone.
+* If `target_epic` is specified (e.g. `2`, `epic-2`, `3`, `4`), output the dedicated verification playbook for that milestone.
 * If omitted, present the full test playbook for all completed milestones.
 
 ### Step 3.2: Output Copy-Pasteable Playbooks
@@ -123,13 +129,14 @@ make test-rag && make test-changelog
 #### B. Epic 2 Verification (Voice Gateway & Softphone Echo Loop)
 * **Automated Integration Test:**
   ```bash
-  ./mvnw test -pl edge-gateway-service -Dtest=AudioWebSocketIntegrationTest -Dio.netty.leakDetection.level=PARANOID
+  ./mvnw test -pl edge-gateway-service -Dtest=AudioEchoIntegrationTest -Dio.netty.leakDetection.level=PARANOID
   ```
   *Assertions:* Streams 5,000 synthetic PCM chunks, validates in-order frame arrival, sub-100ms latency, and zero `ByteBuf` leaks.
-* **Interactive Browser Playground:**
+* **Interactive Browser Playground (Standalone Loopback Mode):**
   ```bash
-  # Start the edge gateway service
-  ./mvnw spring-boot:run -pl edge-gateway-service
+  # Start the edge gateway service in loopback echo mode
+  ./mvnw spring-boot:run -pl edge-gateway-service \
+    -Dspring-boot.run.arguments="--voicepulse.gateway.audio-publisher=loopback"
   ```
   *User Action:* Open `http://localhost:8080/softphone/index.html` in Chrome or Edge.
   *Verification Steps:*
@@ -141,7 +148,7 @@ make test-rag && make test-changelog
 #### C. Epic 3 Verification (High-Throughput Kafka Event Bus)
 * **Automated Testcontainers Integration Test:**
   ```bash
-  ./mvnw test -pl conversation-engine -Dtest=KafkaStreamingIntegrationTest -Dio.netty.leakDetection.level=PARANOID
+  ./mvnw test -pl conversation-engine -Dtest=KafkaStreamingPipelineIntegrationTest,KafkaDeadLetterQueueIntegrationTest -Dio.netty.leakDetection.level=PARANOID
   ```
   *Assertions:*
   - Starts KRaft Kafka Testcontainers instance.
@@ -150,6 +157,22 @@ make test-rag && make test-changelog
 * **Local Docker Infrastructure Run (Optional):**
   ```bash
   make docker-infra && make verify-infra
+  ```
+
+#### D. Epic 4 Verification (Hexagonal Conversation Core, VAD & Barge-In)
+* **Automated End-to-End Conversational Dialog & Barge-In Testcontainers Test:**
+  ```bash
+  ./mvnw test -pl conversation-engine -Dtest=EndToEndConversationDialogIntegrationTest -Dio.netty.leakDetection.level=PARANOID
+  ```
+  *Assertions:*
+  - Streams 20ms Linear PCM frames over `telephony.calls.raw` and detects 500ms trailing silence turn boundaries.
+  - Verifies NATO phonetic PNR confirmation (`Alpha-8-Foxtrot-9-Xray-2`) and 25-word turn brevity ceiling.
+  - Triggers mid-stream caller barge-in during bot playback and verifies `BargeInInterrupt` on `telephony.calls.control`.
+  - Compiles structured `AirlineDisruptionTicket` with sub-50ms turn latency.
+* **Edge Gateway Control Signaling & Sub-1ms / Sub-50ms Benchmarks:**
+  ```bash
+  ./mvnw test -pl edge-gateway-service -Dtest=CallControlSignalingIntegrationTest -Dio.netty.leakDetection.level=PARANOID
+  ./mvnw test -pl conversation-engine -Dtest=VadPerformanceBenchmarkTest,MockLlmLatencyBenchmarkTest
   ```
 
 ---
