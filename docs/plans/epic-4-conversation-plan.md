@@ -1,7 +1,7 @@
 # Epic 4: Hexagonal Conversation Core, VAD & State Machine
 
 * **Tracking Issue:** [#105](https://github.com/pedrazamiguez/voice-pulse/issues/105)
-* **Status:** **Active / Planned**
+* **Status:** **Completed**
 
 ## 1. Executive Summary & Objective
 

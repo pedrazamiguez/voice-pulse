@@ -1,7 +1,7 @@
 # Epic 3: High-Throughput Kafka Event Bus & In-Order Worker Pool
 
 * **Tracking Issue:** [#68](https://github.com/pedrazamiguez/voice-pulse/issues/68)
-* **Status:** **Active / In Progress**
+* **Status:** **Completed**
 
 ## 1. Executive Summary & Objective
 
