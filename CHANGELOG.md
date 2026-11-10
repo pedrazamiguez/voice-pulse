@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(conversation): implement acoustic NATO phonetic PNR verifier and 25-word brevity guardrail ([#101](https://github.com/pedrazamiguez/voice-pulse/issues/101))
 - feat(conversation): implement real-time barge-in detection and Kafka control signaling dispatcher ([#102](https://github.com/pedrazamiguez/voice-pulse/issues/102))
 - feat(conversation): implement deterministic mock LLM conversation engine and disruption ticket assembler ([#103](https://github.com/pedrazamiguez/voice-pulse/issues/103))
+- test(conversation): implement end-to-end conversational dialog and barge-in integration test with Testcontainers ([#104](https://github.com/pedrazamiguez/voice-pulse/issues/104))
 
 ## [0.4.0] - 2026-11-10
 ### Added
