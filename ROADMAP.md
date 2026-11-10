@@ -14,7 +14,7 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 | **Epic 1** | **Engineering Foundation, Tooling, & Agentic Workflow Setup** | Multi-module Root, `.agents/` | **Completed** | [Issue #9](https://github.com/pedrazamiguez/voice-pulse/issues/9) • [Plan](docs/plans/epic-1-foundation-plan.md) |
 | **Epic 2** | **Ingestion Voice Gateway & Softphone Echo Loop** | `edge-gateway-service` | **Completed** | [Issue #20](https://github.com/pedrazamiguez/voice-pulse/issues/20) • [Plan](docs/plans/epic-2-gateway-plan.md) |
 | **Epic 3** | **High-Throughput Kafka Event Bus & In-Order Worker Pool** | `edge-gateway-service`, `conversation-engine` | **Completed** | [Issue #68](https://github.com/pedrazamiguez/voice-pulse/issues/68) • [Plan](docs/plans/epic-3-kafka-plan.md) |
-| **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | **Next / Planned** | RFC-0001 §4.3 & RFC-0003 |
+| **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | **In Progress** | [Issue #105](https://github.com/pedrazamiguez/voice-pulse/issues/105) • [Plan](docs/plans/epic-4-conversation-plan.md) |
 | **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `scripts/mcp` | Planned | RFC-0002 §6 & RFC-0003 |
 | **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, UI | Planned | RFC-0001 §4.4 |
 | **Epic 7** | **10,000 Concurrent Calls Load Testing & Hardening** | Platform-wide, Gatling, OTel | Planned | RFC-0002 §12 & §13 |
@@ -109,15 +109,18 @@ flowchart LR
 ---
 
 ### Epic 4: Hexagonal Conversation Core, VAD & State Machine
-* **Status:** **Planned**
+* **Tracking Issue:** [#105](https://github.com/pedrazamiguez/voice-pulse/issues/105)
+* **Master Plan:** [docs/plans/epic-4-conversation-plan.md](docs/plans/epic-4-conversation-plan.md)
+* **Status:** **In Progress**
 * **Governing Blueprint:** RFC-0001 §4.3; RFC-0003 §3 & §4
 * **Objective:** Build the conversational intelligence core orchestrating voice activity detection, barge-in evaluation, and the SkyWay Airlines disruption dialog flow.
 * **Key Deliverables:**
-  - Pure domain `CallSession` aggregate state machine with Java 21 sealed interfaces.
-  - Real-time Voice Activity Detection (VAD) energy evaluation for immediate barge-in interruption.
-  - 25-word maximum turn limit enforcement.
-  - Acoustic phonetic verification engine for NATO PNR booking references.
-  - Mock LLM processor providing deterministic 50ms responses for load testing.
+  - Pure domain `CallSession` aggregate state machine with Java 21 sealed interfaces ([#99](https://github.com/pedrazamiguez/voice-pulse/issues/99)).
+  - Real-time Voice Activity Detection (VAD) energy evaluation for immediate barge-in interruption ([#100](https://github.com/pedrazamiguez/voice-pulse/issues/100)).
+  - 25-word maximum turn limit enforcement and acoustic NATO phonetic PNR verification ([#101](https://github.com/pedrazamiguez/voice-pulse/issues/101)).
+  - Real-time barge-in detection and Kafka control signaling dispatcher ([#102](https://github.com/pedrazamiguez/voice-pulse/issues/102)).
+  - Deterministic mock LLM processor providing sub-50ms responses for load testing ([#103](https://github.com/pedrazamiguez/voice-pulse/issues/103)).
+  - End-to-end multi-module conversational dialog and barge-in integration test with Testcontainers ([#104](https://github.com/pedrazamiguez/voice-pulse/issues/104)).
 
 ---
 
