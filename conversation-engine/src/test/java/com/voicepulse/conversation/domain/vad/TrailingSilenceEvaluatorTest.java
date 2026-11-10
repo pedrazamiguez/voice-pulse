@@ -159,24 +159,39 @@ class TrailingSilenceEvaluatorTest {
         }
 
         @Test
-        @DisplayName("reset() returns evaluator to AwaitingSpeech for next turn")
+        @DisplayName(
+                "reset() returns evaluator to AwaitingSpeech for next turn while preserving"
+                        + " completedTurnCount")
         void resetReArmsEvaluator() {
-            // Trigger turn complete
+            assertThat(evaluator.completedTurnCount()).isZero();
+
+            // Trigger first turn complete
             evaluator.evaluate(speechFrame);
             evaluator.evaluate(speechFrame);
             for (int i = 0; i < 25; i++) {
                 evaluator.evaluate(silenceFrame);
             }
             assertThat(evaluator.isTurnComplete()).isTrue();
+            assertThat(evaluator.completedTurnCount()).isEqualTo(1);
 
             // Reset
             evaluator.reset();
 
             assertThat(evaluator.isTurnComplete()).isFalse();
+            assertThat(evaluator.completedTurnCount()).isEqualTo(1);
             assertThat(evaluator.state()).isInstanceOf(TrailingSilenceState.AwaitingSpeech.class);
             TrailingSilenceState.AwaitingSpeech awaiting =
                     (TrailingSilenceState.AwaitingSpeech) evaluator.state();
             assertThat(awaiting.speechFramesObserved()).isEqualTo(0);
+
+            // Trigger second turn complete
+            evaluator.evaluate(speechFrame);
+            evaluator.evaluate(speechFrame);
+            for (int i = 0; i < 25; i++) {
+                evaluator.evaluate(silenceFrame);
+            }
+            assertThat(evaluator.isTurnComplete()).isTrue();
+            assertThat(evaluator.completedTurnCount()).isEqualTo(2);
         }
     }
 

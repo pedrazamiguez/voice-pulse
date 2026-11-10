@@ -14,6 +14,7 @@ public class TrailingSilenceEvaluator {
     private final VoiceActivityDetector detector;
     private final VadThresholdConfig config;
     private TrailingSilenceState state;
+    private int completedTurnCount;
 
     /** Constructs evaluator with default detector and thresholds. */
     public TrailingSilenceEvaluator() {
@@ -29,6 +30,7 @@ public class TrailingSilenceEvaluator {
         this.detector = Objects.requireNonNull(detector, "detector cannot be null");
         this.config = detector.config();
         this.state = new TrailingSilenceState.AwaitingSpeech(0);
+        this.completedTurnCount = 0;
     }
 
     /**
@@ -70,6 +72,7 @@ public class TrailingSilenceEvaluator {
                     silenceMs = newSilence;
                     if (newSilence >= config.silenceThresholdMs()) {
                         this.state = new TrailingSilenceState.TurnComplete(newSilence);
+                        this.completedTurnCount++;
                         turnBoundary = true;
                     } else {
                         this.state = new TrailingSilenceState.InSpeech(newSilence);
@@ -113,6 +116,15 @@ public class TrailingSilenceEvaluator {
     /** Indicates whether caller turn completion has been reached. */
     public synchronized boolean isTurnComplete() {
         return this.state instanceof TrailingSilenceState.TurnComplete;
+    }
+
+    /**
+     * Returns cumulative count of completed conversational turn boundaries across resets.
+     *
+     * @return count of completed turns detected
+     */
+    public synchronized int completedTurnCount() {
+        return this.completedTurnCount;
     }
 
     /** Returns underlying threshold configuration. */

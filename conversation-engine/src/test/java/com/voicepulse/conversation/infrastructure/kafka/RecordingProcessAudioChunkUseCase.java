@@ -11,14 +11,14 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.springframework.boot.test.context.TestComponent;
 import org.springframework.context.annotation.Primary;
-import org.springframework.stereotype.Component;
 
 /**
  * Thread-safe test double implementation of {@link ProcessAudioChunkUseCase} capturing ingested
  * audio chunks for latency, integrity, and thread-affinity assertions.
  */
-@Component
+@TestComponent
 @Primary
 public class RecordingProcessAudioChunkUseCase implements ProcessAudioChunkUseCase {
 

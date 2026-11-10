@@ -43,6 +43,10 @@ import org.springframework.stereotype.Service;
 public class ConversationOrchestratorService
         implements ProcessAudioChunkUseCase, ProgressConversationUseCase {
 
+    private static final String INITIAL_GREETING_PROMPT =
+            "Welcome to the Airline Disruption Hotline. To quickly assist you, please state your"
+                    + " six-character booking reference or PNR.";
+
     private final @NonNull ConversationSessionRegistry sessionRegistry;
     private final @NonNull MockLlmConversationProcessor dialogProcessor;
     private final @NonNull BargeInEvaluator bargeInEvaluator;
@@ -58,7 +62,9 @@ public class ConversationOrchestratorService
         ConversationSession session = sessionRegistry.getOrCreate(callId, connectedAt);
 
         if (session.state() instanceof CallSessionState.Connected) {
+            long startNanos = System.nanoTime();
             session.greet(connectedAt);
+            session.recordBotPrompt(INITIAL_GREETING_PROMPT, System.nanoTime() - startNanos);
             session.startBotTurn(connectedAt);
         }
 
@@ -81,6 +87,7 @@ public class ConversationOrchestratorService
         ConversationSession session = sessionRegistry.getOrCreate(callId, timestamp);
 
         DialogTurnResult turnResult = dialogProcessor.processTurn(session, utterance, timestamp);
+        session.recordBotPrompt(turnResult.responseText(), turnResult.executionDurationNanos());
         session.recordTurn(timestamp);
 
         CallSessionState resultingState = turnResult.targetState();

@@ -323,6 +323,51 @@ class ConversationSessionTest {
                                             && tc.turnNumber() == 1
                                             && tc.occurredAt().equals(turnTime));
         }
+
+        @Test
+        @DisplayName("completeBotTurn transitions turnPhase from BOT_SPEAKING to LISTENING")
+        void completeBotTurnTransitionsToListening() {
+            CallId callId = CallId.generate();
+            Instant now = Instant.now();
+            ConversationSession session = ConversationSession.start(callId, now);
+
+            session.greet(now);
+            session.startBotTurn(now.plusMillis(100));
+            assertThat(session.turnPhase()).isEqualTo(TurnPhase.BOT_SPEAKING);
+
+            Instant completedAt = now.plusMillis(800);
+            session.completeBotTurn(completedAt);
+
+            assertThat(session.turnPhase()).isEqualTo(TurnPhase.LISTENING);
+            assertThat(session.lastActivityAt()).isEqualTo(completedAt);
+            assertThatThrownBy(() -> session.completeBotTurn(null))
+                    .isInstanceOf(NullPointerException.class)
+                    .hasMessageContaining("timestamp cannot be null");
+        }
+
+        @Test
+        @DisplayName("recordBotPrompt stores prompt text and deterministic turn execution duration")
+        void recordBotPromptStoresPromptAndLatency() {
+            CallId callId = CallId.generate();
+            Instant now = Instant.now();
+            ConversationSession session = ConversationSession.start(callId, now);
+
+            assertThat(session.lastBotPrompt()).isEmpty();
+            assertThat(session.lastTurnLatencyNanos()).isZero();
+
+            session.recordBotPrompt("I heard Alpha-8-Foxtrot-9-Xray-2. Is that correct?", 420_000L);
+
+            assertThat(session.lastBotPrompt())
+                    .contains("I heard Alpha-8-Foxtrot-9-Xray-2. Is that correct?");
+            assertThat(session.lastTurnLatencyNanos()).isEqualTo(420_000L);
+
+            assertThatThrownBy(() -> session.recordBotPrompt(null, 100L))
+                    .isInstanceOf(NullPointerException.class)
+                    .hasMessageContaining("prompt cannot be null");
+            assertThatThrownBy(() -> session.recordBotPrompt("Valid prompt", -1L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("executionDurationNanos cannot be negative");
+        }
     }
 
     @Nested
@@ -453,6 +498,16 @@ class ConversationSessionTest {
                     .isInstanceOf(IllegalConversationStateException.class)
                     .hasMessageContaining(
                             "Cannot execute 'startBotTurn' on terminated conversation session");
+
+            assertThatThrownBy(() -> session.completeBotTurn(now))
+                    .isInstanceOf(IllegalConversationStateException.class)
+                    .hasMessageContaining(
+                            "Cannot execute 'completeBotTurn' on terminated conversation session");
+
+            assertThatThrownBy(() -> session.recordBotPrompt("Prompt", 1000L))
+                    .isInstanceOf(IllegalConversationStateException.class)
+                    .hasMessageContaining(
+                            "Cannot execute 'recordBotPrompt' on terminated conversation session");
         }
     }
 }

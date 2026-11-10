@@ -32,6 +32,8 @@ public class ConversationSession {
     private int turnCount;
     private Instant lastActivityAt;
     private AirlineDisruptionTicket disruptionTicket;
+    private String lastBotPrompt;
+    private long lastTurnLatencyNanos;
 
     private ConversationSession(CallId callId, Instant connectedAt) {
         this.callId = Objects.requireNonNull(callId, "callId cannot be null");
@@ -276,6 +278,45 @@ public class ConversationSession {
     }
 
     /**
+     * Marks normal completion of bot speech playback, transitioning turn phase to {@link
+     * TurnPhase#LISTENING} so subsequent caller speech is evaluated as standard turn input rather
+     * than a barge-in interruption.
+     *
+     * @param timestamp timestamp when agent speech completed
+     * @throws IllegalConversationStateException if session is terminated
+     */
+    public void completeBotTurn(Instant timestamp) {
+        synchronized (lock) {
+            Objects.requireNonNull(timestamp, "timestamp cannot be null");
+            assertNotTerminated("completeBotTurn");
+
+            this.turnPhase = TurnPhase.LISTENING;
+            this.lastActivityAt = timestamp;
+        }
+    }
+
+    /**
+     * Records the synthesized bot prompt and deterministic execution duration for the latest turn.
+     *
+     * @param prompt synthesized bot response text
+     * @param executionDurationNanos execution duration in nanoseconds
+     * @throws IllegalConversationStateException if session is terminated
+     */
+    public void recordBotPrompt(String prompt, long executionDurationNanos) {
+        synchronized (lock) {
+            Objects.requireNonNull(prompt, "prompt cannot be null");
+            if (executionDurationNanos < 0L) {
+                throw new IllegalArgumentException(
+                        "executionDurationNanos cannot be negative: " + executionDurationNanos);
+            }
+            assertNotTerminated("recordBotPrompt");
+
+            this.lastBotPrompt = prompt;
+            this.lastTurnLatencyNanos = executionDurationNanos;
+        }
+    }
+
+    /**
      * Records a detected caller barge-in during bot playback, aborting the active bot turn,
      * resetting turn phase to {@link TurnPhase#LISTENING}, and emitting {@link BargeInDetected}.
      *
@@ -349,6 +390,18 @@ public class ConversationSession {
     public Optional<AirlineDisruptionTicket> disruptionTicket() {
         synchronized (lock) {
             return Optional.ofNullable(this.disruptionTicket);
+        }
+    }
+
+    public Optional<String> lastBotPrompt() {
+        synchronized (lock) {
+            return Optional.ofNullable(this.lastBotPrompt);
+        }
+    }
+
+    public long lastTurnLatencyNanos() {
+        synchronized (lock) {
+            return this.lastTurnLatencyNanos;
         }
     }
 

@@ -67,6 +67,8 @@ class KafkaDeadLetterQueueIntegrationTest {
     private final KafkaAudioStreamConsumer audioConsumer;
 
     private Consumer<String, byte[]> dlqConsumer;
+    private DefaultKafkaProducerFactory<String, byte[]> byteProducerFactory;
+    private DefaultKafkaProducerFactory<String, AudioChunkEnvelope> envelopeProducerFactory;
     private KafkaTemplate<String, byte[]> rawByteProducer;
     private KafkaTemplate<String, AudioChunkEnvelope> validEnvelopeProducer;
 
@@ -106,12 +108,12 @@ class KafkaDeadLetterQueueIntegrationTest {
         dlqConsumer.seekToBeginning(dlqPartitions);
 
         Map<String, Object> producerProps = KafkaTestUtils.producerProps(embeddedKafkaBroker);
-        DefaultKafkaProducerFactory<String, byte[]> byteProducerFactory =
+        byteProducerFactory =
                 new DefaultKafkaProducerFactory<>(
                         producerProps, new StringSerializer(), new ByteArraySerializer());
         rawByteProducer = new KafkaTemplate<>(byteProducerFactory);
 
-        DefaultKafkaProducerFactory<String, AudioChunkEnvelope> envelopeProducerFactory =
+        envelopeProducerFactory =
                 new DefaultKafkaProducerFactory<>(
                         producerProps, new StringSerializer(), new AudioChunkEnvelopeSerializer());
         validEnvelopeProducer = new KafkaTemplate<>(envelopeProducerFactory);
@@ -121,6 +123,12 @@ class KafkaDeadLetterQueueIntegrationTest {
     void tearDown() {
         if (dlqConsumer != null) {
             dlqConsumer.close();
+        }
+        if (byteProducerFactory != null) {
+            byteProducerFactory.destroy();
+        }
+        if (envelopeProducerFactory != null) {
+            envelopeProducerFactory.destroy();
         }
     }
 
