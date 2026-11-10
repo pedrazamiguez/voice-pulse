@@ -1,11 +1,13 @@
 package com.voicepulse.gateway.infrastructure.config;
 
 import com.voicepulse.gateway.domain.ports.outbound.AudioFramePublisherPort;
+import com.voicepulse.gateway.domain.ports.outbound.AudioPlaybackControlPort;
 import com.voicepulse.gateway.domain.ports.outbound.SessionRegistryPort;
 import com.voicepulse.gateway.domain.service.CallSessionService;
 import com.voicepulse.gateway.infrastructure.echo.EchoLatencyTracker;
 import com.voicepulse.gateway.infrastructure.echo.LoopbackAudioEchoAdapter;
 import com.voicepulse.gateway.infrastructure.registry.ConcurrentSessionRegistry;
+import com.voicepulse.gateway.infrastructure.ws.WebSocketPlaybackControlAdapter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -47,10 +49,19 @@ public class GatewayDomainConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(AudioPlaybackControlPort.class)
+    public AudioPlaybackControlPort audioPlaybackControlPort(
+            ConcurrentSessionRegistry concurrentSessionRegistry) {
+        return new WebSocketPlaybackControlAdapter(concurrentSessionRegistry);
+    }
+
+    @Bean
     @ConditionalOnMissingBean
     public CallSessionService callSessionService(
             SessionRegistryPort sessionRegistryPort,
-            AudioFramePublisherPort audioFramePublisherPort) {
-        return new CallSessionService(sessionRegistryPort, audioFramePublisherPort);
+            AudioFramePublisherPort audioFramePublisherPort,
+            AudioPlaybackControlPort audioPlaybackControlPort) {
+        return new CallSessionService(
+                sessionRegistryPort, audioFramePublisherPort, audioPlaybackControlPort);
     }
 }

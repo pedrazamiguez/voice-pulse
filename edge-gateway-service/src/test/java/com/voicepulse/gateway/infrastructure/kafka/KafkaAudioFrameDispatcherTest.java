@@ -46,7 +46,14 @@ class KafkaAudioFrameDispatcherTest {
     @BeforeEach
     void setUp() {
         metricsTracker = new KafkaPublisherMetricsTracker();
-        properties = new GatewayKafkaProperties(TOPIC, TIMEOUT, 33554432L, Duration.ofSeconds(3));
+        properties =
+                new GatewayKafkaProperties(
+                        TOPIC,
+                        "telephony.calls.control",
+                        "edge-gateway-control-workers",
+                        TIMEOUT,
+                        33554432L,
+                        Duration.ofSeconds(3));
         dispatcher = new KafkaAudioFrameDispatcher(kafkaTemplate, properties, metricsTracker);
     }
 
