@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(conversation): implement pure domain CallSession state machine and sealed states ([#99](https://github.com/pedrazamiguez/voice-pulse/issues/99))
 - feat(conversation): implement real-time voice activity detection and trailing silence evaluator ([#100](https://github.com/pedrazamiguez/voice-pulse/issues/100))
 - feat(conversation): implement acoustic NATO phonetic PNR verifier and 25-word brevity guardrail ([#101](https://github.com/pedrazamiguez/voice-pulse/issues/101))
+- feat(conversation): implement real-time barge-in detection and Kafka control signaling dispatcher ([#102](https://github.com/pedrazamiguez/voice-pulse/issues/102))
 
 ## [0.4.0] - 2026-11-10
 ### Added
