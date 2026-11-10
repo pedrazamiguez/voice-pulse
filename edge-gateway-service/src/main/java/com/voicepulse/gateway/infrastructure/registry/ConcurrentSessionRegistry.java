@@ -3,12 +3,16 @@ package com.voicepulse.gateway.infrastructure.registry;
 import com.voicepulse.gateway.domain.model.CallSession;
 import com.voicepulse.gateway.domain.ports.outbound.SessionRegistryPort;
 import com.voicepulse.shared.model.CallSessionId;
+import io.netty.util.ReferenceCountUtil;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
@@ -34,6 +38,8 @@ public final class ConcurrentSessionRegistry implements SessionRegistryPort {
     private final ConcurrentHashMap<CallSessionId, WebSocketSession> webSocketSessions =
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<CallSessionId, Sinks.Many<WebSocketMessage>> outboundSinks =
+            new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<CallSessionId, Queue<WebSocketMessage>> outboundQueues =
             new ConcurrentHashMap<>();
 
     public ConcurrentSessionRegistry() {
@@ -98,21 +104,19 @@ public final class ConcurrentSessionRegistry implements SessionRegistryPort {
         validateSessionId(sessionId);
         Objects.requireNonNull(session, "session cannot be null");
 
-        Sinks.Many<WebSocketMessage> sink =
-                Sinks.many()
-                        .unicast()
-                        .onBackpressureBuffer(
-                                new LinkedBlockingQueue<WebSocketMessage>(bufferCapacity));
+        Queue<WebSocketMessage> queue = new LinkedBlockingQueue<>(bufferCapacity);
+        Sinks.Many<WebSocketMessage> sink = Sinks.many().unicast().onBackpressureBuffer(queue);
 
         webSocketSessions.put(sessionId, session);
         outboundSinks.put(sessionId, sink);
+        outboundQueues.put(sessionId, queue);
 
         log.debug("Registered WebSocket session for callId: {}", sessionId);
         return sink.asFlux();
     }
 
     /**
-     * Unregisters the WebSocket session and safely completes its outbound message sink.
+     * Unregisters the WebSocket session, purges queued outbound messages, and completes its sink.
      *
      * @param sessionId call identifier
      */
@@ -120,12 +124,46 @@ public final class ConcurrentSessionRegistry implements SessionRegistryPort {
         validateSessionId(sessionId);
 
         webSocketSessions.remove(sessionId);
+        Queue<WebSocketMessage> queue = outboundQueues.remove(sessionId);
+        if (queue != null) {
+            WebSocketMessage message;
+            while ((message = queue.poll()) != null) {
+                releaseMessagePayload(message);
+            }
+        }
+
         Sinks.Many<WebSocketMessage> sink = outboundSinks.remove(sessionId);
         if (sink != null) {
             sink.tryEmitComplete();
         }
 
         log.debug("Unregistered WebSocket session for callId: {}", sessionId);
+    }
+
+    /**
+     * Purges and releases all queued outbound messages for the specified call session.
+     *
+     * <p>Ensures zero direct memory leaks by safely releasing underlying Netty buffers.
+     *
+     * @param sessionId call identifier
+     * @return number of purged messages
+     */
+    public int purgeOutboundBuffer(CallSessionId sessionId) {
+        validateSessionId(sessionId);
+        Queue<WebSocketMessage> queue = outboundQueues.get(sessionId);
+        if (queue == null) {
+            return 0;
+        }
+
+        int purgedCount = 0;
+        WebSocketMessage message;
+        while ((message = queue.poll()) != null) {
+            releaseMessagePayload(message);
+            purgedCount++;
+        }
+
+        log.debug("Purged {} queued outbound messages for callId: {}", purgedCount, sessionId);
+        return purgedCount;
     }
 
     /**
@@ -152,9 +190,7 @@ public final class ConcurrentSessionRegistry implements SessionRegistryPort {
 
         Sinks.Many<WebSocketMessage> sink = outboundSinks.get(sessionId);
         if (sink == null) {
-            if (message.getPayload() != null) {
-                DataBufferUtils.release(message.getPayload());
-            }
+            releaseMessagePayload(message);
             return false;
         }
 
@@ -164,9 +200,7 @@ public final class ConcurrentSessionRegistry implements SessionRegistryPort {
                     "Failed to emit outbound message for callId {}: emitResult={}",
                     sessionId,
                     result);
-            if (message.getPayload() != null) {
-                DataBufferUtils.release(message.getPayload());
-            }
+            releaseMessagePayload(message);
             return false;
         }
 
@@ -195,5 +229,17 @@ public final class ConcurrentSessionRegistry implements SessionRegistryPort {
 
     private void validateSessionId(CallSessionId sessionId) {
         Objects.requireNonNull(sessionId, "sessionId cannot be null");
+    }
+
+    private void releaseMessagePayload(WebSocketMessage message) {
+        if (message == null || message.getPayload() == null) {
+            return;
+        }
+        DataBuffer dataBuffer = message.getPayload();
+        if (dataBuffer instanceof NettyDataBuffer nettyDataBuffer) {
+            ReferenceCountUtil.release(nettyDataBuffer.getNativeBuffer());
+        } else {
+            DataBufferUtils.release(dataBuffer);
+        }
     }
 }

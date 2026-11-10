@@ -14,6 +14,7 @@ import com.voicepulse.gateway.domain.model.CallSession;
 import com.voicepulse.gateway.domain.model.CallSessionState;
 import com.voicepulse.gateway.domain.model.DisconnectReason;
 import com.voicepulse.gateway.domain.ports.outbound.AudioFramePublisherPort;
+import com.voicepulse.gateway.domain.ports.outbound.AudioPlaybackControlPort;
 import com.voicepulse.gateway.domain.ports.outbound.SessionRegistryPort;
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
@@ -37,6 +38,8 @@ class CallSessionServiceTest {
     @Mock private SessionRegistryPort registry;
 
     @Mock private AudioFramePublisherPort publisher;
+
+    @Mock private AudioPlaybackControlPort audioPlaybackControlPort;
 
     @InjectMocks private CallSessionService service;
 
@@ -137,5 +140,39 @@ class CallSessionServiceTest {
         Optional<CallSession> retrieved = service.getSession(sessionId);
 
         assertThat(retrieved).contains(session);
+    }
+
+    @Test
+    @DisplayName("interruptPlayback delegates to AudioPlaybackControlPort when session exists")
+    void interruptPlaybackDelegatesWhenSessionExists() {
+        CallSessionId sessionId = CallSessionId.generate();
+        CallSession session = CallSession.start(sessionId, Instant.now());
+        when(registry.findById(sessionId)).thenReturn(Optional.of(session));
+
+        service.interruptPlayback(sessionId);
+
+        verify(audioPlaybackControlPort).interruptPlayback(sessionId);
+    }
+
+    @Test
+    @DisplayName(
+            "interruptPlayback throws CallSessionNotFoundException when session does not exist")
+    void interruptPlaybackThrowsWhenSessionNotFound() {
+        CallSessionId unknownId = CallSessionId.generate();
+        when(registry.findById(unknownId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.interruptPlayback(unknownId))
+                .isInstanceOf(CallSessionNotFoundException.class)
+                .hasMessageContaining("Session not found: " + unknownId);
+
+        verify(audioPlaybackControlPort, never()).interruptPlayback(any());
+    }
+
+    @Test
+    @DisplayName("interruptPlayback throws NullPointerException when sessionId is null")
+    void interruptPlaybackThrowsOnNullSessionId() {
+        assertThatThrownBy(() -> service.interruptPlayback(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("sessionId cannot be null");
     }
 }

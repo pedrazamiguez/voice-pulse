@@ -6,6 +6,7 @@ import com.voicepulse.conversation.domain.event.ConversationDomainEvent;
 import com.voicepulse.conversation.domain.event.TurnCompleted;
 import com.voicepulse.conversation.domain.exception.IllegalConversationStateException;
 import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
+import com.voicepulse.conversation.domain.vad.TurnPhase;
 import com.voicepulse.shared.model.CallId;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ public class ConversationSession {
     private final Instant createdAt;
     private final List<ConversationDomainEvent> domainEvents;
     private CallSessionState state;
+    private TurnPhase turnPhase;
     private int turnCount;
     private Instant lastActivityAt;
     private AirlineDisruptionTicket disruptionTicket;
@@ -36,6 +38,7 @@ public class ConversationSession {
         this.createdAt = Objects.requireNonNull(connectedAt, "connectedAt cannot be null");
         this.lastActivityAt = connectedAt;
         this.state = new CallSessionState.Connected(connectedAt);
+        this.turnPhase = TurnPhase.LISTENING;
         this.turnCount = 0;
         this.domainEvents = new ArrayList<>();
     }
@@ -249,6 +252,7 @@ public class ConversationSession {
             assertNotTerminated("recordTurn");
 
             this.turnCount++;
+            this.turnPhase = TurnPhase.LISTENING;
             this.lastActivityAt = timestamp;
             this.domainEvents.add(
                     new TurnCompleted(this.callId, this.turnCount, this.state, timestamp));
@@ -256,7 +260,27 @@ public class ConversationSession {
     }
 
     /**
-     * Records a detected caller barge-in during bot playback, emitting {@link BargeInDetected}.
+     * Marks the commencement of an active agent speech playback turn.
+     *
+     * @param timestamp timestamp when agent speech started
+     * @throws IllegalConversationStateException if session is terminated
+     */
+    public void startBotTurn(Instant timestamp) {
+        synchronized (lock) {
+            Objects.requireNonNull(timestamp, "timestamp cannot be null");
+            assertNotTerminated("startBotTurn");
+
+            this.turnPhase = TurnPhase.BOT_SPEAKING;
+            this.lastActivityAt = timestamp;
+        }
+    }
+
+    /**
+     * Records a detected caller barge-in during bot playback, aborting the active bot turn,
+     * resetting turn phase to {@link TurnPhase#LISTENING}, and emitting {@link BargeInDetected}.
+     *
+     * <p>If currently in {@link CallSessionState.Greeting}, transitions to {@link
+     * CallSessionState.CollectingPassengerDetails} to immediately capture caller input.
      *
      * @param timestamp timestamp when barge-in was detected
      * @throws IllegalConversationStateException if session is terminated
@@ -266,8 +290,14 @@ public class ConversationSession {
             Objects.requireNonNull(timestamp, "timestamp cannot be null");
             assertNotTerminated("recordBargeIn");
 
+            CallSessionState stateAtBargeIn = this.state;
+            this.turnPhase = TurnPhase.LISTENING;
             this.lastActivityAt = timestamp;
-            this.domainEvents.add(new BargeInDetected(this.callId, this.state, timestamp));
+            this.domainEvents.add(new BargeInDetected(this.callId, stateAtBargeIn, timestamp));
+
+            if (stateAtBargeIn instanceof CallSessionState.Greeting) {
+                transitionTo(new CallSessionState.CollectingPassengerDetails(1), timestamp);
+            }
         }
     }
 
@@ -295,6 +325,12 @@ public class ConversationSession {
     public CallSessionState state() {
         synchronized (lock) {
             return this.state;
+        }
+    }
+
+    public TurnPhase turnPhase() {
+        synchronized (lock) {
+            return this.turnPhase;
         }
     }
 

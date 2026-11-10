@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.voicepulse.conversation.domain.event.BargeInDetected;
+import com.voicepulse.conversation.domain.event.CallStateTransitioned;
 import com.voicepulse.conversation.domain.event.ConversationDomainEvent;
 import com.voicepulse.conversation.domain.event.TurnCompleted;
 import com.voicepulse.conversation.domain.exception.IllegalConversationStateException;
 import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
+import com.voicepulse.conversation.domain.vad.TurnPhase;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.DisruptionReason;
 import com.voicepulse.shared.model.RebookingPreference;
@@ -237,38 +239,79 @@ class ConversationSessionTest {
     class BargeInAndTurnTests {
 
         @Test
-        @DisplayName("recording barge-in stages BargeInDetected event")
+        @DisplayName(
+                "recording barge-in stages BargeInDetected event, resets bot turn, and transitions"
+                        + " to listening")
         void recordsBargeIn() {
             CallId callId = CallId.generate();
             Instant now = Instant.now();
             ConversationSession session = ConversationSession.start(callId, now);
 
             session.greet(now);
+            session.startBotTurn(now.plusMillis(100));
+            assertThat(session.turnPhase()).isEqualTo(TurnPhase.BOT_SPEAKING);
+
             Instant bargeInTime = now.plusMillis(300);
             session.recordBargeIn(bargeInTime);
 
+            assertThat(session.turnPhase()).isEqualTo(TurnPhase.LISTENING);
+            assertThat(session.state())
+                    .isInstanceOf(CallSessionState.CollectingPassengerDetails.class);
+
             List<ConversationDomainEvent> events = session.pollDomainEvents();
             assertThat(events)
-                    .hasSize(2) // 1 CallStateTransitioned + 1 BargeInDetected
+                    .hasSize(3) // 1 Connected->Greeting + 1 BargeInDetected + 1
+                    // Greeting->CollectingPassengerDetails
                     .anyMatch(
                             e ->
                                     e instanceof BargeInDetected bd
                                             && bd.callId().equals(callId)
                                             && bd.currentState()
                                                     instanceof CallSessionState.Greeting
-                                            && bd.occurredAt().equals(bargeInTime));
+                                            && bd.occurredAt().equals(bargeInTime))
+                    .anyMatch(
+                            e ->
+                                    e instanceof CallStateTransitioned cst
+                                            && cst.newState()
+                                                    instanceof
+                                                    CallSessionState.CollectingPassengerDetails);
         }
 
         @Test
-        @DisplayName("recording turn stages TurnCompleted event")
+        @DisplayName(
+                "barge-in during DisruptionTriage resets turnPhase to LISTENING while maintaining"
+                        + " triage state")
+        void bargeInDuringDisruptionTriage() {
+            CallId callId = CallId.generate();
+            Instant now = Instant.now();
+            ConversationSession session = ConversationSession.start(callId, now);
+
+            session.greet(now);
+            session.promptPassengerDetails(1);
+            session.awaitBookingConfirmation("A8F9X2", now.plusMillis(100));
+            session.confirmBooking("A8F9X2", "John Doe", "SW-104", now.plusMillis(200));
+
+            session.startBotTurn(now.plusMillis(300));
+            assertThat(session.turnPhase()).isEqualTo(TurnPhase.BOT_SPEAKING);
+
+            session.recordBargeIn(now.plusMillis(400));
+            assertThat(session.turnPhase()).isEqualTo(TurnPhase.LISTENING);
+            assertThat(session.state()).isInstanceOf(CallSessionState.DisruptionTriage.class);
+        }
+
+        @Test
+        @DisplayName("recording turn stages TurnCompleted event and resets turnPhase to LISTENING")
         void recordsTurn() {
             CallId callId = CallId.generate();
             Instant now = Instant.now();
             ConversationSession session = ConversationSession.start(callId, now);
 
             session.greet(now);
+            session.startBotTurn(now.plusMillis(100));
             Instant turnTime = now.plusMillis(500);
             session.recordTurn(turnTime);
+
+            assertThat(session.turnPhase()).isEqualTo(TurnPhase.LISTENING);
 
             List<ConversationDomainEvent> events = session.pollDomainEvents();
             assertThat(events)
@@ -405,6 +448,11 @@ class ConversationSessionTest {
                     .isInstanceOf(IllegalConversationStateException.class)
                     .hasMessageContaining(
                             "Cannot execute 'recordBargeIn' on terminated conversation session");
+
+            assertThatThrownBy(() -> session.startBotTurn(now))
+                    .isInstanceOf(IllegalConversationStateException.class)
+                    .hasMessageContaining(
+                            "Cannot execute 'startBotTurn' on terminated conversation session");
         }
     }
 }
