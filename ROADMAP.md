@@ -13,8 +13,8 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 | :--- | :--- | :--- | :---: | :--- |
 | **Epic 1** | **Engineering Foundation, Tooling, & Agentic Workflow Setup** | Multi-module Root, `.agents/` | **Completed** | [Issue #9](https://github.com/pedrazamiguez/voice-pulse/issues/9) • [Plan](docs/plans/epic-1-foundation-plan.md) |
 | **Epic 2** | **Ingestion Voice Gateway & Softphone Echo Loop** | `edge-gateway-service` | **Completed** | [Issue #20](https://github.com/pedrazamiguez/voice-pulse/issues/20) • [Plan](docs/plans/epic-2-gateway-plan.md) |
-| **Epic 3** | **High-Throughput Kafka Event Bus & In-Order Worker Pool** | `edge-gateway-service`, `conversation-engine` | **Active / In Progress** | [Issue #68](https://github.com/pedrazamiguez/voice-pulse/issues/68) • [Plan](docs/plans/epic-3-kafka-plan.md) |
-| **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | Planned | RFC-0001 §4.3 & RFC-0003 |
+| **Epic 3** | **High-Throughput Kafka Event Bus & In-Order Worker Pool** | `edge-gateway-service`, `conversation-engine` | **Completed** | [Issue #68](https://github.com/pedrazamiguez/voice-pulse/issues/68) • [Plan](docs/plans/epic-3-kafka-plan.md) |
+| **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | **Next / Planned** | RFC-0001 §4.3 & RFC-0003 |
 | **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `scripts/mcp` | Planned | RFC-0002 §6 & RFC-0003 |
 | **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, UI | Planned | RFC-0001 §4.4 |
 | **Epic 7** | **10,000 Concurrent Calls Load Testing & Hardening** | Platform-wide, Gatling, OTel | Planned | RFC-0002 §12 & §13 |
@@ -26,8 +26,8 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 ```mermaid
 flowchart LR
     E1["Epic 1<br/>Foundation & Tooling<br/>(Completed)"] --> E2["Epic 2<br/>Gateway & Echo Loop<br/>(Completed)"]
-    E2 --> E3["Epic 3<br/>Kafka Event Bus<br/>(Active)"]
-    E3 --> E4["Epic 4<br/>Conversation Core & VAD"]
+    E2 --> E3["Epic 3<br/>Kafka Event Bus<br/>(Completed)"]
+    E3 --> E4["Epic 4<br/>Conversation Core & VAD<br/>(Next)"]
     E4 --> E5["Epic 5<br/>MCP Tools & AI Triage"]
     E5 --> E6["Epic 6<br/>Routing & Operator Console"]
     E6 --> E7["Epic 7<br/>10k Calls Load Test"]
@@ -95,7 +95,7 @@ flowchart LR
 ### Epic 3: High-Throughput Kafka Event Bus & In-Order Worker Pool
 * **Tracking Issue:** [#68](https://github.com/pedrazamiguez/voice-pulse/issues/68)
 * **Master Plan:** [docs/plans/epic-3-kafka-plan.md](docs/plans/epic-3-kafka-plan.md)
-* **Status:** **Active / In Progress**
+* **Status:** **Completed**
 * **Governing Blueprint:** RFC-0001 §3 & §4.2; RFC-0002 §4
 * **Objective:** Transition from loopback echo to an asynchronous distributed event fabric using Apache Kafka KRaft.
 * **Key Deliverables:**
