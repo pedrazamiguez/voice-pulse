@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(conversation): implement deterministic mock LLM conversation engine and disruption ticket assembler ([#103](https://github.com/pedrazamiguez/voice-pulse/issues/103))
 - test(conversation): implement end-to-end conversational dialog and barge-in integration test with Testcontainers ([#104](https://github.com/pedrazamiguez/voice-pulse/issues/104))
 
+### Changed
+- Epic 4: Hexagonal Conversation Core, VAD & State Machine ([#105](https://github.com/pedrazamiguez/voice-pulse/issues/105))
+
 ## [0.4.0] - 2026-11-10
 ### Added
 - feat(kafka): define domain audio event envelopes, control schemas, and binary serializers ([#63](https://github.com/pedrazamiguez/voice-pulse/issues/63))
