@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(ai-workflow): introduce vp-manage-roadmap skill for project progress briefing, testing guidance, and roadmap governance ([#94](https://github.com/pedrazamiguez/voice-pulse/issues/94))
 - feat(conversation): implement pure domain CallSession state machine and sealed states ([#99](https://github.com/pedrazamiguez/voice-pulse/issues/99))
 - feat(conversation): implement real-time voice activity detection and trailing silence evaluator ([#100](https://github.com/pedrazamiguez/voice-pulse/issues/100))
+- feat(conversation): implement acoustic NATO phonetic PNR verifier and 25-word brevity guardrail ([#101](https://github.com/pedrazamiguez/voice-pulse/issues/101))
 
 ## [0.4.0] - 2026-11-10
 ### Added
