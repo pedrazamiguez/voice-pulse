@@ -29,3 +29,4 @@ voicepulse:
       consumer-group: conversation-engine-workers
       concurrency: 3
       auto-offset-reset: earliest
+      worker-pool-size: 8

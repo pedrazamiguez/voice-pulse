@@ -1,5 +1,6 @@
 package com.voicepulse.conversation.infrastructure.kafka.config;
 
+import com.voicepulse.conversation.infrastructure.kafka.worker.PinnedAudioWorkerPool;
 import com.voicepulse.shared.infrastructure.kafka.serializer.AudioChunkEnvelopeDeserializer;
 import java.util.HashMap;
 import java.util.Map;
@@ -114,5 +115,10 @@ public class ConversationKafkaConsumerConfiguration {
         factory.setCommonErrorHandler(kafkaCommonErrorHandler);
         factory.setConcurrency(conversationProperties.concurrency());
         return factory;
+    }
+
+    @Bean
+    public PinnedAudioWorkerPool pinnedAudioWorkerPool() {
+        return new PinnedAudioWorkerPool(conversationProperties.workerPoolSize());
     }
 }

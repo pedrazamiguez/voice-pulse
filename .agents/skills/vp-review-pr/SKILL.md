@@ -139,6 +139,10 @@ Auditors must enforce the following non-negotiable architectural rules:
    - Zero field injection (No `@Autowired` on fields; constructor injection only. Use Lombok `@RequiredArgsConstructor` with `@NonNull` on required fields in infrastructure classes; pure standard Java constructors in domain).
    - No wildcard imports (`import java.util.*;` is prohibited).
    - Structured SLF4J logging only (No `System.out.println()` or `System.err.println()`. Use Lombok `@Slf4j` on infrastructure classes; prohibit manual `LoggerFactory.getLogger` boilerplate).
+   - Zero property constants & fail-fast binding: `@ConfigurationProperties` records must not define fallback constants; compact constructors must validate and throw `IllegalArgumentException` on invalid values.
+   - Zero nested classes in production code: Every helper, state machine, tracker, or collaborator must reside in its own top-level `.java` file for isolated unit testability.
+   - Strict SRP & method sizing: Classes must not combine coordinator/registry duties with algorithmic state machines. Private methods must not exceed trivial helper complexity.
+   - Clean fallback beans: Use the GoF Null Object Pattern with `@Fallback` or `@ConditionalOnMissingBean` instead of anonymous lambdas inside `@Configuration`.
 
 ---
 
@@ -178,6 +182,9 @@ Brief description of the PR scope, linked issue (#<id>), and plan alignment stat
 - [x] File line counts (All files <= 600 lines)
 - [x] Dependency injection (Constructor injection only; @RequiredArgsConstructor in infrastructure)
 - [x] Structured SLF4J logging (Zero System.out; @Slf4j in infrastructure)
+- [x] Zero property constants & fail-fast configuration
+- [x] Zero production nested classes (Top-level classes only)
+- [x] Strict Single Responsibility Principle (SRP)
 
 ## 3. Findings
 
