@@ -6,3 +6,15 @@ spring:
     name: edge-gateway-service
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: com.voicepulse.shared.infrastructure.kafka.serializer.AudioChunkEnvelopeSerializer
+
+voicepulse:
+  gateway:
+    audio-publisher: kafka
+    kafka:
+      topic: telephony.calls.raw
+      send-timeout: 3s
+      buffer-memory: 33554432
+      max-block-timeout: 3s

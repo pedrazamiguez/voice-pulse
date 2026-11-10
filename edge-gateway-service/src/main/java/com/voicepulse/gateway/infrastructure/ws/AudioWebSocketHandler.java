@@ -8,20 +8,15 @@ import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallSessionId;
 import io.netty.util.ReferenceCountUtil;
-import java.net.URI;
 import java.time.Instant;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
@@ -36,48 +31,38 @@ import reactor.core.publisher.SignalType;
  * <p>Listens at {@code /ws/calls/{callId}/audio}, enforces DoS frame boundaries (&lt;= 64 KB),
  * releases Netty ByteBuf memory deterministically, and dispatches frames to domain use cases.
  */
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class AudioWebSocketHandler implements WebSocketHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(AudioWebSocketHandler.class);
-    private static final Pattern PATH_PATTERN = Pattern.compile("^/ws/calls/([^/]+)/audio/?$");
-
-    private final IngestAudioChunkUseCase ingestAudioChunkUseCase;
-    private final ManageCallSessionUseCase manageCallSessionUseCase;
-    private final ConcurrentSessionRegistry sessionRegistry;
-
-    public AudioWebSocketHandler(
-            IngestAudioChunkUseCase ingestAudioChunkUseCase,
-            ManageCallSessionUseCase manageCallSessionUseCase,
-            ConcurrentSessionRegistry sessionRegistry) {
-        this.ingestAudioChunkUseCase =
-                Objects.requireNonNull(
-                        ingestAudioChunkUseCase, "ingestAudioChunkUseCase cannot be null");
-        this.manageCallSessionUseCase =
-                Objects.requireNonNull(
-                        manageCallSessionUseCase, "manageCallSessionUseCase cannot be null");
-        this.sessionRegistry =
-                Objects.requireNonNull(sessionRegistry, "sessionRegistry cannot be null");
-    }
+    private final @NonNull IngestAudioChunkUseCase ingestAudioChunkUseCase;
+    private final @NonNull ManageCallSessionUseCase manageCallSessionUseCase;
+    private final @NonNull ConcurrentSessionRegistry sessionRegistry;
+    private final @NonNull WebSocketCallUriParser uriParser;
 
     @Override
     public Mono<Void> handle(WebSocketSession session) {
-        String callIdStr = extractCallId(session);
-        if (callIdStr == null) {
-            log.warn("WebSocket handshake rejected: invalid path {}", getPath(session));
-            return session.close(
-                    new CloseStatus(1002, "Invalid path: expected /ws/calls/{callId}/audio"));
-        }
+        WebSocketCallUriParser.ParseResult parseResult = uriParser.parse(session);
+        return switch (parseResult) {
+            case WebSocketCallUriParser.ParseResult.InvalidPath invalidPath -> {
+                log.warn("WebSocket handshake rejected: invalid path {}", invalidPath.path());
+                yield session.close(
+                        new CloseStatus(1002, "Invalid path: expected /ws/calls/{callId}/audio"));
+            }
+            case WebSocketCallUriParser.ParseResult.InvalidCallId invalidCallId -> {
+                log.warn(
+                        "WebSocket handshake rejected: malformed UUID callId {}",
+                        invalidCallId.rawCallId());
+                yield session.close(
+                        new CloseStatus(1007, "Invalid callId format: must be valid UUID"));
+            }
+            case WebSocketCallUriParser.ParseResult.Success success ->
+                    handleSession(session, success.sessionId());
+        };
+    }
 
-        CallSessionId sessionId;
-        try {
-            sessionId = CallSessionId.fromString(callIdStr);
-        } catch (IllegalArgumentException ex) {
-            log.warn("WebSocket handshake rejected: malformed UUID callId {}", callIdStr);
-            return session.close(
-                    new CloseStatus(1007, "Invalid callId format: must be valid UUID"));
-        }
-
+    private Mono<Void> handleSession(WebSocketSession session, CallSessionId sessionId) {
         try {
             if (manageCallSessionUseCase.getSession(sessionId).isEmpty()) {
                 manageCallSessionUseCase.startSession(sessionId);
@@ -196,40 +181,5 @@ public class AudioWebSocketHandler implements WebSocketHandler {
                     sessionId,
                     ex.getMessage());
         }
-    }
-
-    private String extractCallId(WebSocketSession session) {
-        String callId = extractFromAttributes(session.getAttributes());
-        if (callId != null) {
-            return callId;
-        }
-
-        callId = extractFromAttributes(session.getHandshakeInfo().getAttributes());
-        if (callId != null) {
-            return callId;
-        }
-
-        String path = getPath(session);
-        if (path != null) {
-            Matcher matcher = PATH_PATTERN.matcher(path);
-            if (matcher.matches()) {
-                return matcher.group(1);
-            }
-        }
-
-        return null;
-    }
-
-    private String extractFromAttributes(Map<String, Object> attributes) {
-        Object uriVars = attributes.get(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-        if (uriVars instanceof Map<?, ?> map && map.containsKey("callId")) {
-            return String.valueOf(map.get("callId"));
-        }
-        return null;
-    }
-
-    private String getPath(WebSocketSession session) {
-        URI uri = session.getHandshakeInfo().getUri();
-        return uri.getPath();
     }
 }

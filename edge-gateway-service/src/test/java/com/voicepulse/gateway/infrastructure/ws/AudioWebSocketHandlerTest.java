@@ -1,9 +1,11 @@
 package com.voicepulse.gateway.infrastructure.ws;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -20,6 +22,7 @@ import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallSessionId;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.util.ReferenceCountUtil;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -28,7 +31,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.web.reactive.socket.CloseStatus;
@@ -38,22 +44,29 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@ExtendWith(MockitoExtension.class)
+@DisplayName("AudioWebSocketHandler Netty WebSocket Streaming Tests")
 class AudioWebSocketHandlerTest {
 
-    private IngestAudioChunkUseCase ingestAudioChunkUseCase;
-    private ManageCallSessionUseCase manageCallSessionUseCase;
+    @Mock private IngestAudioChunkUseCase ingestAudioChunkUseCase;
+
+    @Mock private ManageCallSessionUseCase manageCallSessionUseCase;
+
     private ConcurrentSessionRegistry sessionRegistry;
+    private WebSocketCallUriParser uriParser;
     private AudioWebSocketHandler handler;
     private NettyDataBufferFactory bufferFactory;
 
     @BeforeEach
     void setUp() {
-        ingestAudioChunkUseCase = mock(IngestAudioChunkUseCase.class);
-        manageCallSessionUseCase = mock(ManageCallSessionUseCase.class);
         sessionRegistry = new ConcurrentSessionRegistry();
+        uriParser = new WebSocketCallUriParser();
         handler =
                 new AudioWebSocketHandler(
-                        ingestAudioChunkUseCase, manageCallSessionUseCase, sessionRegistry);
+                        ingestAudioChunkUseCase,
+                        manageCallSessionUseCase,
+                        sessionRegistry,
+                        uriParser);
         bufferFactory = new NettyDataBufferFactory(PooledByteBufAllocator.DEFAULT);
     }
 
@@ -61,11 +74,12 @@ class AudioWebSocketHandlerTest {
         WebSocketSession session = mock(WebSocketSession.class);
         HandshakeInfo handshakeInfo = mock(HandshakeInfo.class);
 
-        when(session.getHandshakeInfo()).thenReturn(handshakeInfo);
-        when(handshakeInfo.getUri()).thenReturn(URI.create("ws://localhost:8080" + path));
-        when(session.getAttributes()).thenReturn(Collections.emptyMap());
-        when(handshakeInfo.getAttributes()).thenReturn(Collections.emptyMap());
-        when(session.receive())
+        lenient().when(session.getHandshakeInfo()).thenReturn(handshakeInfo);
+        lenient().when(handshakeInfo.getUri()).thenReturn(URI.create("ws://localhost:8080" + path));
+        lenient().when(session.getAttributes()).thenReturn(Collections.emptyMap());
+        lenient().when(handshakeInfo.getAttributes()).thenReturn(Collections.emptyMap());
+        lenient()
+                .when(session.receive())
                 .thenReturn(
                         messageFlux.concatMap(
                                 msg ->
@@ -75,14 +89,12 @@ class AudioWebSocketHandlerTest {
                                                             if (msg.getPayload()
                                                                     instanceof
                                                                     NettyDataBuffer nettyBuf) {
-                                                                io.netty.util.ReferenceCountUtil
-                                                                        .release(
-                                                                                nettyBuf
-                                                                                        .getNativeBuffer());
+                                                                ReferenceCountUtil.release(
+                                                                        nettyBuf.getNativeBuffer());
                                                             }
                                                         })));
-        when(session.close(any(CloseStatus.class))).thenReturn(Mono.empty());
-        when(session.send(any())).thenReturn(Mono.empty());
+        lenient().when(session.close(any(CloseStatus.class))).thenReturn(Mono.empty());
+        lenient().when(session.send(any())).thenReturn(Mono.empty());
 
         return session;
     }
@@ -288,5 +300,36 @@ class AudioWebSocketHandlerTest {
         // After completion, session should be unregistered cleanly
         assertThat(sessionRegistry.hasWebSocketSession(sessionId)).isFalse();
         assertThat(sessionRegistry.activeWebSocketSessionCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("Null constructor arguments throw NullPointerException")
+    void nullConstructorArguments_throwNullPointerException() {
+        assertThatThrownBy(
+                        () ->
+                                new AudioWebSocketHandler(
+                                        null, manageCallSessionUseCase, sessionRegistry, uriParser))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(
+                        () ->
+                                new AudioWebSocketHandler(
+                                        ingestAudioChunkUseCase, null, sessionRegistry, uriParser))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(
+                        () ->
+                                new AudioWebSocketHandler(
+                                        ingestAudioChunkUseCase,
+                                        manageCallSessionUseCase,
+                                        null,
+                                        uriParser))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(
+                        () ->
+                                new AudioWebSocketHandler(
+                                        ingestAudioChunkUseCase,
+                                        manageCallSessionUseCase,
+                                        sessionRegistry,
+                                        null))
+                .isInstanceOf(NullPointerException.class);
     }
 }

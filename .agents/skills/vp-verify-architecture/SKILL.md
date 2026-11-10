@@ -21,7 +21,7 @@ Run the ArchUnit test suite to assert domain purity, port definitions, and forbi
 ```
 
 * **Expected Result:** Build SUCCESS.
-* **Failure Remediation:** If a domain class imports Spring, Netty, Kafka, or Jackson, remove the import immediately and relocate transport logic into an infrastructure adapter.
+* **Failure Remediation:** If a domain class imports Spring, Netty, Kafka, Jackson, or Lombok, remove the import immediately and relocate transport logic into an infrastructure adapter.
 
 ---
 
@@ -37,8 +37,8 @@ find . -type f -name "*.java" ! -path "*/test/*" ! -path "*/target/*" ! -path "*
 
 ---
 
-## 3. Formatting & Static Analysis
-Check code style and compiler warnings:
+## 3. Formatting, Static Analysis & Lombok Hygiene
+Check code style, Lombok annotations, and compiler warnings:
 
 ```bash
 # Check Spotless formatting
@@ -51,6 +51,8 @@ Check code style and compiler warnings:
 ./mvnw compile spotbugs:check
 ```
 
+* **Lombok Hygiene Check:** Verify infrastructure classes and configuration classes use `@Slf4j` and `@RequiredArgsConstructor` (with `@NonNull` for required fields), and zero manual `LoggerFactory.getLogger` calls remain. Verify zero Lombok imports exist in `domain..` packages.
+
 ---
 
 ## 4. Netty Direct Memory Leak Audit
@@ -61,3 +63,11 @@ Verify that Netty direct memory buffers are properly released across reactive te
 ```
 
 * **Pass Criteria:** No `LEAK: ByteBuf.release() was not called` in test logs.
+
+---
+
+## 5. Clean Architecture Guardrails Audit
+Audit code for anti-patterns before opening a PR:
+1. **Zero Property Constants & Fail-Fast:** Verify `@ConfigurationProperties` records do not define redundant fallback constants (e.g. `DEFAULT_...`) and throw `IllegalArgumentException` on invalid values.
+2. **Zero Production Nested Classes:** Verify all helper classes, state trackers, and collaborators reside in dedicated top-level `.java` files for isolated unit testability.
+3. **Strict SRP & Method Sizing:** Verify classes do not combine registry coordination with algorithmic state machines, and private methods do not exceed trivial helper complexity.

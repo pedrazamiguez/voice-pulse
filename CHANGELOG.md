@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-10
+### Added
+- feat(kafka): define domain audio event envelopes, control schemas, and binary serializers ([#63](https://github.com/pedrazamiguez/voice-pulse/issues/63))
+- feat(tooling): overhaul vp-start-issue definition of done with automated PR creation and CI verification gate ([#74](https://github.com/pedrazamiguez/voice-pulse/issues/74))
+- feat(arch): standardize object mapping with MapStruct and establish agent directives ([#73](https://github.com/pedrazamiguez/voice-pulse/issues/73))
+- feat(tooling): establish testing standards with Instancio, Mockito, Awaitability, and enforce import hygiene ([#77](https://github.com/pedrazamiguez/voice-pulse/issues/77))
+- feat(gateway): implement reactive KafkaAudioFramePublisher adapter with partition key mandate ([#64](https://github.com/pedrazamiguez/voice-pulse/issues/64))
+- feat(infra): provision Kafka KRaft streaming topics, dead-letter queue, and reactive backpressure ([#65](https://github.com/pedrazamiguez/voice-pulse/issues/65))
+- feat(conversation): implement in-order sequential Kafka worker pool and monotonic sequence verifier ([#66](https://github.com/pedrazamiguez/voice-pulse/issues/66))
+- test(kafka): implement end-to-end multi-module Kafka streaming integration test with Testcontainers ([#67](https://github.com/pedrazamiguez/voice-pulse/issues/67))
+
+### Changed
+- refactor(tooling): introduce Lombok for infrastructure logging and constructor injection with domain purity guardrails ([#59](https://github.com/pedrazamiguez/voice-pulse/issues/59))
+- refactor(gateway): decompose LoopbackAudioEchoAdapter and extract dedicated telemetry tracker and URI parser ([#85](https://github.com/pedrazamiguez/voice-pulse/issues/85))
+- Epic 3: High-Throughput Kafka Event Bus & In-Order Worker Pool ([#68](https://github.com/pedrazamiguez/voice-pulse/issues/68))
+
+### Fixed
+- fix(ci): resolve webhook race condition and unhandled 422 errors in branch provisioning workflow ([#87](https://github.com/pedrazamiguez/voice-pulse/issues/87))
+
+### Tooling & Infrastructure
+- ci(tooling): automate dependency updates with versions-maven-plugin and weekly PR workflow ([#78](https://github.com/pedrazamiguez/voice-pulse/issues/78))
+
 ## [0.3.0] - 2026-11-08
 ### Added
 - feat(gateway): define domain models, audio frame records, and hexagonal ports ([#23](https://github.com/pedrazamiguez/voice-pulse/issues/23))

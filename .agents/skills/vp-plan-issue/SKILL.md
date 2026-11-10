@@ -66,6 +66,10 @@ Use explicit action markers:
 * [ ] Kafka messages partitioned strictly by `callId`.
 * [ ] All files projected to stay under 600 lines.
 * [ ] No `@Autowired` field injection.
+* [ ] Zero property constants: `@ConfigurationProperties` use `@DefaultValue` and compact constructors fail fast.
+* [ ] Zero production nested classes: All state trackers, state machines, and helpers planned as top-level `.java` files.
+* [ ] Strict Single Responsibility Principle (SRP): Registry coordinators separated from algorithmic workers.
+* [ ] Fallback beans use Null Object Pattern with `@Fallback` / `@ConditionalOnMissingBean` (no config lambdas).
 
 ---
 

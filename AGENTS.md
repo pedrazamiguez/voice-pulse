@@ -17,6 +17,8 @@ VoicePulse enforces a strict separation between domain business logic, applicati
     - `org.apache.kafka.*` (No Kafka producers, consumers, or record metadata)
     - `jakarta.persistence.*` / `javax.persistence.*` (No JPA `@Entity`, `@Table`, `@Id`)
     - `com.fasterxml.jackson.*` (Domain models must not contain JSON serialization annotations)
+    - `lombok.*` (No `@Data`, `@Getter`, `@Setter`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@NoArgsConstructor`, `@Builder`, `@Slf4j`)
+    - `org.mapstruct.*` (No `@Mapper`, `@Mapping`; mappers belong strictly in `infrastructure.<adapter>.mapper`)
   - ✅ **Permitted in Domain:**
     - Standard Java 21 standard library (`java.time.*`, `java.util.*`, `java.math.*`).
     - Pure domain records (`record CallSessionId(...)`, `record AudioChunk(...)`).
@@ -107,14 +109,32 @@ When generating domain logic, prompts, or tests for the **SkyWay Airlines Intern
 ## 5. Code Quality, File Limits, & Formatting
 
 * **600-Line File Limit:** Production Java source files MUST NOT exceed **600 lines of code**. If a class approaches 500 lines, extract cohesive collaborators (strategy classes, validators, pipeline handlers) before adding new logic.
-* **Zero Field Injection:** Prohibit `@Autowired` on class fields. All dependencies MUST be injected via constructor injection (using standard Java constructors or Lombok `@RequiredArgsConstructor` where permitted).
-* **No Wildcard Imports:** Explicit class imports only (e.g., `import java.util.List;`, NEVER `import java.util.*;`).
-* **Structured Logging Only:** **NEVER** use `System.out.println()` or `System.err.println()`. Use SLF4J with structured key-value logging:
+* **Zero Field Injection:** Prohibit `@Autowired` on class fields. All dependencies MUST be injected via constructor injection. In infrastructure adapters, configurations, and application services, use Lombok `@RequiredArgsConstructor` (with `@NonNull` for required fields) to eliminate constructor boilerplate. In `domain..` classes, use standard Java constructors with explicit validation (`Objects.requireNonNull`). Lombok is strictly prohibited in domain classes.
+* **Import Hygiene & Zero Inline FQNs:** Explicit class imports only (e.g., `import java.util.List;`, NEVER wildcard `import java.util.*;`). Inline fully qualified class names (e.g., `java.util.UUID.randomUUID()`, `java.time.Instant.now()`) are strictly forbidden across both production (`src/main/java`) and test (`src/test/java`) source code. All types must be cleanly imported at the top of the file. Enforced by ArchUnit.
+* **Structured Logging Only:** **NEVER** use `System.out.println()` or `System.err.println()`. Use SLF4J with structured key-value logging. Prohibit manual `private static final Logger log = LoggerFactory.getLogger(...)` declarations in infrastructure and application classes; use Lombok `@Slf4j` instead. Domain classes must remain pure and do not log directly:
   ```java
   log.info("Audio frame ingested", kv("callId", callId), kv("seq", sequenceNumber), kv("bytes", frameSize));
   ```
+* **Fail-Fast Configuration Properties & Zero Constant Duplication:** Configuration properties records (`@ConfigurationProperties`) MUST NEVER define duplicate `public static final` constant fields for property defaults or fallbacks (e.g. `DEFAULT_WORKER_POOL_SIZE = 8`). Default values belong exclusively in `@DefaultValue("...")` annotations or explicit YAML profiles. Furthermore, properties classes MUST NOT silently swallow invalid configuration values (e.g. `<= 0`, blank strings) by falling back to hardcoded defaults; compact constructors MUST validate values and throw `IllegalArgumentException` immediately on application bootstrap (fail-fast principle).
+* **Zero Nested Classes (Top-Level Classes Only):** Nested classes (whether `static` or non-static `class` / `inner class`) within production classes are strictly forbidden (with the sole exception of Java 21 `record` permits nested inside a `sealed interface`). Every helper, state machine, tracker, or collaborator class MUST reside in its own dedicated, top-level `.java` file with package-private or public visibility. This guarantees 100% isolated unit testability without reflection, eliminates bidirectional coupling, and enforces clean separation of concerns.
+* **Single Responsibility Principle (SRP) & Zero Bloated Private Methods:** Every class MUST have one, and only one, reason to change. Never conflate registry/cache management, global telemetry aggregation, and per-entity state transition algorithms in a single class. Split coordinators from algorithmic workers. Classes must not contain bloated private methods encapsulating complex algorithmic, validation, or business logic. If private logic exceeds trivial helper tasks (> 15-20 lines or non-trivial branching), it MUST be extracted into a dedicated, cohesive collaborator service or component with its own isolated unit tests.
+* **Clean Fallback Beans (Null Object Pattern):** When providing fallback or no-op implementations for domain port interfaces (e.g. prior to wiring full conversational orchestrators), NEVER return anonymous lambdas inside `@Configuration` classes. Instead, implement a formal top-level class using the GoF Null Object Pattern, placed in `infrastructure.<adapter>..` or `infrastructure.fallback..`, annotated with Spring's `@Fallback` (or `@ConditionalOnMissingBean`) and `@Component`.
 * **Deterministic Build Tooling:** All builds, tests, and plugin executions MUST use the Maven Wrapper (`./mvnw` or `$(MVN)`) or unified Makefile targets. Never invoke ambient system `mvn` directly.
 * **Formatting:** All Java code must format cleanly with Google Java Format (AOSP style, 4-space indent) via `./mvnw spotless:apply` (or `make format`).
+
+### Testing Standards & Tooling
+* **Instancio Fixtures for State & Payload Generation:** Tests MUST use Instancio (`org.instancio.Instancio`) to create domain models, event envelopes, and DTO fixtures rather than error-prone manual multi-argument constructors or copy-pasted test data. Custom generator specs must be used for domain-constrained fields (e.g. 6-character alphanumeric PNRs).
+* **Idiomatic Mockito for Ports & Adapters:** Unit tests for ports, adapters, and domain services MUST use Mockito with the JUnit Jupiter extension (`@ExtendWith(MockitoExtension.class)`), `@Mock`, `@InjectMocks`, and `@Captor ArgumentCaptor<T>` with strict stub verification. Never maintain handwritten ad-hoc test doubles.
+* **Awaitility for Asynchronous Verification:** Asynchronous, reactive, or concurrent state transitions, queue consumption, and registry lookups MUST use Awaitility (`await().atMost(...).untilAsserted(...)`) rather than `Thread.sleep()` or fragile countdown latches.
+* **WireMock for HTTP/REST Integration:** External HTTP/REST integrations and downstream service clients must be verified using WireMock with explicit request matching and deterministic response stubbing.
+
+### Object Mapping & Data Transformation Standards
+* **Mandatory MapStruct for Structural/Wide DTOs:** When transforming data between infrastructure transport payloads (e.g., MCP JSON DTOs, REST DTOs, persistence entities) and pure domain models or records, use formal MapStruct interfaces residing strictly in `infrastructure.<adapter>.mapper`.
+* **Compile-Time Safety & Error Policy:** All mappers must enforce `unmappedTargetPolicy = ReportingPolicy.ERROR` (configured globally via `-Amapstruct.unmappedTargetPolicy=ERROR` and on `@Mapper`) so missing or unmapped target fields fail the build at compile time.
+* **Prohibition of Inline `new ObjectMapper()` & Reflection Mapping:** Never instantiate `new ObjectMapper()` inside methods or use runtime reflection (`objectMapper.convertValue(...)`) for object transformation. In real-time telephony pipelines, dynamic reflection induces garbage collection churn and latency spikes.
+* **Pattern Matching for Polymorphic Sealed Hierarchies:** Use MapStruct for structural/wide DTO transformations; leverage Java 21 exhaustive pattern matching (`switch`) for sealed event hierarchies (e.g., `CallControlEnvelope`).
+* **Constructor Injection of Mappers:** Generated MapStruct Spring beans (`componentModel = "spring"`) must be injected into adapters via constructor injection (`@RequiredArgsConstructor` with `@NonNull`).
+* **Preserve Domain Core Purity:** MapStruct annotations (`@Mapper`, `@Mapping`) and generated mappers belong strictly in `infrastructure.<adapter>.mapper`, never in `domain..`.
 
 ---
 
@@ -123,8 +143,8 @@ When generating domain logic, prompts, or tests for the **SkyWay Airlines Intern
 All issues and feature additions must follow the SDD workflow:
 0. **Create Issue (If New):** Invoke `.agents/skills/vp-create-issue/SKILL.md` to convert ideas, bug reports, or screenshots into structured GitHub issues with human approval.
 1. **Plan First:** Invoke `.agents/skills/vp-plan-issue/SKILL.md` to produce an approved architecture change contract before creating or editing code files.
-2. **Execute with TDD:** Invoke `.agents/skills/vp-start-issue/SKILL.md` to implement domain unit tests first, followed by ports, and finally infrastructure adapters.
-3. **Verify Locally:** Invoke `.agents/skills/vp-verify-architecture/SKILL.md` to run ArchUnit tests and audit file line counts before opening a Pull Request.
+2. **Execute with TDD & Verify CI (Definition of Done):** Invoke `.agents/skills/vp-start-issue/SKILL.md` to implement domain unit tests first, followed by ports, and finally infrastructure adapters. The implementation task is ONLY considered done when the dedicated branch is pushed, the Pull Request targeting `develop` is autonomously opened, and all remote GitHub Actions CI status checks pass (`✓`).
+3. **Verify Locally (Pre-PR Gate):** Invoke `.agents/skills/vp-verify-architecture/SKILL.md` or `make pre-pr` to run ArchUnit tests, 600-line audit, Spotless, and SpotBugs compiler audits before pushing.
 4. **Review PR:** Invoke `.agents/skills/vp-review-pr/SKILL.md` to audit PR diffs against approved issue plans, CI status checks, and architectural invariants before merging.
 5. **Address Review Feedback:** Invoke `.agents/skills/vp-address-pr-comments/SKILL.md` to resolve PR review comments and CI feedback.
 
@@ -163,5 +183,14 @@ Every agent and human contributor MUST adhere to these strict operational constr
 * Always refer to phases descriptively (e.g. `Phase 1: Domain Models & Ports`) or use the true GitHub-generated `#<id>` once created.
 
 ### Human Approval Gate for GitHub Mutations
-* ❌ **NEVER execute `gh issue create`, `gh pr merge`, or repository state mutations autonomously.**
-* Always present the complete drafted specification (Title, Labels, Epic association, and Markdown Body) in chat and wait for explicit human approval before running creation commands.
+To maximize agentic velocity while ensuring strict human governance over repository state and code merges:
+* ✅ **Autonomous Agent Operations (Permitted without approval prompts):**
+  - Creating and switching to dedicated task branches (`feature/*`, `bugfix/*`, `internal/*`).
+  - Committing and pushing to the dedicated remote task branch.
+  - Autonomously opening Pull Requests targeting `develop` via `gh pr create` upon completing local quality verification (`make pre-pr`).
+  - Polling and self-healing remote CI checks until 100% green (`✓`).
+* ❌ **Human-Gated Operations (Strict Developer Approval Required):**
+  - **NEVER** execute `gh issue create` autonomously without presenting the complete drafted specification and receiving explicit human confirmation.
+  - **NEVER** execute `gh pr review --approve` or `gh pr review --request-changes` autonomously without human review confirmation.
+  - **NEVER** execute `gh pr merge` autonomously. Code merges are strictly human privileges.
+  - **NEVER** commit or push directly to protected branches (`main`, `develop`).

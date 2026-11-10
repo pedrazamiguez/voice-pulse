@@ -2,6 +2,7 @@ package com.voicepulse.gateway.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 
 import com.voicepulse.gateway.domain.exception.IllegalSessionStateException;
 import com.voicepulse.gateway.domain.exception.InvalidAudioFrameException;
@@ -9,13 +10,29 @@ import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallSessionId;
 import java.time.Instant;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@DisplayName("CallSession Aggregate Domain Tests")
 class CallSessionTest {
 
     private final CallSessionId sessionId = CallSessionId.generate();
     private final Instant startTime = Instant.parse("2026-11-08T10:00:00Z");
+
+    private AudioChunk createChunk(CallSessionId id, long seq, Instant time) {
+        return Instancio.of(AudioChunk.class)
+                .set(field(AudioChunk::sessionId), id)
+                .set(field(AudioChunk::sequenceNumber), seq)
+                .set(field(AudioChunk::timestamp), time)
+                .set(field(AudioChunk::pcmData), new byte[640])
+                .set(field(AudioChunk::format), AudioFormat.PCM_16KHZ_MONO)
+                .create();
+    }
+
+    private AudioChunk createChunk(long seq, Instant time) {
+        return createChunk(sessionId, seq, time);
+    }
 
     @Test
     @DisplayName("start creates session in Connected state with initial sequence -1")
@@ -37,8 +54,7 @@ class CallSessionTest {
     void firstChunkTransitionsToStreaming() {
         CallSession session = CallSession.start(sessionId, startTime);
         Instant chunkTime = startTime.plusMillis(20);
-        AudioChunk chunk =
-                new AudioChunk(sessionId, 0L, chunkTime, new byte[640], AudioFormat.PCM_16KHZ_MONO);
+        AudioChunk chunk = createChunk(0L, chunkTime);
 
         session.acceptChunk(chunk);
 
@@ -56,27 +72,9 @@ class CallSessionTest {
     void subsequentChunksIncrementFrames() {
         CallSession session = CallSession.start(sessionId, startTime);
 
-        session.acceptChunk(
-                new AudioChunk(
-                        sessionId,
-                        0L,
-                        startTime.plusMillis(20),
-                        new byte[640],
-                        AudioFormat.PCM_16KHZ_MONO));
-        session.acceptChunk(
-                new AudioChunk(
-                        sessionId,
-                        1L,
-                        startTime.plusMillis(40),
-                        new byte[640],
-                        AudioFormat.PCM_16KHZ_MONO));
-        session.acceptChunk(
-                new AudioChunk(
-                        sessionId,
-                        2L,
-                        startTime.plusMillis(60),
-                        new byte[640],
-                        AudioFormat.PCM_16KHZ_MONO));
+        session.acceptChunk(createChunk(0L, startTime.plusMillis(20)));
+        session.acceptChunk(createChunk(1L, startTime.plusMillis(40)));
+        session.acceptChunk(createChunk(2L, startTime.plusMillis(60)));
 
         assertThat(session.lastSequenceNumber()).isEqualTo(2L);
         assertThat(session.state()).isInstanceOf(CallSessionState.Streaming.class);
@@ -89,34 +87,16 @@ class CallSessionTest {
     @DisplayName("rejects out-of-order or duplicate sequence numbers")
     void outOfOrderChunkThrows() {
         CallSession session = CallSession.start(sessionId, startTime);
-        session.acceptChunk(
-                new AudioChunk(
-                        sessionId,
-                        5L,
-                        startTime.plusMillis(20),
-                        new byte[640],
-                        AudioFormat.PCM_16KHZ_MONO));
+        session.acceptChunk(createChunk(5L, startTime.plusMillis(20)));
 
         // Duplicate sequence number 5L
-        AudioChunk duplicateChunk =
-                new AudioChunk(
-                        sessionId,
-                        5L,
-                        startTime.plusMillis(40),
-                        new byte[640],
-                        AudioFormat.PCM_16KHZ_MONO);
+        AudioChunk duplicateChunk = createChunk(5L, startTime.plusMillis(40));
         assertThatThrownBy(() -> session.acceptChunk(duplicateChunk))
                 .isInstanceOf(InvalidAudioFrameException.class)
                 .hasMessageContaining("Out-of-order sequence number");
 
         // Regressive sequence number 4L
-        AudioChunk regressiveChunk =
-                new AudioChunk(
-                        sessionId,
-                        4L,
-                        startTime.plusMillis(60),
-                        new byte[640],
-                        AudioFormat.PCM_16KHZ_MONO);
+        AudioChunk regressiveChunk = createChunk(4L, startTime.plusMillis(60));
         assertThatThrownBy(() -> session.acceptChunk(regressiveChunk))
                 .isInstanceOf(InvalidAudioFrameException.class)
                 .hasMessageContaining("Out-of-order sequence number");
@@ -127,13 +107,7 @@ class CallSessionTest {
     void mismatchedSessionIdThrows() {
         CallSession session = CallSession.start(sessionId, startTime);
         CallSessionId otherId = CallSessionId.generate();
-        AudioChunk mismatchedChunk =
-                new AudioChunk(
-                        otherId,
-                        0L,
-                        startTime.plusMillis(20),
-                        new byte[640],
-                        AudioFormat.PCM_16KHZ_MONO);
+        AudioChunk mismatchedChunk = createChunk(otherId, 0L, startTime.plusMillis(20));
 
         assertThatThrownBy(() -> session.acceptChunk(mismatchedChunk))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -163,13 +137,7 @@ class CallSessionTest {
         CallSession session = CallSession.start(sessionId, startTime);
         session.terminate(DisconnectReason.CLIENT_HANGUP, startTime.plusSeconds(5));
 
-        AudioChunk chunkAfterDisconnect =
-                new AudioChunk(
-                        sessionId,
-                        0L,
-                        startTime.plusSeconds(6),
-                        new byte[640],
-                        AudioFormat.PCM_16KHZ_MONO);
+        AudioChunk chunkAfterDisconnect = createChunk(0L, startTime.plusSeconds(6));
 
         assertThatThrownBy(() -> session.acceptChunk(chunkAfterDisconnect))
                 .isInstanceOf(IllegalSessionStateException.class)

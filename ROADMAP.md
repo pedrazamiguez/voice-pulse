@@ -12,9 +12,9 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 | Epic | Title | Target Module(s) | Status | Tracking / Plan |
 | :--- | :--- | :--- | :---: | :--- |
 | **Epic 1** | **Engineering Foundation, Tooling, & Agentic Workflow Setup** | Multi-module Root, `.agents/` | **Completed** | [Issue #9](https://github.com/pedrazamiguez/voice-pulse/issues/9) • [Plan](docs/plans/epic-1-foundation-plan.md) |
-| **Epic 2** | **Ingestion Voice Gateway & Softphone Echo Loop** | `edge-gateway-service` | **In Progress** | [Issue #20](https://github.com/pedrazamiguez/voice-pulse/issues/20) • [Plan](docs/plans/epic-2-gateway-plan.md) |
-| **Epic 3** | **High-Throughput Kafka Event Bus & In-Order Worker Pool** | `edge-gateway-service`, `conversation-engine` | Planned | RFC-0001 §3 & §4.2 |
-| **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | Planned | RFC-0001 §4.3 & RFC-0003 |
+| **Epic 2** | **Ingestion Voice Gateway & Softphone Echo Loop** | `edge-gateway-service` | **Completed** | [Issue #20](https://github.com/pedrazamiguez/voice-pulse/issues/20) • [Plan](docs/plans/epic-2-gateway-plan.md) |
+| **Epic 3** | **High-Throughput Kafka Event Bus & In-Order Worker Pool** | `edge-gateway-service`, `conversation-engine` | **Completed** | [Issue #68](https://github.com/pedrazamiguez/voice-pulse/issues/68) • [Plan](docs/plans/epic-3-kafka-plan.md) |
+| **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | **Next / Planned** | RFC-0001 §4.3 & RFC-0003 |
 | **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `scripts/mcp` | Planned | RFC-0002 §6 & RFC-0003 |
 | **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, UI | Planned | RFC-0001 §4.4 |
 | **Epic 7** | **10,000 Concurrent Calls Load Testing & Hardening** | Platform-wide, Gatling, OTel | Planned | RFC-0002 §12 & §13 |
@@ -25,9 +25,9 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 
 ```mermaid
 flowchart LR
-    E1["Epic 1<br/>Foundation & Tooling<br/>(Completed)"] --> E2["Epic 2<br/>Gateway & Echo Loop<br/>(In Progress)"]
-    E2 --> E3["Epic 3<br/>Kafka Event Bus"]
-    E3 --> E4["Epic 4<br/>Conversation Core & VAD"]
+    E1["Epic 1<br/>Foundation & Tooling<br/>(Completed)"] --> E2["Epic 2<br/>Gateway & Echo Loop<br/>(Completed)"]
+    E2 --> E3["Epic 3<br/>Kafka Event Bus<br/>(Completed)"]
+    E3 --> E4["Epic 4<br/>Conversation Core & VAD<br/>(Next)"]
     E4 --> E5["Epic 5<br/>MCP Tools & AI Triage"]
     E5 --> E6["Epic 6<br/>Routing & Operator Console"]
     E6 --> E7["Epic 7<br/>10k Calls Load Test"]
@@ -63,7 +63,7 @@ flowchart LR
 ### Epic 2: Ingestion Voice Gateway & Softphone Echo Loop
 * **Tracking Issue:** [#20](https://github.com/pedrazamiguez/voice-pulse/issues/20)
 * **Master Plan:** [docs/plans/epic-2-gateway-plan.md](docs/plans/epic-2-gateway-plan.md)
-* **Status:** **In Progress / Active**
+* **Status:** **Completed**
 * **Objective:** Deliver a functional, end-to-end, zero-PSTN audio loop featuring a reactive Netty WebFlux WebSocket edge gateway, paranoid `ByteBuf` reference counting safety, pure domain audio models, an embedded HTML5 `AudioWorklet` softphone client, and sub-100ms echo loopback verification.
 
 #### Execution Phases:
@@ -93,14 +93,18 @@ flowchart LR
 ---
 
 ### Epic 3: High-Throughput Kafka Event Bus & In-Order Worker Pool
-* **Status:** **Planned**
+* **Tracking Issue:** [#68](https://github.com/pedrazamiguez/voice-pulse/issues/68)
+* **Master Plan:** [docs/plans/epic-3-kafka-plan.md](docs/plans/epic-3-kafka-plan.md)
+* **Status:** **Completed**
 * **Governing Blueprint:** RFC-0001 §3 & §4.2; RFC-0002 §4
 * **Objective:** Transition from loopback echo to an asynchronous distributed event fabric using Apache Kafka KRaft.
 * **Key Deliverables:**
-  - `AudioChunkKafkaProducer` secondary adapter publishing to `telephony.calls.raw`.
+  - `AudioChunkEnvelope` and zero-allocation binary serialization in `shared-kernel`.
+  - `KafkaAudioFramePublisher` secondary adapter in `edge-gateway-service` streaming to `telephony.calls.raw`.
   - Partitioning mandate: Every audio and control event strictly keyed by `callId.toString()`.
-  - Sequential, pinned worker pool consumer preserving monotonic sequence numbers per call.
-  - Backpressure handling and consumer lag monitoring.
+  - Sequential, pinned worker pool consumer in `conversation-engine` preserving monotonic sequence numbers per call.
+  - Reactive backpressure handling, dead-letter queue (`telephony.calls.dlq`), and consumer lag monitoring.
+  - Multi-module Testcontainers integration test validating 5,000 frames under continuous streaming.
 
 ---
 

@@ -79,6 +79,98 @@ test('calculateBranchMetadata — issue branching simulation', async (t) => {
 
     assert.equal(meta.shouldCreate, false);
   });
+
+  await t.test('prioritizes bug over ci-cd and tooling when labelNames contains multiple labels (Issue #87 scenario)', () => {
+    const meta = calculateBranchMetadata({
+      labelNames: ['ci-cd', 'tooling', 'bug'],
+      issueNumber: 87,
+      rawTitle: 'fix(ci): resolve webhook race condition and unhandled 422 errors in branch provisioning workflow'
+    });
+
+    assert.equal(meta.shouldCreate, true);
+    assert.equal(meta.baseBranch, 'develop');
+    assert.equal(meta.branchName, 'bugfix/VP-87-resolve-webhook-race-condition');
+    assert.equal(meta.isRelease, false);
+  });
+
+  await t.test('prioritizes release over bug when both are present in labelNames', () => {
+    const meta = calculateBranchMetadata({
+      labelNames: ['bug', 'release'],
+      issueNumber: 88,
+      rawTitle: 'feat(release): VoicePulse 0.5.0 production release'
+    });
+
+    assert.equal(meta.shouldCreate, true);
+    assert.equal(meta.baseBranch, 'develop');
+    assert.equal(meta.branchName, 'release/VP-88-voicepulse-0-5-0-production-re');
+    assert.equal(meta.isRelease, true);
+  });
+
+  await t.test('prioritizes hotfix over bug when both are present in labelNames', () => {
+    const meta = calculateBranchMetadata({
+      labelNames: ['hotfix', 'bug'],
+      issueNumber: 89,
+      rawTitle: 'fix(gateway): critical leak in production'
+    });
+
+    assert.equal(meta.shouldCreate, true);
+    assert.equal(meta.baseBranch, 'main');
+    assert.equal(meta.branchName, 'hotfix/VP-89-critical-leak-in-production');
+    assert.equal(meta.isRelease, false);
+  });
+
+  await t.test('prioritizes refactor over feature labels in labelNames', () => {
+    const meta = calculateBranchMetadata({
+      labelNames: ['enhancement', 'refactor'],
+      issueNumber: 90,
+      rawTitle: 'refactor(core): decouple state transition logic'
+    });
+
+    assert.equal(meta.shouldCreate, true);
+    assert.equal(meta.baseBranch, 'develop');
+    assert.equal(meta.branchName, 'refactor/VP-90-decouple-state-transition-logi');
+    assert.equal(meta.isRelease, false);
+  });
+
+  await t.test('prioritizes internal over feature labels in labelNames', () => {
+    const meta = calculateBranchMetadata({
+      labelNames: ['tooling', 'internal'],
+      issueNumber: 91,
+      rawTitle: 'chore(ci): update cache action to v4'
+    });
+
+    assert.equal(meta.shouldCreate, true);
+    assert.equal(meta.baseBranch, 'develop');
+    assert.equal(meta.branchName, 'internal/VP-91-update-cache-action-to-v4');
+    assert.equal(meta.isRelease, false);
+  });
+
+  await t.test('resolves feature branch when only secondary labels are present in labelNames', () => {
+    const meta = calculateBranchMetadata({
+      labelNames: ['tooling', 'ci-cd'],
+      issueNumber: 92,
+      rawTitle: 'ci(workflows): add status monitoring script'
+    });
+
+    assert.equal(meta.shouldCreate, true);
+    assert.equal(meta.baseBranch, 'develop');
+    assert.equal(meta.branchName, 'feature/VP-92-add-status-monitoring-script');
+    assert.equal(meta.isRelease, false);
+  });
+
+  await t.test('handles label objects with .name property and combines with labelName', () => {
+    const meta = calculateBranchMetadata({
+      labelName: 'ci-cd',
+      labelNames: [{ name: 'tooling' }, { name: 'bug' }],
+      issueNumber: 93,
+      rawTitle: 'fix(ci): idempotent branch provisioning'
+    });
+
+    assert.equal(meta.shouldCreate, true);
+    assert.equal(meta.baseBranch, 'develop');
+    assert.equal(meta.branchName, 'bugfix/VP-93-idempotent-branch-provisioning');
+    assert.equal(meta.isRelease, false);
+  });
 });
 
 test('validateBranchTarget — branch target rule enforcement', async (t) => {
