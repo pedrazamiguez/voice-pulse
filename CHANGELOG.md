@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ## [0.5.0] - 2026-11-10
 ### Added
 - feat(ai-workflow): introduce vp-manage-roadmap skill for project progress briefing, testing guidance, and roadmap governance ([#94](https://github.com/pedrazamiguez/voice-pulse/issues/94))
