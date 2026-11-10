@@ -1,6 +1,7 @@
 package com.voicepulse.conversation.infrastructure.kafka.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.voicepulse.conversation.infrastructure.kafka.worker.PinnedAudioWorkerPool;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -125,5 +126,17 @@ class ConversationKafkaConsumerConfigurationTest {
                             assertThat(dlqTopic.configs())
                                     .containsEntry(TopicConfig.RETENTION_MS_CONFIG, "259200000");
                         });
+    }
+
+    @Test
+    @DisplayName("Invalid non-positive worker pool size fails fast with IllegalArgumentException")
+    void whenInvalidWorkerPoolSize_failsFast() {
+        assertThatThrownBy(() -> new ConversationKafkaProperties(true, "grp", 3, "earliest", 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("workerPoolSize must be positive");
+
+        assertThatThrownBy(() -> new ConversationKafkaProperties(true, "grp", 3, "earliest", -5))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("workerPoolSize must be positive");
     }
 }

@@ -63,3 +63,11 @@ Verify that Netty direct memory buffers are properly released across reactive te
 ```
 
 * **Pass Criteria:** No `LEAK: ByteBuf.release() was not called` in test logs.
+
+---
+
+## 5. Clean Architecture Guardrails Audit
+Audit code for anti-patterns before opening a PR:
+1. **Zero Property Constants & Fail-Fast:** Verify `@ConfigurationProperties` records do not define redundant fallback constants (e.g. `DEFAULT_...`) and throw `IllegalArgumentException` on invalid values.
+2. **Zero Production Nested Classes:** Verify all helper classes, state trackers, and collaborators reside in dedicated top-level `.java` files for isolated unit testability.
+3. **Strict SRP & Method Sizing:** Verify classes do not combine registry coordination with algorithmic state machines, and private methods do not exceed trivial helper complexity.

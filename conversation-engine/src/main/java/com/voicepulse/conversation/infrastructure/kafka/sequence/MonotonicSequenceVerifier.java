@@ -4,17 +4,15 @@ import com.voicepulse.shared.model.CallId;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * Thread-safe sequence verifier that validates monotonic continuity of audio frames per call
- * session.
+ * Thread-safe sequence verifier and session coordinator that tracks monotonic continuity of audio
+ * frames across all active call sessions.
  *
- * <p>Detects dropped frames (sequence gaps), duplicate frames, and out-of-order deliveries,
- * recording structured telemetry alerts and maintaining high-water mark sequence counters.
+ * <p>Coordinates per-session sequence trackers ({@link SessionSequenceTracker}), maintains
+ * aggregated telemetry counters, and purges session state upon termination.
  */
-@Slf4j
 @Component
 public class MonotonicSequenceVerifier {
 
@@ -44,8 +42,22 @@ public class MonotonicSequenceVerifier {
 
         globalTotalFrames.incrementAndGet();
         SessionSequenceTracker tracker =
-                sessionTrackers.computeIfAbsent(callId, id -> new SessionSequenceTracker());
-        return tracker.verify(callId, sequenceNumber);
+                sessionTrackers.computeIfAbsent(callId, SessionSequenceTracker::new);
+        SequenceValidationResult result = tracker.verify(sequenceNumber);
+        updateGlobalMetrics(result);
+        return result;
+    }
+
+    private void updateGlobalMetrics(SequenceValidationResult result) {
+        switch (result) {
+            case SequenceValidationResult.Valid v -> globalValidFrames.incrementAndGet();
+            case SequenceValidationResult.GapDetected g -> {
+                globalGapCount.incrementAndGet();
+                globalMissingFrames.addAndGet(g.missingFramesCount());
+            }
+            case SequenceValidationResult.Duplicate d -> globalDuplicateCount.incrementAndGet();
+            case SequenceValidationResult.OutOfOrder o -> globalOutOfOrderCount.incrementAndGet();
+        }
     }
 
     /**
@@ -98,104 +110,5 @@ public class MonotonicSequenceVerifier {
         globalMissingFrames.set(0L);
         globalDuplicateCount.set(0L);
         globalOutOfOrderCount.set(0L);
-    }
-
-    /** Thread-safe sequence tracker dedicated to an individual call session. */
-    private final class SessionSequenceTracker {
-
-        private final AtomicLong lastSeq = new AtomicLong(-1L);
-        private final AtomicLong totalFrames = new AtomicLong(0L);
-        private final AtomicLong validFrames = new AtomicLong(0L);
-        private final AtomicLong gapCount = new AtomicLong(0L);
-        private final AtomicLong missingFrames = new AtomicLong(0L);
-        private final AtomicLong duplicateCount = new AtomicLong(0L);
-        private final AtomicLong outOfOrderCount = new AtomicLong(0L);
-
-        synchronized SequenceValidationResult verify(CallId callId, long sequenceNumber) {
-            totalFrames.incrementAndGet();
-            long prevSeq = lastSeq.get();
-
-            if (prevSeq < 0) {
-                // First frame of the session
-                lastSeq.set(sequenceNumber);
-                if (sequenceNumber == 0L) {
-                    validFrames.incrementAndGet();
-                    globalValidFrames.incrementAndGet();
-                    return new SequenceValidationResult.Valid(callId, sequenceNumber);
-                }
-
-                // Initial frame arrived with sequence > 0 (prior initial frames lost)
-                long missing = sequenceNumber;
-                gapCount.incrementAndGet();
-                globalGapCount.incrementAndGet();
-                missingFrames.addAndGet(missing);
-                globalMissingFrames.addAndGet(missing);
-                log.warn(
-                        "Initial sequence gap detected: callId={}, expectedSeq=0, receivedSeq={},"
-                                + " missingFrames={}",
-                        callId,
-                        sequenceNumber,
-                        missing);
-                return new SequenceValidationResult.GapDetected(
-                        callId, sequenceNumber, 0L, missing);
-            }
-
-            if (sequenceNumber == prevSeq + 1) {
-                lastSeq.set(sequenceNumber);
-                validFrames.incrementAndGet();
-                globalValidFrames.incrementAndGet();
-                return new SequenceValidationResult.Valid(callId, sequenceNumber);
-            }
-
-            if (sequenceNumber == prevSeq) {
-                duplicateCount.incrementAndGet();
-                globalDuplicateCount.incrementAndGet();
-                log.warn(
-                        "Duplicate audio frame detected: callId={}, sequenceNumber={}",
-                        callId,
-                        sequenceNumber);
-                return new SequenceValidationResult.Duplicate(callId, sequenceNumber);
-            }
-
-            if (sequenceNumber < prevSeq) {
-                outOfOrderCount.incrementAndGet();
-                globalOutOfOrderCount.incrementAndGet();
-                log.warn(
-                        "Out-of-order audio frame detected: callId={}, receivedSeq={}, lastSeq={}",
-                        callId,
-                        sequenceNumber,
-                        prevSeq);
-                return new SequenceValidationResult.OutOfOrder(callId, sequenceNumber, prevSeq);
-            }
-
-            // sequenceNumber > prevSeq + 1 (Gap / Dropped frames)
-            long expected = prevSeq + 1;
-            long missing = sequenceNumber - expected;
-            lastSeq.set(sequenceNumber);
-            gapCount.incrementAndGet();
-            globalGapCount.incrementAndGet();
-            missingFrames.addAndGet(missing);
-            globalMissingFrames.addAndGet(missing);
-            log.warn(
-                    "Sequence gap detected: callId={}, expectedSeq={}, receivedSeq={},"
-                            + " missingFrames={}",
-                    callId,
-                    expected,
-                    sequenceNumber,
-                    missing);
-            return new SequenceValidationResult.GapDetected(
-                    callId, sequenceNumber, expected, missing);
-        }
-
-        SequenceVerificationMetrics snapshot() {
-            return new SequenceVerificationMetrics(
-                    totalFrames.get(),
-                    validFrames.get(),
-                    gapCount.get(),
-                    missingFrames.get(),
-                    duplicateCount.get(),
-                    outOfOrderCount.get(),
-                    1);
-        }
     }
 }

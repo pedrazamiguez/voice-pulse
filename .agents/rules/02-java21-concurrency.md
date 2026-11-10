@@ -69,3 +69,19 @@ VoicePulse leverages Java 21 features to guarantee high throughput, immutability
   ```
 * **Thread Safety for Shared Sessions:**
   - Active call sessions are pinned by `callId`. Concurrent state mutations must be synchronized or serialized via Kafka partition assignment so only one thread processes a given `callId` at a time.
+
+---
+
+## 4. Class Granularity & Zero Nested Classes
+
+* **Top-Level Classes Only:** Nested classes (whether static or non-static `class` / `inner class`) within production classes are strictly forbidden (except Java 21 `record` permits inside a `sealed interface`).
+* Every state machine tracker, algorithmic collaborator, and data accumulator MUST reside in its own dedicated, top-level `.java` file with package-private or public visibility.
+* This guarantees 100% isolated unit testability without reflection and avoids bidirectional tight coupling.
+
+---
+
+## 5. Single Responsibility Principle (SRP) & Method Sizing
+
+* Every class MUST have one, and only one, reason to change.
+* Never conflate registry/cache management, global telemetry aggregation, and per-entity state transition algorithms in a single class. Split coordinators from algorithmic workers.
+* **Zero Bloated Private Methods:** If private logic exceeds trivial helper tasks (> 15-20 lines or non-trivial branching), extract it to a cohesive collaborator service or component with its own unit tests.

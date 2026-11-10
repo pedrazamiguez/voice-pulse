@@ -12,11 +12,10 @@ public record ConversationKafkaProperties(
         String autoOffsetReset,
         @DefaultValue("8") int workerPoolSize) {
 
-    public static final int DEFAULT_WORKER_POOL_SIZE = 8;
-
     public ConversationKafkaProperties {
         if (workerPoolSize <= 0) {
-            workerPoolSize = DEFAULT_WORKER_POOL_SIZE;
+            throw new IllegalArgumentException(
+                    "workerPoolSize must be positive, but was: " + workerPoolSize);
         }
     }
 }
