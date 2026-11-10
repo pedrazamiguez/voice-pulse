@@ -215,4 +215,48 @@ class ConcurrentSessionRegistryTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("bufferCapacity must be strictly positive");
     }
+
+    @Test
+    @DisplayName("purgeOutboundBuffer safely drains queued messages and returns count")
+    void purgeOutboundBuffer_drainsQueuedMessages() {
+        CallSessionId sessionId = CallSessionId.generate();
+        WebSocketSession mockSession = mock(WebSocketSession.class);
+
+        // Register session but do NOT subscribe to outboundFlux immediately so messages buffer in
+        // queue
+        registry.registerSession(sessionId, mockSession);
+
+        WebSocketMessage msg1 =
+                new WebSocketMessage(
+                        WebSocketMessage.Type.BINARY, bufferFactory.wrap(new byte[] {1, 2}));
+        WebSocketMessage msg2 =
+                new WebSocketMessage(
+                        WebSocketMessage.Type.BINARY, bufferFactory.wrap(new byte[] {3, 4}));
+
+        registry.emitMessage(sessionId, msg1);
+        registry.emitMessage(sessionId, msg2);
+
+        int purged = registry.purgeOutboundBuffer(sessionId);
+        assertThat(purged).isEqualTo(2);
+
+        // Subsequent purge is empty
+        assertThat(registry.purgeOutboundBuffer(sessionId)).isZero();
+
+        registry.unregisterSession(sessionId);
+    }
+
+    @Test
+    @DisplayName("purgeOutboundBuffer returns 0 for unregistered session")
+    void purgeOutboundBuffer_unknownSessionReturnsZero() {
+        CallSessionId unknownId = CallSessionId.generate();
+        assertThat(registry.purgeOutboundBuffer(unknownId)).isZero();
+    }
+
+    @Test
+    @DisplayName("purgeOutboundBuffer rejects null sessionId")
+    void purgeOutboundBuffer_rejectsNullSessionId() {
+        assertThatThrownBy(() -> registry.purgeOutboundBuffer(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("sessionId cannot be null");
+    }
 }

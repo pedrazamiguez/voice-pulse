@@ -22,6 +22,7 @@ class ConversationKafkaConsumerConfigurationTest {
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
                     .withInitializer(new ConfigDataApplicationContextInitializer())
+                    .withPropertyValues("spring.kafka.admin.auto-create=false")
                     .withConfiguration(
                             AutoConfigurations.of(
                                     KafkaAutoConfiguration.class,

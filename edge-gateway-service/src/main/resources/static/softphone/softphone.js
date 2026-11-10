@@ -211,6 +211,8 @@ class VoicePulseSoftphone {
             this.ws.onmessage = (event) => {
                 if (event.data instanceof ArrayBuffer) {
                     this.handleInboundAudio(event.data);
+                } else if (typeof event.data === 'string') {
+                    this.handleControlMessage(event.data);
                 }
             };
 
@@ -285,6 +287,28 @@ class VoicePulseSoftphone {
 
         source.start(this.nextPlaybackTime);
         this.nextPlaybackTime += audioBuffer.duration;
+    }
+
+    handleControlMessage(data) {
+        try {
+            const msg = JSON.parse(data);
+            if (msg.op === 'INTERRUPT' || msg.type === 'OP_INTERRUPT') {
+                this.handleInterrupt();
+            }
+        } catch (e) {
+            if (typeof data === 'string' && data.trim() === 'OP_INTERRUPT') {
+                this.handleInterrupt();
+            }
+        }
+    }
+
+    handleInterrupt() {
+        if (this.audioContext && this.audioContext.state !== 'closed') {
+            this.nextPlaybackTime = this.audioContext.currentTime;
+        } else {
+            this.nextPlaybackTime = 0;
+        }
+        this.log('Barge-in interrupt received: local playback buffer flushed.', 'warn');
     }
 
     toggleMute() {

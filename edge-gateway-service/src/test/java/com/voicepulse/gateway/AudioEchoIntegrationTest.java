@@ -100,7 +100,9 @@ class AudioEchoIntegrationTest {
     @BeforeEach
     void clearLogEvents() {
         if (logAppender != null) {
-            logAppender.list.clear();
+            synchronized (logAppender) {
+                logAppender.list.clear();
+            }
         }
     }
 
@@ -111,8 +113,13 @@ class AudioEchoIntegrationTest {
         ByteBuf triggerBuf = Unpooled.buffer(1);
         triggerBuf.release();
 
+        List<ILoggingEvent> events;
+        synchronized (logAppender) {
+            events = new ArrayList<>(logAppender.list);
+        }
+
         List<String> leakErrors =
-                logAppender.list.stream()
+                events.stream()
                         .filter(
                                 event ->
                                         event.getMessage().contains("LEAK:")

@@ -8,7 +8,7 @@ export SONAR_HOST_URL
 export SONAR_TOKEN
 export PATH := $(HOME)/.local/bin:$(PATH)
 
-.PHONY: help setup hooks fast-check pre-pr check arch-check format test deps-check deps-update docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag test-changelog knowledge-update sonar
+.PHONY: help setup hooks fast-check pre-pr check arch-check format test deps-check deps-update docker-infra docker-infra-down verify-infra doctor clean ai-setup rag-index test-rag test-changelog knowledge-update sonar roadmap-status
 
 CYAN   := \033[0;36m
 GREEN  := \033[0;32m
@@ -20,7 +20,7 @@ MVN    := ./mvnw
 
 help: ## Display available targets
 	@printf "\n$(CYAN)VoicePulse — Developer CLI$(NC)\n\n"
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+	@grep -h -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
 	@printf "\n"
 
@@ -176,4 +176,7 @@ sonar: ## Run SonarQube analysis locally (uses .env.local or SONAR_HOST_URL & SO
 		-Dsonar.qualitygate.wait=true \
 		-Dsonar.qualitygate.timeout=300
 	@printf "$(GREEN)✅ SonarQube analysis completed and Quality Gate passed.$(NC)\n"
+
+roadmap-status: ## Display executive progress briefing, platform capabilities & test guidance
+	@./scripts/roadmap-status.sh
 

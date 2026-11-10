@@ -104,6 +104,7 @@ VoicePulse is architected for **Specification-Driven Development (SDD)** with lo
   - `vp-address-pr-comments`: Resolves reviewer code feedback and automated CI review comments.
   - `vp-follow-up`: Manages in-flight scope amendments (`[SCOPE ADDENDUM]`) and linked post-merge follow-up issues.
   - `vp-verify-architecture`: Runs ArchUnit bytecode tests and audits file sizes ($\le 600$ lines).
+  - `vp-manage-roadmap`: Provides on-demand executive status briefings, testing playbooks, gap audits, and roadmap governance.
 * **In-Repo Documentation RAG:** Local CPU ONNX vector database (`fastembed` + SQLite FTS5) providing sub-100ms semantic search over architecture docs with zero cloud API keys or external costs.
 * **Automated Changelog ([`CHANGELOG.md`](CHANGELOG.md)):** Continuous Keep a Changelog updates committed automatically upon issue completion via GitHub Actions ([`docs/engineering/changelog-automation.md`](docs/engineering/changelog-automation.md)).
 * **Release Pipeline & Delivery Lifecycle ([`docs/engineering/release-pipeline.md`](docs/engineering/release-pipeline.md)):** Automated GitFlow release management, branch target guardrails, release tagging, and post-release snapshot synchronization.

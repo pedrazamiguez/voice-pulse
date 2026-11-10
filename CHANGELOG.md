@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-11-10
+### Added
+- feat(ai-workflow): introduce vp-manage-roadmap skill for project progress briefing, testing guidance, and roadmap governance ([#94](https://github.com/pedrazamiguez/voice-pulse/issues/94))
+- feat(conversation): implement pure domain CallSession state machine and sealed states ([#99](https://github.com/pedrazamiguez/voice-pulse/issues/99))
+- feat(conversation): implement real-time voice activity detection and trailing silence evaluator ([#100](https://github.com/pedrazamiguez/voice-pulse/issues/100))
+- feat(conversation): implement acoustic NATO phonetic PNR verifier and 25-word brevity guardrail ([#101](https://github.com/pedrazamiguez/voice-pulse/issues/101))
+- feat(conversation): implement real-time barge-in detection and Kafka control signaling dispatcher ([#102](https://github.com/pedrazamiguez/voice-pulse/issues/102))
+- feat(conversation): implement deterministic mock LLM conversation engine and disruption ticket assembler ([#103](https://github.com/pedrazamiguez/voice-pulse/issues/103))
+- test(conversation): implement end-to-end conversational dialog and barge-in integration test with Testcontainers ([#104](https://github.com/pedrazamiguez/voice-pulse/issues/104))
+
+### Changed
+- Epic 4: Hexagonal Conversation Core, VAD & State Machine ([#105](https://github.com/pedrazamiguez/voice-pulse/issues/105))
+
 ## [0.4.0] - 2026-11-10
 ### Added
 - feat(kafka): define domain audio event envelopes, control schemas, and binary serializers ([#63](https://github.com/pedrazamiguez/voice-pulse/issues/63))

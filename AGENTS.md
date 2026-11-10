@@ -153,6 +153,9 @@ All issues and feature additions must follow the SDD workflow:
 * **Architectural Realignment (Invalidated Plans):** If major architectural blockers or contract breaks invalidate an active plan, invoke `.agents/skills/vp-replan-issue/SKILL.md` to draft a revised plan.
 * **Post-Merge Follow-Ups (Merged Work):** When follow-up enhancements or deferred edge cases are identified for merged/closed work, invoke `.agents/skills/vp-follow-up/SKILL.md` (Mode B) to spin off a new tracked GitHub issue explicitly linked to `#<parent_id>` and the merged PR.
 
+### Project Navigation & Roadmap Governance Skills
+* **Progress Briefing & Roadmap Steward:** Invoke `.agents/skills/vp-manage-roadmap/SKILL.md` (or `make roadmap-status`) to generate executive project capability briefings, obtain copy-pasteable test playbooks for completed phases, conduct GitHub/ROADMAP gap audits, or update `ROADMAP.md` tables and diagrams under the Human Approval Gate.
+
 ---
 
 ## 7. Git Workflow & GitHub Management Invariants

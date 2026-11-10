@@ -5,8 +5,10 @@ import com.voicepulse.gateway.domain.model.AudioFrameValidator;
 import com.voicepulse.gateway.domain.model.CallSession;
 import com.voicepulse.gateway.domain.model.DisconnectReason;
 import com.voicepulse.gateway.domain.ports.inbound.IngestAudioChunkUseCase;
+import com.voicepulse.gateway.domain.ports.inbound.InterruptPlaybackUseCase;
 import com.voicepulse.gateway.domain.ports.inbound.ManageCallSessionUseCase;
 import com.voicepulse.gateway.domain.ports.outbound.AudioFramePublisherPort;
+import com.voicepulse.gateway.domain.ports.outbound.AudioPlaybackControlPort;
 import com.voicepulse.gateway.domain.ports.outbound.SessionRegistryPort;
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.CallSessionId;
@@ -20,19 +22,26 @@ import java.util.Optional;
  * <p>Coordinates the {@link CallSession} aggregate, validates audio chunks, updates registry state,
  * and dispatches outbound audio frames with zero framework contamination.
  */
-public class CallSessionService implements IngestAudioChunkUseCase, ManageCallSessionUseCase {
+public class CallSessionService
+        implements IngestAudioChunkUseCase, ManageCallSessionUseCase, InterruptPlaybackUseCase {
 
     private static final String SESSION_ID_NULL_MSG = "sessionId cannot be null";
 
     private final SessionRegistryPort sessionRegistry;
     private final AudioFramePublisherPort audioFramePublisher;
+    private final AudioPlaybackControlPort audioPlaybackControlPort;
 
     public CallSessionService(
-            SessionRegistryPort sessionRegistry, AudioFramePublisherPort audioFramePublisher) {
+            SessionRegistryPort sessionRegistry,
+            AudioFramePublisherPort audioFramePublisher,
+            AudioPlaybackControlPort audioPlaybackControlPort) {
         this.sessionRegistry =
                 Objects.requireNonNull(sessionRegistry, "sessionRegistry cannot be null");
         this.audioFramePublisher =
                 Objects.requireNonNull(audioFramePublisher, "audioFramePublisher cannot be null");
+        this.audioPlaybackControlPort =
+                Objects.requireNonNull(
+                        audioPlaybackControlPort, "audioPlaybackControlPort cannot be null");
     }
 
     @Override
@@ -77,5 +86,15 @@ public class CallSessionService implements IngestAudioChunkUseCase, ManageCallSe
     public Optional<CallSession> getSession(CallSessionId sessionId) {
         Objects.requireNonNull(sessionId, SESSION_ID_NULL_MSG);
         return sessionRegistry.findById(sessionId);
+    }
+
+    @Override
+    public void interruptPlayback(CallSessionId sessionId) {
+        Objects.requireNonNull(sessionId, SESSION_ID_NULL_MSG);
+        if (sessionRegistry.findById(sessionId).isEmpty()) {
+            throw new CallSessionNotFoundException(sessionId);
+        }
+
+        audioPlaybackControlPort.interruptPlayback(sessionId);
     }
 }
