@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(gateway): implement reactive KafkaAudioFramePublisher adapter with partition key mandate ([#64](https://github.com/pedrazamiguez/voice-pulse/issues/64))
 - feat(infra): provision Kafka KRaft streaming topics, dead-letter queue, and reactive backpressure ([#65](https://github.com/pedrazamiguez/voice-pulse/issues/65))
 - feat(conversation): implement in-order sequential Kafka worker pool and monotonic sequence verifier ([#66](https://github.com/pedrazamiguez/voice-pulse/issues/66))
+- test(kafka): implement end-to-end multi-module Kafka streaming integration test with Testcontainers ([#67](https://github.com/pedrazamiguez/voice-pulse/issues/67))
 
 ### Changed
 - refactor(tooling): introduce Lombok for infrastructure logging and constructor injection with domain purity guardrails ([#59](https://github.com/pedrazamiguez/voice-pulse/issues/59))
