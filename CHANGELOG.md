@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- feat(ai-workflow): introduce vp-manage-roadmap skill for project progress briefing, testing guidance, and roadmap governance ([#94](https://github.com/pedrazamiguez/voice-pulse/issues/94))
+
 ## [0.4.0] - 2026-11-10
 ### Added
 - feat(kafka): define domain audio event envelopes, control schemas, and binary serializers ([#63](https://github.com/pedrazamiguez/voice-pulse/issues/63))
