@@ -30,3 +30,9 @@ voicepulse:
       concurrency: 3
       auto-offset-reset: earliest
       worker-pool-size: 8
+    mcp:
+      crm-base-url: ${MCP_CRM_BASE_URL:http://localhost:8091}
+      ticket-base-url: ${MCP_TICKET_BASE_URL:http://localhost:8092}
+      routing-base-url: ${MCP_ROUTING_BASE_URL:http://localhost:8093}
+      connect-timeout: ${MCP_CONNECT_TIMEOUT:2s}
+      request-timeout: ${MCP_REQUEST_TIMEOUT:5s}
