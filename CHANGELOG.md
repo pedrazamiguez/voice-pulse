@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- feat(conversation): define pure domain MCP tool models, outbound ports, and TicketFormFilledEvent ([#122](https://github.com/pedrazamiguez/voice-pulse/issues/122))
+
 ## [0.6.0] - 2026-11-11
 ### Tooling & Infrastructure
 - ci(release): eliminate manual workflow approval gate on automated release and sync PRs ([#116](https://github.com/pedrazamiguez/voice-pulse/issues/116))
