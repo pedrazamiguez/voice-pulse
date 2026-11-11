@@ -2,15 +2,26 @@ package com.voicepulse.conversation.infrastructure.fallback;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.instancio.Select.field;
 
 import com.voicepulse.conversation.domain.event.CallStateTransitioned;
 import com.voicepulse.conversation.domain.event.TurnCompleted;
+import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
+import com.voicepulse.conversation.domain.model.OperatorHandoffReceipt;
+import com.voicepulse.conversation.domain.model.OperatorQueueStatus;
+import com.voicepulse.conversation.domain.model.TicketSubmissionReceipt;
 import com.voicepulse.conversation.domain.statemachine.CallSessionState;
 import com.voicepulse.conversation.domain.statemachine.ConversationSession;
 import com.voicepulse.shared.event.BargeInInterrupt;
+import com.voicepulse.shared.event.TicketFormFilledEvent;
 import com.voicepulse.shared.model.CallId;
+import com.voicepulse.shared.model.FlightNumber;
+import com.voicepulse.shared.model.Pnr;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -80,5 +91,63 @@ class FallbackPortsTest {
 
         assertThatCode(() -> port.dispatch(new BargeInInterrupt(callId, 1L, now)))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("NoOpCustomerLookupPort returns empty Optional safely")
+    void customerLookupPortFallback() {
+        NoOpCustomerLookupPort port = new NoOpCustomerLookupPort();
+        assertThat(port.lookupCustomerByPnr(new Pnr("A8F9X2"))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("NoOpDisruptionTicketPort returns deterministic fallback receipt")
+    void disruptionTicketPortFallback() {
+        NoOpDisruptionTicketPort port = new NoOpDisruptionTicketPort();
+        AirlineDisruptionTicket ticket =
+                Instancio.of(AirlineDisruptionTicket.class)
+                        .set(field(AirlineDisruptionTicket::pnr), "A8F9X2")
+                        .set(field(AirlineDisruptionTicket::payload), Map.of())
+                        .create();
+
+        TicketSubmissionReceipt receipt = port.finalizeTicket(ticket);
+        assertThat(receipt.ticketId()).isEqualTo(ticket.ticketId().toString());
+        assertThat(receipt.pnr()).isEqualTo(new Pnr("A8F9X2"));
+        assertThat(receipt.status()).isEqualTo("NO_OP_FALLBACK");
+    }
+
+    @Test
+    @DisplayName("NoOpOperatorRoutingPort returns deterministic fallback queue and handoff status")
+    void operatorRoutingPortFallback() {
+        NoOpOperatorRoutingPort port = new NoOpOperatorRoutingPort();
+        CallId callId = CallId.generate();
+        UUID ticketId = UUID.randomUUID();
+
+        OperatorQueueStatus queueStatus = port.checkQueueStatus("DISRUPTION_DESK_GOLD");
+        assertThat(queueStatus.department()).isEqualTo("DISRUPTION_DESK_GOLD");
+        assertThat(queueStatus.availableOperators()).isZero();
+
+        OperatorHandoffReceipt receipt =
+                port.transferToHumanOperator(callId, "DISRUPTION_DESK_GOLD", ticketId);
+        assertThat(receipt.callId()).isEqualTo(callId);
+        assertThat(receipt.ticketId()).isEqualTo(ticketId);
+        assertThat(receipt.department()).isEqualTo("DISRUPTION_DESK_GOLD");
+        assertThat(receipt.status()).isEqualTo("NO_OP_FALLBACK");
+    }
+
+    @Test
+    @DisplayName("NoOpTicketIntentPublisherPort operates as a safe Null Object")
+    void ticketIntentPublisherPortFallback() {
+        NoOpTicketIntentPublisherPort port = new NoOpTicketIntentPublisherPort();
+        TicketFormFilledEvent event =
+                Instancio.of(TicketFormFilledEvent.class)
+                        .set(field(TicketFormFilledEvent::pnr), new Pnr("A8F9X2"))
+                        .set(
+                                field(TicketFormFilledEvent::originalFlightNumber),
+                                new FlightNumber("SW-104"))
+                        .set(field(TicketFormFilledEvent::payload), Map.of())
+                        .create();
+
+        assertThatCode(() -> port.publishTicketFilled(event)).doesNotThrowAnyException();
     }
 }
