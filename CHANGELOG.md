@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - feat(conversation): define pure domain MCP tool models, outbound ports, and TicketFormFilledEvent ([#122](https://github.com/pedrazamiguez/voice-pulse/issues/122))
+- feat(conversation): implement mcp-crm-server adapter, MapStruct mapper, and customer lookup client ([#123](https://github.com/pedrazamiguez/voice-pulse/issues/123))
 
 ## [0.6.0] - 2026-11-11
 ### Tooling & Infrastructure
