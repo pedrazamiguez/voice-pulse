@@ -32,6 +32,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN || secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -49,17 +50,17 @@ jobs:
         id: prep-sync
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PAT_TOKEN || secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             const { execSync } = require('child_process');
-            const { computeNextVersion, initializeUnreleasedChangelog } = require('./.github/scripts/release-utils.js');
+            const { computeNextVersion, initializeUnreleasedChangelog, buildSyncPrMetadata } = require('./.github/scripts/release-utils.js');
 
             const currentVersion = execSync('./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout', { encoding: 'utf8' }).trim();
             core.info(`Current release version on main: ${currentVersion}`);
 
             const headSha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
             const shortSha = headSha.substring(0, 7);
-            const syncBranch = `sync/main-to-develop-${shortSha}`;
 
             let isMajor = false;
             let isHotfix = false;
@@ -92,6 +93,9 @@ jobs:
             const { releaseVersion, snapshotVersion } = computeNextVersion(currentVersion, { isMajor, isHotfix });
             core.info(`Computed next iteration: ${snapshotVersion} (release: ${releaseVersion})`);
 
+            const syncMeta = buildSyncPrMetadata({ currentVersion, snapshotVersion, shortSha });
+            const syncBranch = syncMeta.syncBranch;
+
             // Check out sync branch locally
             execSync(`git checkout -b ${syncBranch}`, { stdio: 'inherit' });
 
@@ -111,7 +115,7 @@ jobs:
             // Commit and push sync branch
             execSync('git config user.name "github-actions[bot]"', { stdio: 'inherit' });
             execSync('git config user.email "41898282+github-actions[bot]@users.noreply.github.com"', { stdio: 'inherit' });
-            execSync(`git commit -am "chore(sync): bump version to ${snapshotVersion} and initialize unreleased changelog [skip ci]"`, { stdio: 'inherit' });
+            execSync(`git commit -am "${syncMeta.commitMessage}"`, { stdio: 'inherit' });
             execSync(`git push origin ${syncBranch} --force`, { stdio: 'inherit' });
 
             core.setOutput('sync_branch', syncBranch);
@@ -122,7 +126,9 @@ jobs:
       - name: Open Sync PR Targeting Develop
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PAT_TOKEN || secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
+            const { buildSyncPrMetadata } = require('./.github/scripts/release-utils.js');
             const syncBranch = '${{ steps.prep-sync.outputs.sync_branch }}';
             const snapshotVersion = '${{ steps.prep-sync.outputs.snapshot_version }}';
             const shortSha = '${{ steps.prep-sync.outputs.short_sha }}';
@@ -144,35 +150,22 @@ jobs:
               return;
             }
 
-            const title = `chore(sync): merge main (${currentVersion}) into develop (${snapshotVersion})`;
-            const body = [
-              '## Automated Post-Release Synchronization',
-              '',
-              'This PR synchronizes production release changes from `main` back into `develop` and bumps the development iteration.',
-              '',
-              `- **Production Release:** \`${currentVersion}\` (commit \`${shortSha}\`)`,
-              `- **Next Iteration:** \`${snapshotVersion}\``,
-              `- **Source Branch:** \`${syncBranch}\``,
-              `- **Target Branch:** \`develop\``,
-              '',
-              '### Merge Instructions',
-              'Merge this PR into `develop` using **Create a merge commit** to maintain clean Git history and tag ancestry.'
-            ].join('\n');
+            const syncMeta = buildSyncPrMetadata({ currentVersion, snapshotVersion, shortSha });
 
             const pr = await github.rest.pulls.create({
               owner,
               repo,
-              title,
+              title: syncMeta.prTitle,
               head: syncBranch,
               base: 'develop',
-              body
+              body: syncMeta.prBody
             });
 
             await github.rest.issues.addLabels({
               owner,
               repo,
               issue_number: pr.data.number,
-              labels: ['sync']
+              labels: syncMeta.labels
             });
 
             core.info(`✅ Successfully opened sync PR #${pr.data.number} targeting 'develop'.`);

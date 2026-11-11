@@ -27,6 +27,7 @@ jobs:
         id: branch-meta
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PAT_TOKEN || secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             // Extract complete collection of label names across both 'opened' and 'labeled' events
             const rawLabels = [];
@@ -165,6 +166,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.branch-meta.outputs.branch_name }}
+          token: ${{ secrets.PAT_TOKEN || secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Set up JDK 21
         if: steps.branch-meta.outputs.is_release == 'true' && steps.branch-meta.outputs.is_created == 'true'
@@ -203,6 +205,7 @@ jobs:
         if: steps.branch-meta.outputs.is_release == 'true' && steps.branch-meta.outputs.is_created == 'true'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PAT_TOKEN || secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const branchName = '${{ steps.branch-meta.outputs.branch_name }}';
             const issueNumber = context.payload.issue.number;

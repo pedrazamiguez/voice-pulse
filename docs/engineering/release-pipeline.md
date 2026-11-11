@@ -79,7 +79,24 @@ Legacy prefixes (`feat/`, `fix/`) and direct pushes to `develop` or `main` are r
 
 ---
 
-## 5. Local Verification Commands
+## 5. Automated PR Authentication & CI Triggering (`PAT_TOKEN`)
+
+When automated workflows open `release/*` or `sync/main-to-develop-*` pull requests using the default `GITHUB_TOKEN` (`github-actions[bot]`), GitHub Actions treats the actor as a restricted bot/non-collaborator and halts required `pull_request` workflows (`Build and Test`, `Static Analysis`, `Coverage and Architecture`, `SonarQube Analysis & Quality Gate`, and `Enforce Branch Naming & Targets`) with `conclusion: "action_required"` ("This workflow requires approval from a maintainer") or suppresses downstream workflow triggers.
+
+To eliminate manual workflow approval prompts:
+1. **Token Resolution (`${{ secrets.PAT_TOKEN || secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}`):**
+   - Both `create-branch-from-issue.yml` and `sync-main-to-develop.yml` pass `${{ secrets.PAT_TOKEN || secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}` to `actions/checkout@v4` (`token:`) and `actions/github-script@v7` (`github-token:`).
+   - When `PAT_TOKEN` (or `AUTOMATION_TOKEN`) is configured in the repository secrets, branch creation, git pushes, and `pulls.create` API calls execute under the repository maintainer identity, immediately triggering all 5 `pull_request` CI workflows without manual approval gates.
+   - If neither secret is configured, the workflows gracefully fall back to `secrets.GITHUB_TOKEN`.
+2. **Sync Commit CI Execution (No `[skip ci]`):**
+   - `sync-main-to-develop.yml` intentionally omits `[skip ci]` from the `chore(sync): bump version to <snapshotVersion> and initialize unreleased changelog` commit message so required `pull_request` status checks execute automatically on back-merge PRs targeting `develop`.
+3. **Personal Access Token Configuration:**
+   - **Classic PAT (`PAT_TOKEN`):** Configure with `repo` (full control of repositories, commit statuses, and pull requests) and `workflow` (permits pushing `sync/main-to-develop-*` commits when release diffs include `.github/workflows/*` changes).
+   - **Fine-Grained PAT (`PAT_TOKEN` or `AUTOMATION_TOKEN`):** Configure repository permissions with `Contents: Read and write`, `Pull requests: Read and write`, `Issues: Read and write`, and `Workflows: Read and write`.
+
+---
+
+## 6. Local Verification Commands
 
 ```bash
 # Run release and changelog automation test suite

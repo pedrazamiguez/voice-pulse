@@ -6,7 +6,9 @@ const {
   computeNextVersion,
   stampChangelogRelease,
   initializeUnreleasedChangelog,
-  extractReleaseNotes
+  extractReleaseNotes,
+  resolveAutomationToken,
+  buildSyncPrMetadata
 } = require('./release-utils');
 
 test('calculateBranchMetadata — issue branching simulation', async (t) => {
@@ -401,5 +403,49 @@ test('extractReleaseNotes — extracts notes for a specific version', async (t) 
     const changelog = '# Changelog\n\n## [0.1.0] - 2026-11-08\n\n- item';
     const notes = extractReleaseNotes(changelog, '9.9.9');
     assert.equal(notes, '');
+  });
+});
+
+test('resolveAutomationToken & buildSyncPrMetadata — release & sync PR automation helpers', async (t) => {
+  await t.test('resolves PAT_TOKEN first, then AUTOMATION_TOKEN, then GITHUB_TOKEN', () => {
+    assert.equal(
+      resolveAutomationToken({
+        patToken: 'ghp_pat',
+        automationToken: 'ghp_auto',
+        githubToken: 'ghs_gh'
+      }),
+      'ghp_pat'
+    );
+    assert.equal(
+      resolveAutomationToken({
+        patToken: '',
+        automationToken: 'ghp_auto',
+        githubToken: 'ghs_gh'
+      }),
+      'ghp_auto'
+    );
+    assert.equal(
+      resolveAutomationToken({
+        patToken: '',
+        automationToken: '',
+        githubToken: 'ghs_gh'
+      }),
+      'ghs_gh'
+    );
+  });
+
+  await t.test('builds sync PR metadata omitting [skip ci]', () => {
+    const syncMeta = buildSyncPrMetadata({
+      currentVersion: '0.5.0',
+      snapshotVersion: '0.6.0-SNAPSHOT',
+      shortSha: 'ddc7749'
+    });
+    assert.equal(syncMeta.syncBranch, 'sync/main-to-develop-ddc7749');
+    assert.equal(
+      syncMeta.commitMessage,
+      'chore(sync): bump version to 0.6.0-SNAPSHOT and initialize unreleased changelog'
+    );
+    assert.equal(syncMeta.commitMessage.includes('[skip ci]'), false);
+    assert.deepEqual(syncMeta.labels, ['sync']);
   });
 });
