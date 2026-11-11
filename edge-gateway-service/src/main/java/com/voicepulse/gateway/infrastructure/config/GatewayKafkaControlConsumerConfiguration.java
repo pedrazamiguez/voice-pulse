@@ -1,5 +1,6 @@
 package com.voicepulse.gateway.infrastructure.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.voicepulse.shared.event.CallControlEnvelope;
 import com.voicepulse.shared.infrastructure.kafka.serializer.CallControlEnvelopeDeserializer;
 import java.util.HashMap;
@@ -27,16 +28,14 @@ public class GatewayKafkaControlConsumerConfiguration {
 
     private final @NonNull KafkaProperties kafkaProperties;
     private final @NonNull GatewayKafkaProperties gatewayKafkaProperties;
+    private final @NonNull ObjectMapper objectMapper;
 
     @Bean
     public ConsumerFactory<String, CallControlEnvelope> callControlConsumerFactory() {
         Map<String, Object> props = new HashMap<>(kafkaProperties.buildConsumerProperties());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, gatewayKafkaProperties.consumerGroup());
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(
-                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                CallControlEnvelopeDeserializer.class);
-        return new DefaultKafkaConsumerFactory<>(props);
+        return new DefaultKafkaConsumerFactory<>(
+                props, new StringDeserializer(), new CallControlEnvelopeDeserializer(objectMapper));
     }
 
     @Bean
