@@ -59,6 +59,7 @@ class ConversationKafkaConsumerConfigurationTest {
                     assertThat(context).hasSingleBean(KafkaTopicProperties.class);
                     assertThat(context).hasBean("telephonyCallsRawTopic");
                     assertThat(context).hasBean("telephonyCallsControlTopic");
+                    assertThat(context).hasBean("telephonyTicketsIntentTopic");
                     assertThat(context).hasBean("telephonyCallsDlqTopic");
 
                     NewTopic rawTopic = context.getBean("telephonyCallsRawTopic", NewTopic.class);
@@ -71,6 +72,13 @@ class ConversationKafkaConsumerConfigurationTest {
                             context.getBean("telephonyCallsControlTopic", NewTopic.class);
                     assertThat(controlTopic.name()).isEqualTo("telephony.calls.control");
                     assertThat(controlTopic.numPartitions()).isEqualTo(12);
+
+                    NewTopic ticketsIntentTopic =
+                            context.getBean("telephonyTicketsIntentTopic", NewTopic.class);
+                    assertThat(ticketsIntentTopic.name()).isEqualTo("telephony.tickets.intent");
+                    assertThat(ticketsIntentTopic.numPartitions()).isEqualTo(6);
+                    assertThat(ticketsIntentTopic.configs())
+                            .containsEntry(TopicConfig.RETENTION_MS_CONFIG, "604800000");
 
                     NewTopic dlqTopic = context.getBean("telephonyCallsDlqTopic", NewTopic.class);
                     assertThat(dlqTopic.name()).isEqualTo("telephony.calls.dlq");
@@ -95,6 +103,7 @@ class ConversationKafkaConsumerConfigurationTest {
                             assertThat(context).doesNotHaveBean("pinnedAudioWorkerPool");
                             assertThat(context).doesNotHaveBean("telephonyCallsRawTopic");
                             assertThat(context).doesNotHaveBean("telephonyCallsControlTopic");
+                            assertThat(context).doesNotHaveBean("telephonyTicketsIntentTopic");
                             assertThat(context).doesNotHaveBean("telephonyCallsDlqTopic");
                         });
     }

@@ -5,7 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Configuration properties defining Kafka broker topic topologies for Conversation Engine. */
 @ConfigurationProperties(prefix = "voicepulse.kafka.topics")
-public record KafkaTopicProperties(TopicConfig raw, TopicConfig control, TopicConfig dlq) {
+public record KafkaTopicProperties(
+        TopicConfig raw, TopicConfig control, TopicConfig ticketsIntent, TopicConfig dlq) {
 
     public record TopicConfig(
             String name,

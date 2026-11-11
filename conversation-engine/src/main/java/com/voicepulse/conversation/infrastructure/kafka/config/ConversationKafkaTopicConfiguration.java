@@ -34,6 +34,11 @@ public class ConversationKafkaTopicConfiguration {
     }
 
     @Bean
+    public NewTopic telephonyTicketsIntentTopic() {
+        return buildTopic(topicProperties.ticketsIntent());
+    }
+
+    @Bean
     public NewTopic telephonyCallsDlqTopic() {
         return buildTopic(topicProperties.dlq());
     }
