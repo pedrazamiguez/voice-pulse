@@ -412,11 +412,94 @@ function calculateBranchMetadata({ labelName, labelNames, issueNumber, rawTitle,
   };
 }
 
+/**
+ * Resolves the effective GitHub token for automated branch/PR provisioning,
+ * preferring PAT_TOKEN (or AUTOMATION_TOKEN) and gracefully falling back to GITHUB_TOKEN.
+ *
+ * @param {object|string} tokenOrOptions
+ * @param {string} [fallbackGithubToken]
+ * @returns {string}
+ */
+function resolveAutomationToken(tokenOrOptions, fallbackGithubToken) {
+  let patToken = '';
+  let automationToken = '';
+  let githubToken = '';
+
+  if (tokenOrOptions && typeof tokenOrOptions === 'object') {
+    patToken = (tokenOrOptions.patToken || '').trim();
+    automationToken = (tokenOrOptions.automationToken || '').trim();
+    githubToken = (tokenOrOptions.githubToken || '').trim();
+  } else {
+    automationToken = (tokenOrOptions || '').trim();
+    githubToken = (fallbackGithubToken || '').trim();
+  }
+
+  const resolved = patToken || automationToken || githubToken;
+  if (!resolved) {
+    throw new Error('No valid GitHub token available (PAT_TOKEN, AUTOMATION_TOKEN, or GITHUB_TOKEN required).');
+  }
+  return resolved;
+}
+
+/**
+ * Builds deterministic branch, commit, and Pull Request metadata for
+ * post-release synchronization from main back into develop.
+ * Commit message explicitly omits '[skip ci]' so required pull_request CI checks run.
+ *
+ * @param {object} params
+ * @param {string} params.currentVersion
+ * @param {string} params.snapshotVersion
+ * @param {string} params.shortSha
+ * @returns {{
+ *   syncBranch: string,
+ *   commitMessage: string,
+ *   prTitle: string,
+ *   prBody: string,
+ *   labels: string[]
+ * }}
+ */
+function buildSyncPrMetadata({ currentVersion, snapshotVersion, shortSha } = {}) {
+  const cleanCurrent = (currentVersion || '').trim();
+  const cleanSnapshot = (snapshotVersion || '').trim();
+  const cleanSha = (shortSha || '').trim();
+
+  if (!cleanCurrent || !cleanSnapshot || !cleanSha) {
+    throw new Error('currentVersion, snapshotVersion, and shortSha are required to build sync PR metadata.');
+  }
+
+  const syncBranch = `sync/main-to-develop-${cleanSha}`;
+  const commitMessage = `chore(sync): bump version to ${cleanSnapshot} and initialize unreleased changelog`;
+  const prTitle = `chore(sync): merge main (${cleanCurrent}) into develop (${cleanSnapshot})`;
+  const prBody = [
+    '## Automated Post-Release Synchronization',
+    '',
+    'This PR synchronizes production release changes from `main` back into `develop` and bumps the development iteration.',
+    '',
+    `- **Production Release:** \`${cleanCurrent}\` (commit \`${cleanSha}\`)`,
+    `- **Next Iteration:** \`${cleanSnapshot}\``,
+    `- **Source Branch:** \`${syncBranch}\``,
+    `- **Target Branch:** \`develop\``,
+    '',
+    '### Merge Instructions',
+    'Merge this PR into `develop` using **Create a merge commit** to maintain clean Git history and tag ancestry.'
+  ].join('\n');
+
+  return {
+    syncBranch,
+    commitMessage,
+    prTitle,
+    prBody,
+    labels: ['sync']
+  };
+}
+
 module.exports = {
   calculateBranchMetadata,
   validateBranchTarget,
   computeNextVersion,
   stampChangelogRelease,
   initializeUnreleasedChangelog,
-  extractReleaseNotes
+  extractReleaseNotes,
+  resolveAutomationToken,
+  buildSyncPrMetadata
 };
