@@ -15,7 +15,7 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 | **Epic 2** | **Ingestion Voice Gateway & Softphone Echo Loop** | `edge-gateway-service` | **Completed** | [Issue #20](https://github.com/pedrazamiguez/voice-pulse/issues/20) • [Plan](docs/plans/epic-2-gateway-plan.md) |
 | **Epic 3** | **High-Throughput Kafka Event Bus & In-Order Worker Pool** | `edge-gateway-service`, `conversation-engine` | **Completed** | [Issue #68](https://github.com/pedrazamiguez/voice-pulse/issues/68) • [Plan](docs/plans/epic-3-kafka-plan.md) |
 | **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | **Completed** | [Issue #105](https://github.com/pedrazamiguez/voice-pulse/issues/105) • [Plan](docs/plans/epic-4-conversation-plan.md) |
-| **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `scripts/mcp` | **Next** | RFC-0002 §6 & RFC-0003 |
+| **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `shared-kernel`, `scripts/mcp` | **Next** | [Issue #128](https://github.com/pedrazamiguez/voice-pulse/issues/128) • [Plan](docs/plans/epic-5-mcp-plan.md) |
 | **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, UI | Planned | RFC-0001 §4.4 |
 | **Epic 7** | **10,000 Concurrent Calls Load Testing & Hardening** | Platform-wide, Gatling, OTel | Planned | RFC-0002 §12 & §13 |
 
@@ -125,14 +125,18 @@ flowchart LR
 ---
 
 ### Epic 5: Runtime MCP Tool Servers & AI Triage Synthesis
+* **Tracking Issue:** [#128](https://github.com/pedrazamiguez/voice-pulse/issues/128)
+* **Master Plan:** [docs/plans/epic-5-mcp-plan.md](docs/plans/epic-5-mcp-plan.md)
 * **Status:** **Next**
-* **Governing Blueprint:** RFC-0002 §6; RFC-0003 §5
+* **Governing Blueprint:** RFC-0001 §4.4; RFC-0002 §6; RFC-0003 §4
 * **Objective:** Connect the conversational core to external systems via Model Context Protocol (MCP) tool servers for real-world airline operations.
 * **Key Deliverables:**
-  - `mcp-crm-server`: Passenger lookup, booking history, and frequent flyer status.
-  - `mcp-ticket-server`: Populating and committing structured `AirlineDisruptionTicket` payloads.
-  - `mcp-telephony-routing`: Flight status verification and rebooking options.
-  - Live LLM streaming integration (Ollama / Claude API) with structured tool invocation.
+  - Pure domain MCP tool models, outbound port contracts, and `TicketFormFilledEvent` Kafka envelope ([#122](https://github.com/pedrazamiguez/voice-pulse/issues/122)).
+  - `mcp-crm-server`: Passenger lookup, frequent flyer tier, and disrupted flight itinerary adapter with MapStruct mappers ([#123](https://github.com/pedrazamiguez/voice-pulse/issues/123)).
+  - `mcp-ticket-server`: Structured `AirlineDisruptionTicket` submission and `telephony.tickets.intent` Kafka publisher ([#124](https://github.com/pedrazamiguez/voice-pulse/issues/124)).
+  - `mcp-telephony-routing`: Priority skill group routing policy and operator queue transfer adapter ([#125](https://github.com/pedrazamiguez/voice-pulse/issues/125)).
+  - Dual-mode AI triage synthesis engine (live LLM tool-calling + deterministic sub-50ms mock processor) ([#126](https://github.com/pedrazamiguez/voice-pulse/issues/126)).
+  - End-to-end MCP tool servers and Kafka ticket intent integration test with Testcontainers & WireMock ([#127](https://github.com/pedrazamiguez/voice-pulse/issues/127)).
 
 ---
 
