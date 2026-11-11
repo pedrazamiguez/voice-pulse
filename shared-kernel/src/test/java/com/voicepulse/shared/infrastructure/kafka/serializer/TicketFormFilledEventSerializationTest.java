@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.instancio.Select.field;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.voicepulse.shared.event.TicketFormFilledEvent;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.DisruptionReason;
@@ -36,8 +37,9 @@ class TicketFormFilledEventSerializationTest {
 
     @BeforeEach
     void setUp() {
-        serializer = new TicketFormFilledEventSerializer();
-        deserializer = new TicketFormFilledEventDeserializer();
+        ObjectMapper injectedMapper = KafkaJsonCodecProvider.objectMapper();
+        serializer = new TicketFormFilledEventSerializer(injectedMapper);
+        deserializer = new TicketFormFilledEventDeserializer(injectedMapper);
         serializer.configure(Map.of(), false);
         deserializer.configure(Map.of(), false);
     }
@@ -98,6 +100,37 @@ class TicketFormFilledEventSerializationTest {
                 .containsEntry("voucher_amount", 150.5)
                 .containsEntry("baggage_checked", true)
                 .containsEntry("sequence_offset", 10000000000L);
+    }
+
+    @Test
+    @DisplayName("Should support default no-arg constructor for Kafka SPI")
+    void shouldSupportDefaultNoArgConstructor() {
+        try (TicketFormFilledEventSerializer defaultSerializer =
+                        new TicketFormFilledEventSerializer();
+                TicketFormFilledEventDeserializer defaultDeserializer =
+                        new TicketFormFilledEventDeserializer()) {
+            TicketFormFilledEvent original =
+                    Instancio.of(TicketFormFilledEvent.class)
+                            .set(field(TicketFormFilledEvent::pnr), PNR)
+                            .set(field(TicketFormFilledEvent::originalFlightNumber), FLIGHT)
+                            .set(field(TicketFormFilledEvent::payload), Map.of())
+                            .create();
+
+            byte[] bytes = defaultSerializer.serialize(TOPIC, original);
+            assertThat(defaultDeserializer.deserialize(TOPIC, bytes)).isEqualTo(original);
+        }
+    }
+
+    @Test
+    @DisplayName("Should reject null ObjectMapper in constructor")
+    void shouldRejectNullObjectMapper() {
+        assertThatThrownBy(() -> new TicketFormFilledEventSerializer(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("objectMapper must not be null");
+
+        assertThatThrownBy(() -> new TicketFormFilledEventDeserializer(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("objectMapper must not be null");
     }
 
     @Test

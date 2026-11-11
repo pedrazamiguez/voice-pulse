@@ -2,7 +2,6 @@ package com.voicepulse.shared.infrastructure.kafka.serializer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.voicepulse.shared.event.TicketFormFilledEvent;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.DisruptionReason;
@@ -13,6 +12,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -21,13 +21,30 @@ import org.apache.kafka.common.serialization.Deserializer;
  * JSON Kafka {@link Deserializer} for {@link TicketFormFilledEvent} envelopes consumed from {@code
  * telephony.tickets.intent}.
  *
- * <p>Reconstructs pure domain records from JSON payloads without Jackson annotations in the domain
- * layer.
+ * <p>Supports constructor injection of a Spring-managed {@link ObjectMapper} bean while providing a
+ * default no-arg constructor for Kafka's class-based deserializer SPI.
  */
 public class TicketFormFilledEventDeserializer implements Deserializer<TicketFormFilledEvent> {
 
-    private static final ObjectMapper OBJECT_MAPPER =
-            new ObjectMapper().registerModule(new JavaTimeModule());
+    private final ObjectMapper objectMapper;
+
+    /**
+     * Constructs a deserializer using the shared default Kafka {@link ObjectMapper} (required by
+     * Kafka's class-based {@link Deserializer} SPI).
+     */
+    public TicketFormFilledEventDeserializer() {
+        this(KafkaJsonCodecProvider.objectMapper());
+    }
+
+    /**
+     * Constructs a deserializer with an explicitly injected {@link ObjectMapper} (e.g. from
+     * Spring's application context).
+     *
+     * @param objectMapper pre-configured Jackson {@link ObjectMapper}
+     */
+    public TicketFormFilledEventDeserializer(ObjectMapper objectMapper) {
+        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+    }
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
@@ -41,7 +58,7 @@ public class TicketFormFilledEventDeserializer implements Deserializer<TicketFor
         }
 
         try {
-            JsonNode root = OBJECT_MAPPER.readTree(data);
+            JsonNode root = objectMapper.readTree(data);
             CallId callId = CallId.fromString(requireText(root, "callId"));
             UUID ticketId = UUID.fromString(requireText(root, "ticketId"));
             String passengerName = requireText(root, "passengerName");
