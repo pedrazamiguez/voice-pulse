@@ -18,6 +18,11 @@ voicepulse:
         partitions: 12
         replication-factor: 1
         retention: 1h
+      tickets-intent:
+        name: telephony.tickets.intent
+        partitions: 6
+        replication-factor: 1
+        retention: 168h
       dlq:
         name: telephony.calls.dlq
         partitions: 3

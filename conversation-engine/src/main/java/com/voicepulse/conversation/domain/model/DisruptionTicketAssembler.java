@@ -105,14 +105,14 @@ public final class DisruptionTicketAssembler {
         }
 
         UUID ticketId = UUID.randomUUID();
-        String category = resolveCategory(hotelRequired, rebookingPreference);
+        String category = TicketCategory.resolve(hotelRequired, rebookingPreference).name();
 
         Map<String, Object> payload = new HashMap<>();
         if (customPayload != null) {
             payload.putAll(customPayload);
         }
         payload.put("category", category);
-        payload.put("priority", "HIGH");
+        payload.put("priority", TicketPriority.HIGH.name());
         payload.put("disruptionReason", disruptionReason.name());
         payload.put("rebookingPreference", rebookingPreference.name());
 
@@ -130,16 +130,5 @@ public final class DisruptionTicketAssembler {
                 Map.copyOf(payload),
                 timestamp,
                 timestamp);
-    }
-
-    private static String resolveCategory(
-            boolean hotelRequired, RebookingPreference rebookingPreference) {
-        if (hotelRequired) {
-            return "HOTEL_ACCOMMODATION";
-        }
-        if (rebookingPreference == RebookingPreference.REFUND_REQUESTED) {
-            return "REFUND_DISRUPTION";
-        }
-        return "FLIGHT_REBOOKING";
     }
 }

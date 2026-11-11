@@ -1,6 +1,8 @@
 package com.voicepulse.conversation.infrastructure.fallback;
 
 import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
+import com.voicepulse.conversation.domain.model.TicketCategory;
+import com.voicepulse.conversation.domain.model.TicketPriority;
 import com.voicepulse.conversation.domain.model.TicketSubmissionReceipt;
 import com.voicepulse.conversation.domain.ports.outbound.DisruptionTicketPort;
 import com.voicepulse.shared.model.Pnr;
@@ -19,8 +21,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class NoOpDisruptionTicketPort implements DisruptionTicketPort {
 
-    private static final String FALLBACK_CATEGORY = "DISRUPTION_TRIAGE";
-    private static final String FALLBACK_PRIORITY = "NORMAL";
     private static final String FALLBACK_STATUS = "NO_OP_FALLBACK";
 
     @Override
@@ -32,8 +32,8 @@ public class NoOpDisruptionTicketPort implements DisruptionTicketPort {
         return new TicketSubmissionReceipt(
                 ticket.ticketId().toString(),
                 new Pnr(ticket.pnr()),
-                FALLBACK_CATEGORY,
-                FALLBACK_PRIORITY,
+                TicketCategory.DISRUPTION_TRIAGE.name(),
+                TicketPriority.NORMAL.name(),
                 FALLBACK_STATUS,
                 ticket.updatedAt());
     }

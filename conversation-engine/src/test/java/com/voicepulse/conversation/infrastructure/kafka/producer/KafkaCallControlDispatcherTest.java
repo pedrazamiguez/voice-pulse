@@ -50,9 +50,12 @@ class KafkaCallControlDispatcherTest {
                 new TopicConfig("telephony.calls.raw", 12, (short) 1, Duration.ofHours(1), null);
         TopicConfig control =
                 new TopicConfig(CONTROL_TOPIC, 12, (short) 1, Duration.ofHours(1), null);
+        TopicConfig ticketsIntent =
+                new TopicConfig(
+                        "telephony.tickets.intent", 6, (short) 1, Duration.ofHours(168), null);
         TopicConfig dlq =
                 new TopicConfig("telephony.calls.dlq", 3, (short) 1, Duration.ofHours(336), null);
-        topicProperties = new KafkaTopicProperties(raw, control, dlq);
+        topicProperties = new KafkaTopicProperties(raw, control, ticketsIntent, dlq);
 
         dispatcher = new KafkaCallControlDispatcher(kafkaTemplate, topicProperties);
     }

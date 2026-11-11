@@ -284,4 +284,20 @@ class DisruptionTicketAssemblerTest {
         assertThat(fixture.pnr()).matches("^[A-Za-z0-9]{6}$");
         assertThat(fixture.originalFlightNumber()).startsWith("SW-");
     }
+
+    @Test
+    @DisplayName("TicketCategory and TicketPriority resolve domain rules deterministically")
+    void ticketCategoryAndPriority_resolveDomainRules() {
+        assertThat(TicketCategory.resolve(true, RebookingPreference.NEXT_AVAILABLE))
+                .isEqualTo(TicketCategory.HOTEL_ACCOMMODATION);
+        assertThat(TicketCategory.resolve(false, RebookingPreference.REFUND_REQUESTED))
+                .isEqualTo(TicketCategory.REFUND_DISRUPTION);
+        assertThat(TicketCategory.resolve(false, RebookingPreference.NEXT_AVAILABLE))
+                .isEqualTo(TicketCategory.FLIGHT_REBOOKING);
+        assertThat(TicketCategory.DISRUPTION_TRIAGE.name()).isEqualTo("DISRUPTION_TRIAGE");
+
+        assertThat(TicketPriority.resolve(true, false)).isEqualTo(TicketPriority.HIGH);
+        assertThat(TicketPriority.resolve(false, true)).isEqualTo(TicketPriority.HIGH);
+        assertThat(TicketPriority.resolve(false, false)).isEqualTo(TicketPriority.NORMAL);
+    }
 }
