@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(conversation): implement dual-mode AI triage synthesis and MCP tool orchestration ([#126](https://github.com/pedrazamiguez/voice-pulse/issues/126))
 - test(conversation): implement end-to-end MCP tool servers and Kafka ticket intent integration test ([#127](https://github.com/pedrazamiguez/voice-pulse/issues/127))
 
+### Changed
+- Epic 5: Runtime MCP Tool Servers & AI Triage Synthesis ([#128](https://github.com/pedrazamiguez/voice-pulse/issues/128))
+
 ## [0.6.0] - 2026-11-11
 ### Tooling & Infrastructure
 - ci(release): eliminate manual workflow approval gate on automated release and sync PRs ([#116](https://github.com/pedrazamiguez/voice-pulse/issues/116))
