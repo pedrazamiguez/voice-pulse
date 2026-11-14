@@ -7,6 +7,7 @@ import com.voicepulse.shared.event.BargeInInterrupt;
 import com.voicepulse.shared.event.CallControlEnvelope;
 import com.voicepulse.shared.event.CallStarted;
 import com.voicepulse.shared.event.CallTerminated;
+import com.voicepulse.shared.event.OperatorRerouteSignal;
 import com.voicepulse.shared.model.AudioEncoding;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallId;
@@ -92,6 +93,20 @@ public class CallControlEnvelopeDeserializer implements Deserializer<CallControl
                     boolean pause = root.path("pauseRequested").asBoolean();
                     int ratio = root.path("bufferFillRatioPercent").asInt();
                     yield new BackpressureSignal(callId, sequenceNumber, timestamp, pause, ratio);
+                }
+                case "OPERATOR_REROUTE_SIGNAL" -> {
+                    if (!root.hasNonNull("operatorId")) {
+                        throw new SerializationException(
+                                "Missing 'operatorId' field in OPERATOR_REROUTE_SIGNAL JSON");
+                    }
+                    if (!root.hasNonNull("bridgeEndpoint")) {
+                        throw new SerializationException(
+                                "Missing 'bridgeEndpoint' field in OPERATOR_REROUTE_SIGNAL JSON");
+                    }
+                    String operatorId = root.get("operatorId").asText();
+                    String bridgeEndpoint = root.get("bridgeEndpoint").asText();
+                    yield new OperatorRerouteSignal(
+                            callId, sequenceNumber, timestamp, operatorId, bridgeEndpoint);
                 }
                 default ->
                         throw new SerializationException(

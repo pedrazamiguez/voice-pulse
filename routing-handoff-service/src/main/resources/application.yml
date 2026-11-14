@@ -10,3 +10,12 @@ spring:
       port: ${REDIS_PORT:6379}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+voicepulse:
+  routing:
+    ticket-intent-topic: ${KAFKA_TICKET_INTENT_TOPIC:telephony.tickets.intent}
+    call-control-topic: ${KAFKA_CALL_CONTROL_TOPIC:telephony.calls.control}
+    consumer-group: ${ROUTING_KAFKA_CONSUMER_GROUP:routing-handoff-workers}
+    operator-heartbeat-ttl: ${OPERATOR_HEARTBEAT_TTL:30s}
+    operator-bridge-base-path: ${OPERATOR_BRIDGE_BASE_PATH:/ws/operators}
+    max-queue-capacity: ${ROUTING_MAX_QUEUE_CAPACITY:1000}

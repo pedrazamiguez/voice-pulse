@@ -160,6 +160,54 @@ class CallControlEnvelopeTest {
     }
 
     @Test
+    @DisplayName(
+            "Should construct OperatorRerouteSignal with valid attributes and enforce constraints")
+    void shouldConstructOperatorRerouteSignal() {
+        String bridgeEndpoint = "/ws/operators/op-42/calls/" + CALL_ID + "/audio";
+        OperatorRerouteSignal event =
+                Instancio.of(OperatorRerouteSignal.class)
+                        .set(field(OperatorRerouteSignal::callId), CALL_ID)
+                        .set(field(OperatorRerouteSignal::sequenceNumber), 30L)
+                        .set(field(OperatorRerouteSignal::timestamp), NOW)
+                        .set(field(OperatorRerouteSignal::operatorId), "op-42")
+                        .set(field(OperatorRerouteSignal::bridgeEndpoint), bridgeEndpoint)
+                        .create();
+
+        assertThat(event.callId()).isEqualTo(CALL_ID);
+        assertThat(event.sequenceNumber()).isEqualTo(30L);
+        assertThat(event.timestamp()).isEqualTo(NOW);
+        assertThat(event.operatorId()).isEqualTo("op-42");
+        assertThat(event.bridgeEndpoint()).isEqualTo(bridgeEndpoint);
+
+        assertThatThrownBy(() -> new OperatorRerouteSignal(null, 30L, NOW, "op-42", bridgeEndpoint))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("callId");
+        assertThatThrownBy(
+                        () -> new OperatorRerouteSignal(CALL_ID, -1L, NOW, "op-42", bridgeEndpoint))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("sequenceNumber");
+        assertThatThrownBy(
+                        () ->
+                                new OperatorRerouteSignal(
+                                        CALL_ID, 30L, null, "op-42", bridgeEndpoint))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("timestamp");
+        assertThatThrownBy(() -> new OperatorRerouteSignal(CALL_ID, 30L, NOW, null, bridgeEndpoint))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("operatorId");
+        assertThatThrownBy(
+                        () -> new OperatorRerouteSignal(CALL_ID, 30L, NOW, "   ", bridgeEndpoint))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("operatorId cannot be blank");
+        assertThatThrownBy(() -> new OperatorRerouteSignal(CALL_ID, 30L, NOW, "op-42", null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("bridgeEndpoint");
+        assertThatThrownBy(() -> new OperatorRerouteSignal(CALL_ID, 30L, NOW, "op-42", "  "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("bridgeEndpoint cannot be blank");
+    }
+
+    @Test
     @DisplayName("Should perform exhaustive pattern matching across CallControlEnvelope hierarchy")
     void shouldPerformExhaustivePatternMatching() {
         CallControlEnvelope started =
@@ -195,10 +243,23 @@ class CallControlEnvelopeTest {
                         .set(field(BackpressureSignal::bufferFillRatioPercent), 90)
                         .create();
 
+        CallControlEnvelope reroute =
+                Instancio.of(OperatorRerouteSignal.class)
+                        .set(field(OperatorRerouteSignal::callId), CALL_ID)
+                        .set(field(OperatorRerouteSignal::sequenceNumber), 4L)
+                        .set(field(OperatorRerouteSignal::timestamp), NOW)
+                        .set(field(OperatorRerouteSignal::operatorId), "op-7")
+                        .set(
+                                field(OperatorRerouteSignal::bridgeEndpoint),
+                                "/ws/operators/op-7/calls/123/audio")
+                        .create();
+
         assertThat(describeEnvelope(started)).isEqualTo("STARTED:0");
         assertThat(describeEnvelope(terminated)).isEqualTo("TERMINATED:NORMAL");
         assertThat(describeEnvelope(bargeIn)).isEqualTo("BARGE_IN:100ms");
         assertThat(describeEnvelope(backpressure)).isEqualTo("BACKPRESSURE:PAUSE:90%");
+        assertThat(describeEnvelope(reroute))
+                .isEqualTo("REROUTE:op-7:/ws/operators/op-7/calls/123/audio");
     }
 
     private String describeEnvelope(CallControlEnvelope envelope) {
@@ -212,6 +273,7 @@ class CallControlEnvelopeTest {
                             + ":"
                             + bp.bufferFillRatioPercent()
                             + "%";
+            case OperatorRerouteSignal r -> "REROUTE:" + r.operatorId() + ":" + r.bridgeEndpoint();
         };
     }
 }
