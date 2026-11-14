@@ -147,12 +147,12 @@ flowchart LR
 * **Governing Blueprint:** RFC-0001 §3, §4.2, §4.5; RFC-0003 §2 & §4
 * **Objective:** Provide seamless human-in-the-loop escalation when automated triage concludes or customer requests an agent.
 * **Key Deliverables:**
-  - Pure domain handoff state machine, outbound ports, and `OperatorRerouteSignal` (`shared-kernel`, `routing-handoff-service`).
-  - PostgreSQL 16 ticket & handoff audit persistence (`disruption_tickets`, `operator_handoff_logs`) via Virtual Threads and MapStruct.
-  - Reactive Redis 7 skill-based operator queues, presence tracking, and TTL heartbeat mechanism.
-  - Kafka `telephony.tickets.intent` consumer and automated operator assignment engine.
-  - Operator Web Console displaying pre-populated disruption ticket, priority queue, and live transcript.
-  - Low-latency bot-to-human audio stream handoff in `edge-gateway-service` verified under `PARANOID` leak detection.
+  - Pure domain handoff state machine, outbound ports, and `OperatorRerouteSignal` (`shared-kernel`, `routing-handoff-service`) ([#142](https://github.com/pedrazamiguez/voice-pulse/issues/142)).
+  - PostgreSQL 16 ticket & handoff audit persistence (`disruption_tickets`, `operator_handoff_logs`) via Virtual Threads and MapStruct ([#143](https://github.com/pedrazamiguez/voice-pulse/issues/143)).
+  - Reactive Redis 7 skill-based operator queues, presence tracking, and TTL heartbeat mechanism ([#144](https://github.com/pedrazamiguez/voice-pulse/issues/144)).
+  - Kafka `telephony.tickets.intent` consumer and automated operator assignment engine ([#145](https://github.com/pedrazamiguez/voice-pulse/issues/145)).
+  - Operator Web Console displaying pre-populated disruption ticket, priority queue, and live transcript ([#146](https://github.com/pedrazamiguez/voice-pulse/issues/146)).
+  - Low-latency bot-to-human audio stream handoff in `edge-gateway-service` verified under `PARANOID` leak detection ([#147](https://github.com/pedrazamiguez/voice-pulse/issues/147)).
 
 ---
 
