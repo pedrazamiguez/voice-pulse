@@ -16,7 +16,7 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 | **Epic 3** | **High-Throughput Kafka Event Bus & In-Order Worker Pool** | `edge-gateway-service`, `conversation-engine` | **Completed** | [Issue #68](https://github.com/pedrazamiguez/voice-pulse/issues/68) • [Plan](docs/plans/epic-3-kafka-plan.md) |
 | **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | **Completed** | [Issue #105](https://github.com/pedrazamiguez/voice-pulse/issues/105) • [Plan](docs/plans/epic-4-conversation-plan.md) |
 | **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `shared-kernel`, `scripts/mcp` | **Completed** | [Issue #128](https://github.com/pedrazamiguez/voice-pulse/issues/128) • [Plan](docs/plans/epic-5-mcp-plan.md) |
-| **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, UI | **Next** | RFC-0001 §4.4 |
+| **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, `edge-gateway-service`, `shared-kernel` | **Next** | [Issue #140](https://github.com/pedrazamiguez/voice-pulse/issues/140) • [Plan](docs/plans/epic-6-routing-console-plan.md) |
 | **Epic 7** | **10,000 Concurrent Calls Load Testing & Hardening** | Platform-wide, Gatling, OTel | Planned | RFC-0002 §12 & §13 |
 
 ---
@@ -141,14 +141,18 @@ flowchart LR
 ---
 
 ### Epic 6: Operator Handoff, Redis Presence & Web Console
+* **Tracking Issue:** [#140](https://github.com/pedrazamiguez/voice-pulse/issues/140)
+* **Master Plan:** [docs/plans/epic-6-routing-console-plan.md](docs/plans/epic-6-routing-console-plan.md)
 * **Status:** **Next**
-* **Governing Blueprint:** RFC-0001 §4.4; RFC-0003 §6
+* **Governing Blueprint:** RFC-0001 §3, §4.2, §4.5; RFC-0003 §2 & §4
 * **Objective:** Provide seamless human-in-the-loop escalation when automated triage concludes or customer requests an agent.
 * **Key Deliverables:**
-  - `routing-handoff-service`: Skill-based operator routing queues in Redis 7.
-  - Real-time operator presence tracking and heartbeat mechanism.
-  - Operator web console displaying pre-populated disruption ticket and live transcript.
-  - Low-latency audio stream handoff from bot to human agent.
+  - Pure domain handoff state machine, outbound ports, and `OperatorRerouteSignal` (`shared-kernel`, `routing-handoff-service`).
+  - PostgreSQL 16 ticket & handoff audit persistence (`disruption_tickets`, `operator_handoff_logs`) via Virtual Threads and MapStruct.
+  - Reactive Redis 7 skill-based operator queues, presence tracking, and TTL heartbeat mechanism.
+  - Kafka `telephony.tickets.intent` consumer and automated operator assignment engine.
+  - Operator Web Console displaying pre-populated disruption ticket, priority queue, and live transcript.
+  - Low-latency bot-to-human audio stream handoff in `edge-gateway-service` verified under `PARANOID` leak detection.
 
 ---
 
