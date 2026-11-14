@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(conversation): implement mcp-crm-server adapter, MapStruct mapper, and customer lookup client ([#123](https://github.com/pedrazamiguez/voice-pulse/issues/123))
 - feat(conversation): implement mcp-ticket-server adapter and Kafka ticket intent publisher ([#124](https://github.com/pedrazamiguez/voice-pulse/issues/124))
 - feat(conversation): implement mcp-telephony-routing adapter and priority skill group resolver ([#125](https://github.com/pedrazamiguez/voice-pulse/issues/125))
+- feat(conversation): implement dual-mode AI triage synthesis and MCP tool orchestration ([#126](https://github.com/pedrazamiguez/voice-pulse/issues/126))
 
 ## [0.6.0] - 2026-11-11
 ### Tooling & Infrastructure
