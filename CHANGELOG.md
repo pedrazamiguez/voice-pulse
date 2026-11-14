@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - feat(routing): define pure domain handoff models, ports, and OperatorRerouteSignal ([#142](https://github.com/pedrazamiguez/voice-pulse/issues/142))
 - feat(routing): implement PostgreSQL 16 ticket and handoff audit persistence adapter ([#143](https://github.com/pedrazamiguez/voice-pulse/issues/143))
+- feat(routing): implement reactive Redis 7 operator presence, heartbeats, and priority queues ([#144](https://github.com/pedrazamiguez/voice-pulse/issues/144))
 
 ## [0.7.0] - 2026-11-14
 ### Added
