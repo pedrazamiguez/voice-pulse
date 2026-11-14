@@ -25,7 +25,7 @@ public class McpClientConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(name = "mcpHttpClient")
     public HttpClient mcpHttpClient(
             McpClientProperties properties, ExecutorService mcpVirtualThreadExecutor) {
         return HttpClient.newBuilder()
