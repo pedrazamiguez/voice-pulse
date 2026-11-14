@@ -16,3 +16,5 @@ voicepulse:
       enabled: false
     redis:
       enabled: false
+    kafka:
+      enabled: false
