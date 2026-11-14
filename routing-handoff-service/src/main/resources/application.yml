@@ -39,4 +39,16 @@ voicepulse:
       concurrency: ${ROUTING_KAFKA_CONCURRENCY:3}
       auto-offset-reset: ${ROUTING_KAFKA_AUTO_OFFSET_RESET:earliest}
       send-timeout: ${ROUTING_KAFKA_SEND_TIMEOUT:5s}
+      retry-backoff: ${ROUTING_KAFKA_RETRY_BACKOFF:500ms}
+      max-retries: ${ROUTING_KAFKA_MAX_RETRIES:2}
       dlq-topic: ${ROUTING_KAFKA_DLQ_TOPIC:telephony.calls.dlq}
+      topics:
+        ticket-intent:
+          partitions: ${ROUTING_KAFKA_TICKET_INTENT_PARTITIONS:6}
+          replicas: ${ROUTING_KAFKA_TICKET_INTENT_REPLICAS:1}
+        call-control:
+          partitions: ${ROUTING_KAFKA_CALL_CONTROL_PARTITIONS:12}
+          replicas: ${ROUTING_KAFKA_CALL_CONTROL_REPLICAS:1}
+        dlq:
+          partitions: ${ROUTING_KAFKA_DLQ_PARTITIONS:3}
+          replicas: ${ROUTING_KAFKA_DLQ_REPLICAS:1}

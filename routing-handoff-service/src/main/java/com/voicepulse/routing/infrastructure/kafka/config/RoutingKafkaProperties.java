@@ -17,7 +17,10 @@ public record RoutingKafkaProperties(
         int concurrency,
         String autoOffsetReset,
         Duration sendTimeout,
-        String dlqTopic) {
+        Duration retryBackoff,
+        int maxRetries,
+        String dlqTopic,
+        RoutingKafkaTopicProperties topics) {
 
     private static final Set<String> VALID_OFFSET_RESET_POLICIES =
             Set.of("earliest", "latest", "none");
@@ -29,7 +32,15 @@ public record RoutingKafkaProperties(
         }
         autoOffsetReset = normalizeAutoOffsetReset(autoOffsetReset);
         validatePositiveDuration(sendTimeout, "sendTimeout");
+        validateNonNegativeDuration(retryBackoff, "retryBackoff");
+        if (maxRetries < 0) {
+            throw new IllegalArgumentException(
+                    "maxRetries must be non-negative, but was: " + maxRetries);
+        }
         dlqTopic = requireNonBlank(dlqTopic, "dlqTopic");
+        if (topics == null) {
+            throw new IllegalArgumentException("topics must not be null");
+        }
     }
 
     private static String normalizeAutoOffsetReset(String value) {
@@ -52,6 +63,13 @@ public record RoutingKafkaProperties(
         if (duration == null || duration.isZero() || duration.isNegative()) {
             throw new IllegalArgumentException(
                     fieldName + " must be positive, but was: " + duration);
+        }
+    }
+
+    private static void validateNonNegativeDuration(Duration duration, String fieldName) {
+        if (duration == null || duration.isNegative()) {
+            throw new IllegalArgumentException(
+                    fieldName + " must be non-negative, but was: " + duration);
         }
     }
 }

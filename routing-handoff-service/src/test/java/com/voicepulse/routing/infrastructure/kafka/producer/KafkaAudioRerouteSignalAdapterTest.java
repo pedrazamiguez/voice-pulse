@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 
 import com.voicepulse.routing.infrastructure.config.RoutingProperties;
 import com.voicepulse.routing.infrastructure.kafka.config.RoutingKafkaProperties;
+import com.voicepulse.routing.infrastructure.kafka.config.RoutingKafkaTopicProperties;
+import com.voicepulse.routing.infrastructure.kafka.config.RoutingTopicSpec;
 import com.voicepulse.shared.event.CallControlEnvelope;
 import com.voicepulse.shared.event.OperatorRerouteSignal;
 import com.voicepulse.shared.model.CallId;
@@ -54,7 +56,17 @@ class KafkaAudioRerouteSignalAdapterTest {
                         1000);
         RoutingKafkaProperties kafkaProperties =
                 new RoutingKafkaProperties(
-                        true, 3, "earliest", Duration.ofMillis(250), "telephony.calls.dlq");
+                        true,
+                        3,
+                        "earliest",
+                        Duration.ofMillis(250),
+                        Duration.ofMillis(500),
+                        2,
+                        "telephony.calls.dlq",
+                        new RoutingKafkaTopicProperties(
+                                new RoutingTopicSpec(6, 1),
+                                new RoutingTopicSpec(12, 1),
+                                new RoutingTopicSpec(3, 1)));
         adapter =
                 new KafkaAudioRerouteSignalAdapter(
                         kafkaTemplate, routingProperties, kafkaProperties);

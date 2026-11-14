@@ -28,25 +28,27 @@ public class RoutingKafkaTopicConfiguration {
 
     @Bean
     public NewTopic routingTicketIntentTopic() {
-        return TopicBuilder.name(routingProperties.ticketIntentTopic())
-                .partitions(6)
-                .replicas(1)
-                .build();
+        return buildTopic(
+                routingProperties.ticketIntentTopic(),
+                routingKafkaProperties.topics().ticketIntent());
     }
 
     @Bean
     public NewTopic routingCallControlTopic() {
-        return TopicBuilder.name(routingProperties.callControlTopic())
-                .partitions(12)
-                .replicas(1)
-                .build();
+        return buildTopic(
+                routingProperties.callControlTopic(),
+                routingKafkaProperties.topics().callControl());
     }
 
     @Bean
     public NewTopic routingCallsDlqTopic() {
-        return TopicBuilder.name(routingKafkaProperties.dlqTopic())
-                .partitions(3)
-                .replicas(1)
+        return buildTopic(routingKafkaProperties.dlqTopic(), routingKafkaProperties.topics().dlq());
+    }
+
+    private static NewTopic buildTopic(String topicName, RoutingTopicSpec topicSpec) {
+        return TopicBuilder.name(topicName)
+                .partitions(topicSpec.partitions())
+                .replicas(topicSpec.replicas())
                 .build();
     }
 }

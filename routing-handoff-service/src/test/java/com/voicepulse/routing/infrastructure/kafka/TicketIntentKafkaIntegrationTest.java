@@ -22,6 +22,8 @@ import com.voicepulse.routing.domain.ports.outbound.OperatorPresencePort;
 import com.voicepulse.routing.domain.ports.outbound.PriorityCallQueuePort;
 import com.voicepulse.routing.domain.ports.outbound.TicketPersistencePort;
 import com.voicepulse.routing.domain.service.OperatorAssignmentCoordinator;
+import com.voicepulse.routing.domain.service.OperatorPresenceService;
+import com.voicepulse.routing.infrastructure.kafka.config.RoutingKafkaProperties;
 import com.voicepulse.routing.infrastructure.kafka.consumer.TicketIntentKafkaConsumer;
 import com.voicepulse.routing.infrastructure.kafka.producer.KafkaAudioRerouteSignalAdapter;
 import com.voicepulse.routing.infrastructure.redis.RedisOperatorPresenceAdapter;
@@ -127,6 +129,7 @@ class TicketIntentKafkaIntegrationTest {
     private final TicketIntentKafkaConsumer ticketIntentKafkaConsumer;
     private final KafkaListenerEndpointRegistry listenerRegistry;
     private final ReactiveStringRedisTemplate redisTemplate;
+    private final RoutingKafkaProperties routingKafkaProperties;
 
     private DefaultKafkaProducerFactory<String, TicketFormFilledEvent> ticketProducerFactory;
     private DefaultKafkaProducerFactory<String, byte[]> rawBytesProducerFactory;
@@ -143,7 +146,8 @@ class TicketIntentKafkaIntegrationTest {
             @Autowired PriorityCallQueuePort priorityCallQueuePort,
             @Autowired TicketIntentKafkaConsumer ticketIntentKafkaConsumer,
             @Autowired KafkaListenerEndpointRegistry listenerRegistry,
-            @Autowired ReactiveStringRedisTemplate redisTemplate) {
+            @Autowired ReactiveStringRedisTemplate redisTemplate,
+            @Autowired RoutingKafkaProperties routingKafkaProperties) {
         this.processTicketIntentUseCase = processTicketIntentUseCase;
         this.manageOperatorPresenceUseCase = manageOperatorPresenceUseCase;
         this.audioRerouteSignalPort = audioRerouteSignalPort;
@@ -152,6 +156,7 @@ class TicketIntentKafkaIntegrationTest {
         this.ticketIntentKafkaConsumer = ticketIntentKafkaConsumer;
         this.listenerRegistry = listenerRegistry;
         this.redisTemplate = redisTemplate;
+        this.routingKafkaProperties = routingKafkaProperties;
     }
 
     @DynamicPropertySource
@@ -166,7 +171,8 @@ class TicketIntentKafkaIntegrationTest {
         MessageListenerContainer container =
                 listenerRegistry.getListenerContainer("routingTicketIntentListener");
         if (container != null) {
-            ContainerTestUtils.waitForAssignment(container, 6);
+            ContainerTestUtils.waitForAssignment(
+                    container, routingKafkaProperties.topics().ticketIntent().partitions());
         }
 
         redisTemplate
@@ -284,7 +290,7 @@ class TicketIntentKafkaIntegrationTest {
     @DisplayName("Should wire real Kafka, Redis, and Coordinator beans superseding fallbacks")
     void shouldWireRealAdaptersOverFallbacks() {
         assertThat(processTicketIntentUseCase).isInstanceOf(OperatorAssignmentCoordinator.class);
-        assertThat(manageOperatorPresenceUseCase).isInstanceOf(OperatorAssignmentCoordinator.class);
+        assertThat(manageOperatorPresenceUseCase).isInstanceOf(OperatorPresenceService.class);
         assertThat(audioRerouteSignalPort).isInstanceOf(KafkaAudioRerouteSignalAdapter.class);
         assertThat(operatorPresencePort).isInstanceOf(RedisOperatorPresenceAdapter.class);
         assertThat(priorityCallQueuePort).isInstanceOf(RedisPriorityCallQueueAdapter.class);

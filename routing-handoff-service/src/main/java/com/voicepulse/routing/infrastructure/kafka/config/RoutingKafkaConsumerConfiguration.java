@@ -98,7 +98,11 @@ public class RoutingKafkaConsumerConfiguration {
     public CommonErrorHandler routingKafkaCommonErrorHandler(
             DeadLetterPublishingRecoverer routingDlqRecoverer) {
         DefaultErrorHandler errorHandler =
-                new DefaultErrorHandler(routingDlqRecoverer, new FixedBackOff(0L, 0L));
+                new DefaultErrorHandler(
+                        routingDlqRecoverer,
+                        new FixedBackOff(
+                                routingKafkaProperties.retryBackoff().toMillis(),
+                                routingKafkaProperties.maxRetries()));
         errorHandler.addNotRetryableExceptions(
                 DeserializationException.class,
                 MessageConversionException.class,

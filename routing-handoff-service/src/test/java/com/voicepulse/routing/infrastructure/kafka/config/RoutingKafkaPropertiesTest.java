@@ -16,6 +16,12 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 @DisplayName("RoutingKafkaProperties & RoutingKafkaConfiguration Tests")
 class RoutingKafkaPropertiesTest {
 
+    private static final RoutingKafkaTopicProperties VALID_TOPICS =
+            new RoutingKafkaTopicProperties(
+                    new RoutingTopicSpec(6, 1),
+                    new RoutingTopicSpec(12, 1),
+                    new RoutingTopicSpec(3, 1));
+
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
                     .withInitializer(new ConfigDataApplicationContextInitializer())
@@ -26,7 +32,7 @@ class RoutingKafkaPropertiesTest {
     class ContextBindingTests {
 
         @Test
-        @DisplayName("Should bind Kafka properties from application.yml")
+        @DisplayName("Should bind Kafka and topic topology properties from application.yml")
         void shouldBindDefaultsFromApplicationYml() {
             contextRunner.run(
                     context -> {
@@ -38,7 +44,14 @@ class RoutingKafkaPropertiesTest {
                         assertThat(props.concurrency()).isEqualTo(3);
                         assertThat(props.autoOffsetReset()).isEqualTo("earliest");
                         assertThat(props.sendTimeout()).isEqualTo(Duration.ofSeconds(5));
+                        assertThat(props.retryBackoff()).isEqualTo(Duration.ofMillis(500));
+                        assertThat(props.maxRetries()).isEqualTo(2);
                         assertThat(props.dlqTopic()).isEqualTo("telephony.calls.dlq");
+                        assertThat(props.topics().ticketIntent())
+                                .isEqualTo(new RoutingTopicSpec(6, 1));
+                        assertThat(props.topics().callControl())
+                                .isEqualTo(new RoutingTopicSpec(12, 1));
+                        assertThat(props.topics().dlq()).isEqualTo(new RoutingTopicSpec(3, 1));
                     });
         }
 
@@ -51,7 +64,10 @@ class RoutingKafkaPropertiesTest {
                             4,
                             "  EARLIEST  ",
                             Duration.ofSeconds(3),
-                            "  telephony.calls.dlq  ");
+                            Duration.ZERO,
+                            0,
+                            "  telephony.calls.dlq  ",
+                            VALID_TOPICS);
 
             assertThat(props.autoOffsetReset()).isEqualTo("earliest");
             assertThat(props.dlqTopic()).isEqualTo("telephony.calls.dlq");
@@ -73,7 +89,10 @@ class RoutingKafkaPropertiesTest {
                                             invalidConcurrency,
                                             "earliest",
                                             Duration.ofSeconds(5),
-                                            "telephony.calls.dlq"))
+                                            Duration.ofMillis(500),
+                                            2,
+                                            "telephony.calls.dlq",
+                                            VALID_TOPICS))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("concurrency");
         }
@@ -90,18 +109,28 @@ class RoutingKafkaPropertiesTest {
                                             3,
                                             invalidPolicy,
                                             Duration.ofSeconds(5),
-                                            "telephony.calls.dlq"))
+                                            Duration.ofMillis(500),
+                                            2,
+                                            "telephony.calls.dlq",
+                                            VALID_TOPICS))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("autoOffsetReset");
         }
 
         @Test
-        @DisplayName("Should reject null, zero, or negative sendTimeout")
-        void shouldRejectInvalidSendTimeout() {
+        @DisplayName("Should reject invalid sendTimeout, retryBackoff, and maxRetries")
+        void shouldRejectInvalidTimingsAndRetries() {
             assertThatThrownBy(
                             () ->
                                     new RoutingKafkaProperties(
-                                            true, 3, "earliest", null, "telephony.calls.dlq"))
+                                            true,
+                                            3,
+                                            "earliest",
+                                            null,
+                                            Duration.ofMillis(500),
+                                            2,
+                                            "telephony.calls.dlq",
+                                            VALID_TOPICS))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("sendTimeout");
 
@@ -112,7 +141,10 @@ class RoutingKafkaPropertiesTest {
                                             3,
                                             "earliest",
                                             Duration.ZERO,
-                                            "telephony.calls.dlq"))
+                                            Duration.ofMillis(500),
+                                            2,
+                                            "telephony.calls.dlq",
+                                            VALID_TOPICS))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("sendTimeout");
 
@@ -122,10 +154,27 @@ class RoutingKafkaPropertiesTest {
                                             true,
                                             3,
                                             "earliest",
-                                            Duration.ofMillis(-50),
-                                            "telephony.calls.dlq"))
+                                            Duration.ofSeconds(5),
+                                            Duration.ofMillis(-1),
+                                            2,
+                                            "telephony.calls.dlq",
+                                            VALID_TOPICS))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("sendTimeout");
+                    .hasMessageContaining("retryBackoff");
+
+            assertThatThrownBy(
+                            () ->
+                                    new RoutingKafkaProperties(
+                                            true,
+                                            3,
+                                            "earliest",
+                                            Duration.ofSeconds(5),
+                                            Duration.ofMillis(500),
+                                            -1,
+                                            "telephony.calls.dlq",
+                                            VALID_TOPICS))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("maxRetries");
         }
 
         @ParameterizedTest
@@ -140,9 +189,45 @@ class RoutingKafkaPropertiesTest {
                                             3,
                                             "earliest",
                                             Duration.ofSeconds(5),
-                                            invalidTopic))
+                                            Duration.ofMillis(500),
+                                            2,
+                                            invalidTopic,
+                                            VALID_TOPICS))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("dlqTopic");
+        }
+
+        @Test
+        @DisplayName("Should reject null topic topology container or invalid partitions/replicas")
+        void shouldRejectInvalidTopicTopology() {
+            assertThatThrownBy(
+                            () ->
+                                    new RoutingKafkaProperties(
+                                            true,
+                                            3,
+                                            "earliest",
+                                            Duration.ofSeconds(5),
+                                            Duration.ofMillis(500),
+                                            2,
+                                            "telephony.calls.dlq",
+                                            null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("topics");
+
+            assertThatThrownBy(() -> new RoutingTopicSpec(0, 1))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("partitions");
+            assertThatThrownBy(() -> new RoutingTopicSpec(6, 0))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("replicas");
+            assertThatThrownBy(
+                            () ->
+                                    new RoutingKafkaTopicProperties(
+                                            null,
+                                            new RoutingTopicSpec(12, 1),
+                                            new RoutingTopicSpec(3, 1)))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("ticketIntent");
         }
     }
 }
