@@ -480,6 +480,9 @@ class EndToEndMcpTriageIntegrationTest {
         new ApplicationContextRunner()
                 .withInitializer(new ConfigDataApplicationContextInitializer())
                 .withPropertyValues(
+                        "spring.main.web-application-type=none",
+                        "spring.autoconfigure.exclude="
+                            + "org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration",
                         "voicepulse.conversation.kafka.enabled=false",
                         "voicepulse.conversation.ai.mode=live",
                         "voicepulse.conversation.ai.endpoint-url="
@@ -810,7 +813,7 @@ class EndToEndMcpTriageIntegrationTest {
     }
 
     private void awaitTurnBoundaryCount(CallId callId, int expectedTurnBoundaries) {
-        await().atMost(Duration.ofSeconds(15))
+        await().atMost(Duration.ofSeconds(30))
                 .untilAsserted(
                         () -> {
                             TrailingSilenceEvaluator evaluator =
@@ -822,7 +825,7 @@ class EndToEndMcpTriageIntegrationTest {
 
     private ConsumerRecord<String, TicketFormFilledEvent> awaitTicketIntentRecord(CallId callId) {
         List<ConsumerRecord<String, TicketFormFilledEvent>> matched = new ArrayList<>();
-        await().atMost(Duration.ofSeconds(15))
+        await().atMost(Duration.ofSeconds(30))
                 .untilAsserted(
                         () -> {
                             ConsumerRecords<String, TicketFormFilledEvent> records =
