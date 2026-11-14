@@ -30,3 +30,7 @@ voicepulse:
     max-queue-capacity: ${ROUTING_MAX_QUEUE_CAPACITY:1000}
     persistence:
       enabled: ${ROUTING_PERSISTENCE_ENABLED:true}
+    redis:
+      enabled: ${ROUTING_REDIS_ENABLED:true}
+      key-prefix: ${ROUTING_REDIS_KEY_PREFIX:voicepulse:routing}
+      operation-timeout: ${ROUTING_REDIS_OPERATION_TIMEOUT:5s}

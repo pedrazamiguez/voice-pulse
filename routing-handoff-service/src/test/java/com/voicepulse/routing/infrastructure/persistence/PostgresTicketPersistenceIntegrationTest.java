@@ -44,6 +44,7 @@ import org.testcontainers.utility.MountableFile;
         properties = {
             "spring.main.web-application-type=none",
             "voicepulse.routing.persistence.enabled=true",
+            "voicepulse.routing.redis.enabled=false",
             "spring.autoconfigure.exclude="
                 + "org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
