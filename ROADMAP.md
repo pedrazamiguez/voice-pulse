@@ -15,8 +15,8 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 | **Epic 2** | **Ingestion Voice Gateway & Softphone Echo Loop** | `edge-gateway-service` | **Completed** | [Issue #20](https://github.com/pedrazamiguez/voice-pulse/issues/20) • [Plan](docs/plans/epic-2-gateway-plan.md) |
 | **Epic 3** | **High-Throughput Kafka Event Bus & In-Order Worker Pool** | `edge-gateway-service`, `conversation-engine` | **Completed** | [Issue #68](https://github.com/pedrazamiguez/voice-pulse/issues/68) • [Plan](docs/plans/epic-3-kafka-plan.md) |
 | **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | **Completed** | [Issue #105](https://github.com/pedrazamiguez/voice-pulse/issues/105) • [Plan](docs/plans/epic-4-conversation-plan.md) |
-| **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `shared-kernel`, `scripts/mcp` | **Next** | [Issue #128](https://github.com/pedrazamiguez/voice-pulse/issues/128) • [Plan](docs/plans/epic-5-mcp-plan.md) |
-| **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, UI | Planned | RFC-0001 §4.4 |
+| **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `shared-kernel`, `scripts/mcp` | **Completed** | [Issue #128](https://github.com/pedrazamiguez/voice-pulse/issues/128) • [Plan](docs/plans/epic-5-mcp-plan.md) |
+| **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, UI | **Next** | RFC-0001 §4.4 |
 | **Epic 7** | **10,000 Concurrent Calls Load Testing & Hardening** | Platform-wide, Gatling, OTel | Planned | RFC-0002 §12 & §13 |
 
 ---
@@ -28,8 +28,8 @@ flowchart LR
     E1["Epic 1<br/>Foundation & Tooling<br/>(Completed)"] --> E2["Epic 2<br/>Gateway & Echo Loop<br/>(Completed)"]
     E2 --> E3["Epic 3<br/>Kafka Event Bus<br/>(Completed)"]
     E3 --> E4["Epic 4<br/>Conversation Core & VAD<br/>(Completed)"]
-    E4 --> E5["Epic 5<br/>MCP Tools & AI Triage<br/>(Next)"]
-    E5 --> E6["Epic 6<br/>Routing & Operator Console"]
+    E4 --> E5["Epic 5<br/>MCP Tools & AI Triage<br/>(Completed)"]
+    E5 --> E6["Epic 6<br/>Routing & Operator Console<br/>(Next)"]
     E6 --> E7["Epic 7<br/>10k Calls Load Test"]
 ```
 
@@ -127,7 +127,7 @@ flowchart LR
 ### Epic 5: Runtime MCP Tool Servers & AI Triage Synthesis
 * **Tracking Issue:** [#128](https://github.com/pedrazamiguez/voice-pulse/issues/128)
 * **Master Plan:** [docs/plans/epic-5-mcp-plan.md](docs/plans/epic-5-mcp-plan.md)
-* **Status:** **Next**
+* **Status:** **Completed**
 * **Governing Blueprint:** RFC-0001 §4.4; RFC-0002 §6; RFC-0003 §4
 * **Objective:** Connect the conversational core to external systems via Model Context Protocol (MCP) tool servers for real-world airline operations.
 * **Key Deliverables:**
@@ -141,7 +141,7 @@ flowchart LR
 ---
 
 ### Epic 6: Operator Handoff, Redis Presence & Web Console
-* **Status:** **Planned**
+* **Status:** **Next**
 * **Governing Blueprint:** RFC-0001 §4.4; RFC-0003 §6
 * **Objective:** Provide seamless human-in-the-loop escalation when automated triage concludes or customer requests an agent.
 * **Key Deliverables:**
