@@ -8,6 +8,7 @@ import com.voicepulse.conversation.application.registry.ConversationSessionRegis
 import com.voicepulse.conversation.application.service.ConversationOrchestratorService;
 import com.voicepulse.conversation.domain.ports.inbound.ProcessAudioChunkUseCase;
 import com.voicepulse.conversation.domain.ports.inbound.ProgressConversationUseCase;
+import com.voicepulse.conversation.domain.service.SkillGroupRoutingPolicy;
 import com.voicepulse.conversation.infrastructure.fallback.NoOpCallControlDispatcherPort;
 import com.voicepulse.conversation.infrastructure.fallback.NoOpConversationStatePublisherPort;
 import com.voicepulse.conversation.infrastructure.fallback.NoOpProcessAudioChunkUseCase;
@@ -77,6 +78,7 @@ class ConversationApplicationConfigurationTest {
                     assertThat(context).hasSingleBean(ConversationResponseGenerator.class);
                     assertThat(context).hasSingleBean(MockLlmConversationProcessor.class);
                     assertThat(context).hasSingleBean(ConversationOrchestratorService.class);
+                    assertThat(context).hasSingleBean(SkillGroupRoutingPolicy.class);
                 });
     }
 }
