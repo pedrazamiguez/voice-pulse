@@ -4,6 +4,15 @@ server:
 spring:
   application:
     name: routing-handoff-service
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/voicepulse}
+    username: ${POSTGRES_USER:voicepulse}
+    password: ${POSTGRES_PASSWORD:voicepulse}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${POSTGRES_POOL_SIZE:20}
+      minimum-idle: ${POSTGRES_MIN_IDLE:5}
+      connection-timeout: ${POSTGRES_CONNECTION_TIMEOUT_MS:5000}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -19,3 +28,5 @@ voicepulse:
     operator-heartbeat-ttl: ${OPERATOR_HEARTBEAT_TTL:30s}
     operator-bridge-base-path: ${OPERATOR_BRIDGE_BASE_PATH:/ws/operators}
     max-queue-capacity: ${ROUTING_MAX_QUEUE_CAPACITY:1000}
+    persistence:
+      enabled: ${ROUTING_PERSISTENCE_ENABLED:true}
