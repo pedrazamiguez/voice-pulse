@@ -34,3 +34,9 @@ voicepulse:
       enabled: ${ROUTING_REDIS_ENABLED:true}
       key-prefix: ${ROUTING_REDIS_KEY_PREFIX:voicepulse:routing}
       operation-timeout: ${ROUTING_REDIS_OPERATION_TIMEOUT:5s}
+    kafka:
+      enabled: ${ROUTING_KAFKA_ENABLED:true}
+      concurrency: ${ROUTING_KAFKA_CONCURRENCY:3}
+      auto-offset-reset: ${ROUTING_KAFKA_AUTO_OFFSET_RESET:earliest}
+      send-timeout: ${ROUTING_KAFKA_SEND_TIMEOUT:5s}
+      dlq-topic: ${ROUTING_KAFKA_DLQ_TOPIC:telephony.calls.dlq}
