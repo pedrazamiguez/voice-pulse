@@ -47,20 +47,20 @@ sequenceDiagram
 
 ---
 
-## 3. Execution Phases
+## 3. Implementation Phases & Tracked GitHub Sub-Issues
 
-Each phase below will be tracked as an individual sub-issue of [#140](https://github.com/pedrazamiguez/voice-pulse/issues/140) and planned in detail via `vp-plan-issue` prior to implementation:
+Each phase below is tracked as an individual sub-issue of [#140](https://github.com/pedrazamiguez/voice-pulse/issues/140) and will be planned in detail via `vp-plan-issue` prior to implementation:
 
 ```mermaid
 flowchart LR
-    P1["Phase 1<br/>Domain Contracts & OperatorRerouteSignal"] --> P2["Phase 2<br/>PostgreSQL 16 Persistence & MapStruct"]
-    P2 --> P3["Phase 3<br/>Redis 7 Presence & Priority Queues"]
-    P3 --> P4["Phase 4<br/>Kafka Intent Consumer & Assignment Engine"]
-    P4 --> P5["Phase 5<br/>Operator Web Console & WS Push"]
-    P5 --> P6["Phase 6<br/>Gateway Audio Bridge & E2E Tests"]
+    P1["Phase 1 (#142)<br/>Domain Contracts & OperatorRerouteSignal"] --> P2["Phase 2 (#143)<br/>PostgreSQL 16 Persistence & MapStruct"]
+    P2 --> P3["Phase 3 (#144)<br/>Redis 7 Presence & Priority Queues"]
+    P3 --> P4["Phase 4 (#145)<br/>Kafka Intent Consumer & Assignment Engine"]
+    P4 --> P5["Phase 5 (#146)<br/>Operator Web Console & WS Push"]
+    P5 --> P6["Phase 6 (#147)<br/>Gateway Audio Bridge & E2E Tests"]
 ```
 
-### Phase 1: Pure Domain Contracts, Handoff FSM & `OperatorRerouteSignal`
+### Phase 1: Pure Domain Contracts, Handoff FSM & `OperatorRerouteSignal` — [#142](https://github.com/pedrazamiguez/voice-pulse/issues/142)
 * **Target Modules:** `shared-kernel`, `routing-handoff-service`
 * **Objective:** Establish pure Hexagonal domain models, sealed lifecycle states, inbound/outbound ports, and the shared `OperatorRerouteSignal` control event.
 * **Deliverables:**
@@ -70,7 +70,7 @@ flowchart LR
   - Top-level GoF Null Object `@Fallback @Component` beans in `infrastructure.fallback` and fail-fast `RoutingProperties` (`@ConfigurationProperties`).
   - Pure domain unit tests (Instancio + Mockito) and serializer round-trip tests.
 
-### Phase 2: PostgreSQL 16 Ticket & Audit Persistence Adapter
+### Phase 2: PostgreSQL 16 Ticket & Audit Persistence Adapter — [#143](https://github.com/pedrazamiguez/voice-pulse/issues/143)
 * **Target Module:** `routing-handoff-service`
 * **Objective:** Persist finalized `TicketFormFilledEvent` records and operator handoff audit transitions to PostgreSQL 16 (`disruption_tickets`, `operator_handoff_logs`).
 * **Deliverables:**
@@ -79,7 +79,7 @@ flowchart LR
   - `JdbcTicketPersistenceAdapter` implementing `TicketPersistencePort` against the schema in `config/postgres/init-db.sql`.
   - PostgreSQL Testcontainers integration tests verifying JSONB payload persistence and audit log inserts.
 
-### Phase 3: Redis 7 Reactive Operator Presence, Heartbeats & Priority Queues
+### Phase 3: Redis 7 Reactive Operator Presence, Heartbeats & Priority Queues — [#144](https://github.com/pedrazamiguez/voice-pulse/issues/144)
 * **Target Module:** `routing-handoff-service`
 * **Objective:** Implement reactive Redis 7 state management for operator availability, TTL heartbeats, atomic operator claiming, and prioritized skill-group FIFO queues.
 * **Deliverables:**
@@ -88,7 +88,7 @@ flowchart LR
   - `RedisPriorityCallQueueAdapter` implementing `PriorityCallQueuePort` preserving priority + FIFO ordering per `SkillGroup`.
   - Redis 7 Testcontainers and Awaitility integration tests verifying heartbeat TTL expiry, concurrent claim safety, and priority dequeue order.
 
-### Phase 4: Kafka `telephony.tickets.intent` Consumer & Assignment Coordinator
+### Phase 4: Kafka `telephony.tickets.intent` Consumer & Assignment Coordinator — [#145](https://github.com/pedrazamiguez/voice-pulse/issues/145)
 * **Target Module:** `routing-handoff-service`
 * **Objective:** Wire incoming `TicketFormFilledEvent` messages to persistence, operator skill matching, queueing, and `OperatorRerouteSignal` dispatch.
 * **Deliverables:**
@@ -96,7 +96,7 @@ flowchart LR
   - `TicketIntentKafkaConsumer` consuming `telephony.tickets.intent` and `KafkaAudioRerouteSignalAdapter` producing `OperatorRerouteSignal` to `telephony.calls.control` strictly keyed by `callId.toString()`.
   - Unit tests (Mockito) and Kafka Testcontainers integration tests verifying end-to-end event routing and partition key invariants.
 
-### Phase 5: Operator Web Console & Live Ticket/Transcript Dispatch
+### Phase 5: Operator Web Console & Live Ticket/Transcript Dispatch — [#146](https://github.com/pedrazamiguez/voice-pulse/issues/146)
 * **Target Module:** `routing-handoff-service`
 * **Objective:** Deliver the real-time Operator Web Console UI and reactive WebSocket/REST backend for operator presence management, queue visibility, ticket inspection, and transcript display.
 * **Deliverables:**
@@ -105,7 +105,7 @@ flowchart LR
   - Embedded single-page Operator Web Console under `routing-handoff-service/src/main/resources/static/console/` (`index.html`, `console.js`, `style.css`) with WebSocket audio client integration.
   - WebFlux slice tests and WebSocket dispatch integration tests.
 
-### Phase 6: Bot-to-Human Audio Bridge & Multi-Module E2E Integration Suite
+### Phase 6: Bot-to-Human Audio Bridge & Multi-Module E2E Integration Suite — [#147](https://github.com/pedrazamiguez/voice-pulse/issues/147)
 * **Target Modules:** `edge-gateway-service`, `routing-handoff-service`
 * **Objective:** Bridge live caller WebSocket audio to the assigned human operator WebSocket in `edge-gateway-service` upon `OperatorRerouteSignal` and verify the complete pipeline end-to-end.
 * **Deliverables:**
