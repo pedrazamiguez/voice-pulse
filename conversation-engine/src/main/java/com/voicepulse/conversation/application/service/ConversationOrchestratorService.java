@@ -1,15 +1,15 @@
 package com.voicepulse.conversation.application.service;
 
-import com.voicepulse.conversation.application.dialog.DialogTurnResult;
-import com.voicepulse.conversation.application.dialog.MockLlmConversationProcessor;
 import com.voicepulse.conversation.application.registry.ConversationSessionRegistry;
 import com.voicepulse.conversation.domain.event.BargeInDetected;
 import com.voicepulse.conversation.domain.event.CallStateTransitioned;
 import com.voicepulse.conversation.domain.event.ConversationDomainEvent;
 import com.voicepulse.conversation.domain.event.TurnCompleted;
+import com.voicepulse.conversation.domain.model.DialogTurnResult;
 import com.voicepulse.conversation.domain.ports.inbound.ProcessAudioChunkUseCase;
 import com.voicepulse.conversation.domain.ports.inbound.ProgressConversationUseCase;
 import com.voicepulse.conversation.domain.ports.outbound.CallControlDispatcherPort;
+import com.voicepulse.conversation.domain.ports.outbound.ConversationDialogProcessorPort;
 import com.voicepulse.conversation.domain.ports.outbound.ConversationStatePublisherPort;
 import com.voicepulse.conversation.domain.statemachine.CallSessionState;
 import com.voicepulse.conversation.domain.statemachine.ConversationSession;
@@ -48,7 +48,7 @@ public class ConversationOrchestratorService
                     + " six-character booking reference or PNR.";
 
     private final @NonNull ConversationSessionRegistry sessionRegistry;
-    private final @NonNull MockLlmConversationProcessor dialogProcessor;
+    private final @NonNull ConversationDialogProcessorPort dialogProcessor;
     private final @NonNull BargeInEvaluator bargeInEvaluator;
     private final @NonNull CallControlDispatcherPort callControlDispatcher;
     private final @NonNull ConversationStatePublisherPort statePublisher;

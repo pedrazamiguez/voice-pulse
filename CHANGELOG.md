@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-11-14
+### Added
+- feat(conversation): define pure domain MCP tool models, outbound ports, and TicketFormFilledEvent ([#122](https://github.com/pedrazamiguez/voice-pulse/issues/122))
+- feat(conversation): implement mcp-crm-server adapter, MapStruct mapper, and customer lookup client ([#123](https://github.com/pedrazamiguez/voice-pulse/issues/123))
+- feat(conversation): implement mcp-ticket-server adapter and Kafka ticket intent publisher ([#124](https://github.com/pedrazamiguez/voice-pulse/issues/124))
+- feat(conversation): implement mcp-telephony-routing adapter and priority skill group resolver ([#125](https://github.com/pedrazamiguez/voice-pulse/issues/125))
+- feat(conversation): implement dual-mode AI triage synthesis and MCP tool orchestration ([#126](https://github.com/pedrazamiguez/voice-pulse/issues/126))
+- test(conversation): implement end-to-end MCP tool servers and Kafka ticket intent integration test ([#127](https://github.com/pedrazamiguez/voice-pulse/issues/127))
+
+### Changed
+- Epic 5: Runtime MCP Tool Servers & AI Triage Synthesis ([#128](https://github.com/pedrazamiguez/voice-pulse/issues/128))
+
 ## [0.6.0] - 2026-11-11
 ### Tooling & Infrastructure
 - ci(release): eliminate manual workflow approval gate on automated release and sync PRs ([#116](https://github.com/pedrazamiguez/voice-pulse/issues/116))

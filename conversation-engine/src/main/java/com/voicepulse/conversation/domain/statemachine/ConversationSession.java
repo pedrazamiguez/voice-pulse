@@ -6,6 +6,7 @@ import com.voicepulse.conversation.domain.event.ConversationDomainEvent;
 import com.voicepulse.conversation.domain.event.TurnCompleted;
 import com.voicepulse.conversation.domain.exception.IllegalConversationStateException;
 import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
+import com.voicepulse.conversation.domain.model.CustomerProfile;
 import com.voicepulse.conversation.domain.vad.TurnPhase;
 import com.voicepulse.shared.model.CallId;
 import java.time.Instant;
@@ -31,6 +32,7 @@ public class ConversationSession {
     private TurnPhase turnPhase;
     private int turnCount;
     private Instant lastActivityAt;
+    private CustomerProfile customerProfile;
     private AirlineDisruptionTicket disruptionTicket;
     private String lastBotPrompt;
     private long lastTurnLatencyNanos;
@@ -144,6 +146,36 @@ public class ConversationSession {
             transitionTo(
                     new CallSessionState.DisruptionTriage(
                             pnr, customerName, flightNumber, triagedAt),
+                    triagedAt);
+        }
+    }
+
+    /**
+     * Transitions session to {@link CallSessionState.DisruptionTriage} upon acoustic verification
+     * and successful CRM lookup, attaching the resolved {@link CustomerProfile}.
+     *
+     * @param profile resolved passenger profile and active disrupted itinerary
+     * @param triagedAt timestamp of triage commencement
+     * @throws IllegalConversationStateException if current state is not AwaitingBookingConfirmation
+     */
+    public void confirmBooking(CustomerProfile profile, Instant triagedAt) {
+        synchronized (lock) {
+            Objects.requireNonNull(profile, "profile cannot be null");
+            Objects.requireNonNull(triagedAt, "triagedAt cannot be null");
+            assertNotTerminated("confirmBooking");
+
+            if (!(this.state instanceof CallSessionState.AwaitingBookingConfirmation)) {
+                throw new IllegalConversationStateException(
+                        "Cannot transition to DisruptionTriage from state: " + this.state);
+            }
+
+            this.customerProfile = profile;
+            transitionTo(
+                    new CallSessionState.DisruptionTriage(
+                            profile.pnr().value(),
+                            profile.customerName(),
+                            profile.activeItinerary().flightNumber().value(),
+                            triagedAt),
                     triagedAt);
         }
     }
@@ -384,6 +416,12 @@ public class ConversationSession {
     public Instant lastActivityAt() {
         synchronized (lock) {
             return this.lastActivityAt;
+        }
+    }
+
+    public Optional<CustomerProfile> customerProfile() {
+        synchronized (lock) {
+            return Optional.ofNullable(this.customerProfile);
         }
     }
 

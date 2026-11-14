@@ -18,6 +18,11 @@ voicepulse:
         partitions: 12
         replication-factor: 1
         retention: 1h
+      tickets-intent:
+        name: telephony.tickets.intent
+        partitions: 6
+        replication-factor: 1
+        retention: 168h
       dlq:
         name: telephony.calls.dlq
         partitions: 3
@@ -30,3 +35,15 @@ voicepulse:
       concurrency: 3
       auto-offset-reset: earliest
       worker-pool-size: 8
+    mcp:
+      crm-base-url: ${MCP_CRM_BASE_URL:http://localhost:8091}
+      ticket-base-url: ${MCP_TICKET_BASE_URL:http://localhost:8092}
+      routing-base-url: ${MCP_ROUTING_BASE_URL:http://localhost:8093}
+      connect-timeout: ${MCP_CONNECT_TIMEOUT:2s}
+      request-timeout: ${MCP_REQUEST_TIMEOUT:5s}
+    ai:
+      mode: ${AI_MODE:mock}
+      endpoint-url: ${AI_ENDPOINT_URL:http://localhost:11434/v1/chat/completions}
+      model: ${AI_MODEL:llama3.1}
+      timeout: ${AI_TIMEOUT:5s}
+      api-key: ${AI_API_KEY:}

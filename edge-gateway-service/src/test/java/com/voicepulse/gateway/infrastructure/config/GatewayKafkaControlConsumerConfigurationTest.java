@@ -7,6 +7,7 @@ import com.voicepulse.gateway.infrastructure.kafka.consumer.CallControlSignaling
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -19,6 +20,7 @@ class GatewayKafkaControlConsumerConfigurationTest {
                     .withInitializer(new ConfigDataApplicationContextInitializer())
                     .withConfiguration(
                             AutoConfigurations.of(
+                                    JacksonAutoConfiguration.class,
                                     KafkaAutoConfiguration.class,
                                     GatewayKafkaControlConsumerConfiguration.class))
                     .withBean(InterruptPlaybackUseCase.class, () -> sessionId -> {})

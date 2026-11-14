@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.instancio.Select.field;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.voicepulse.shared.event.BackpressureSignal;
 import com.voicepulse.shared.event.BargeInInterrupt;
 import com.voicepulse.shared.event.CallControlEnvelope;
@@ -33,14 +34,27 @@ class CallControlEnvelopeSerializationTest {
 
     @BeforeEach
     void setUp() {
-        serializer = new CallControlEnvelopeSerializer();
-        deserializer = new CallControlEnvelopeDeserializer();
+        ObjectMapper injectedMapper = KafkaJsonCodecProvider.objectMapper();
+        serializer = new CallControlEnvelopeSerializer(injectedMapper);
+        deserializer = new CallControlEnvelopeDeserializer(injectedMapper);
     }
 
     @AfterEach
     void tearDown() {
         serializer.close();
         deserializer.close();
+    }
+
+    @Test
+    @DisplayName("Should reject null ObjectMapper in constructor")
+    void shouldRejectNullObjectMapper() {
+        assertThatThrownBy(() -> new CallControlEnvelopeSerializer(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("objectMapper must not be null");
+
+        assertThatThrownBy(() -> new CallControlEnvelopeDeserializer(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("objectMapper must not be null");
     }
 
     @Test

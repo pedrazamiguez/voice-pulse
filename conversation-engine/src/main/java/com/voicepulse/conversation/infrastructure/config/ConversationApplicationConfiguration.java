@@ -1,5 +1,6 @@
 package com.voicepulse.conversation.infrastructure.config;
 
+import com.voicepulse.conversation.domain.service.SkillGroupRoutingPolicy;
 import com.voicepulse.conversation.domain.vad.BargeInEvaluator;
 import com.voicepulse.conversation.domain.vad.VoiceActivityDetector;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -23,5 +24,11 @@ public class ConversationApplicationConfiguration {
     @ConditionalOnMissingBean
     public BargeInEvaluator bargeInEvaluator(VoiceActivityDetector voiceActivityDetector) {
         return new BargeInEvaluator(voiceActivityDetector);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public SkillGroupRoutingPolicy skillGroupRoutingPolicy() {
+        return new SkillGroupRoutingPolicy();
     }
 }

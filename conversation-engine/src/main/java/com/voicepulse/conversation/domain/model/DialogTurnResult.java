@@ -1,13 +1,12 @@
-package com.voicepulse.conversation.application.dialog;
+package com.voicepulse.conversation.domain.model;
 
-import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
 import com.voicepulse.conversation.domain.statemachine.CallSessionState;
 import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Immutable execution result produced by {@link MockLlmConversationProcessor} for a single
- * conversational turn.
+ * Immutable domain execution result produced by a conversational dialog processor for a single
+ * turn.
  *
  * <p>Captures the synthesized bot response, resulting conversational state, optional assembled
  * ticket, and deterministic execution duration.
