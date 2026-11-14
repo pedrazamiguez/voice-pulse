@@ -7,6 +7,7 @@ import static org.instancio.Select.field;
 import com.voicepulse.conversation.domain.event.CallStateTransitioned;
 import com.voicepulse.conversation.domain.event.TurnCompleted;
 import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
+import com.voicepulse.conversation.domain.model.DialogTurnResult;
 import com.voicepulse.conversation.domain.model.OperatorHandoffReceipt;
 import com.voicepulse.conversation.domain.model.OperatorQueueStatus;
 import com.voicepulse.conversation.domain.model.TicketSubmissionReceipt;
@@ -149,5 +150,19 @@ class FallbackPortsTest {
                         .create();
 
         assertThatCode(() -> port.publishTicketFilled(event)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("NoOpConversationDialogProcessorPort operates as a safe Null Object")
+    void conversationDialogProcessorPortFallback() {
+        NoOpConversationDialogProcessorPort port = new NoOpConversationDialogProcessorPort();
+        CallId callId = CallId.generate();
+        Instant now = Instant.now();
+        ConversationSession session = ConversationSession.start(callId, now);
+
+        DialogTurnResult result = port.processTurn(session, "Hello", now);
+        assertThat(result.responseText()).isNotBlank();
+        assertThat(result.targetState()).isEqualTo(session.state());
+        assertThat(result.disruptionTicket()).isEmpty();
     }
 }

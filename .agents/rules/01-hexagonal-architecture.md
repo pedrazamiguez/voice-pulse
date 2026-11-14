@@ -81,5 +81,5 @@ public interface TicketRepositoryPort {
 
 ## 5. Configuration Properties & Fail-Fast Standards
 * Declare configuration properties as Java `record` with `@ConfigurationProperties(prefix = "...")`.
-* Use `@DefaultValue("...")` on record components for defaults. NEVER declare redundant `public static final` constants.
+* Default values belong exclusively in `application.yml` via `${ENV_VAR:fallback}` expressions. NEVER use `@DefaultValue("...")` annotations or declare redundant `public static final` constants.
 * Compact constructors MUST fail fast (e.g. `if (workerPoolSize <= 0) throw new IllegalArgumentException(...)`). Never silently swallow invalid values with hardcoded defaults.

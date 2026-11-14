@@ -8,12 +8,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.voicepulse.conversation.application.dialog.DialogTurnResult;
-import com.voicepulse.conversation.application.dialog.MockLlmConversationProcessor;
 import com.voicepulse.conversation.application.registry.ConversationSessionRegistry;
 import com.voicepulse.conversation.domain.event.CallStateTransitioned;
 import com.voicepulse.conversation.domain.event.TurnCompleted;
+import com.voicepulse.conversation.domain.model.DialogTurnResult;
 import com.voicepulse.conversation.domain.ports.outbound.CallControlDispatcherPort;
+import com.voicepulse.conversation.domain.ports.outbound.ConversationDialogProcessorPort;
 import com.voicepulse.conversation.domain.ports.outbound.ConversationStatePublisherPort;
 import com.voicepulse.conversation.domain.statemachine.CallSessionState;
 import com.voicepulse.conversation.domain.statemachine.ConversationSession;
@@ -42,7 +42,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("ConversationOrchestratorService Unit Tests")
 class ConversationOrchestratorServiceTest {
 
-    @Mock private MockLlmConversationProcessor dialogProcessor;
+    @Mock private ConversationDialogProcessorPort dialogProcessor;
 
     @Mock private BargeInEvaluator bargeInEvaluator;
 
