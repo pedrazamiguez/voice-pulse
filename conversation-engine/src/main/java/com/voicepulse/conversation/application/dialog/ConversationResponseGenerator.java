@@ -73,6 +73,21 @@ public class ConversationResponseGenerator {
     }
 
     /**
+     * Generates a reprompt when CRM lookup finds no reservation for the confirmed PNR (13 words).
+     *
+     * @param pnr verified 6-character PNR that yielded no CRM match
+     * @return contextual PNR-not-found reprompt adhering to the 25-word brevity ceiling
+     */
+    public String pnrNotFoundReprompt(String pnr) {
+        Objects.requireNonNull(pnr, "pnr cannot be null");
+        String prompt =
+                "I could not find booking reference "
+                        + AcousticPnrVerifier.formatAcousticPnr(pnr)
+                        + ". Please state your six-character PNR again.";
+        return validated(prompt);
+    }
+
+    /**
      * Generates a disruption inquiry prompt presenting remedy options (17-20 words).
      *
      * @param flightNumber disrupted flight number

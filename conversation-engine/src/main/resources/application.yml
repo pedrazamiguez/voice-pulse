@@ -41,3 +41,9 @@ voicepulse:
       routing-base-url: ${MCP_ROUTING_BASE_URL:http://localhost:8093}
       connect-timeout: ${MCP_CONNECT_TIMEOUT:2s}
       request-timeout: ${MCP_REQUEST_TIMEOUT:5s}
+    ai:
+      mode: ${AI_MODE:mock}
+      endpoint-url: ${AI_ENDPOINT_URL:http://localhost:11434/v1/chat/completions}
+      model: ${AI_MODEL:llama3.1}
+      timeout: ${AI_TIMEOUT:5s}
+      api-key: ${AI_API_KEY:}

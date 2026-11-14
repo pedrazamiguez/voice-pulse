@@ -60,6 +60,15 @@ class ConversationResponseGeneratorTest {
         assertThat(reprompt).contains("booking reference");
     }
 
+    @Test
+    @DisplayName("PNR not found reprompt formats NATO phonetic PNR and adheres to brevity rule")
+    void pnrNotFoundReprompt_isWithinBrevityLimit() {
+        String reprompt = generator.pnrNotFoundReprompt("A8F9X2");
+        assertThat(TurnBrevityValidator.isValid(reprompt)).isTrue();
+        assertThat(reprompt).contains("Alpha-8-Foxtrot-9-Xray-2");
+        assertThat(reprompt).contains("PNR");
+    }
+
     @ParameterizedTest
     @EnumSource(DisruptionReason.class)
     @DisplayName("Disruption inquiry prompt formats flight number and reason within brevity limit")

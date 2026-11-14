@@ -2,10 +2,11 @@ package com.voicepulse.conversation.application.dialog;
 
 import com.voicepulse.conversation.domain.linguistics.AcousticPnrVerifier;
 import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
-import com.voicepulse.conversation.domain.model.DisruptionTicketAssembler;
+import com.voicepulse.conversation.domain.model.CustomerProfile;
+import com.voicepulse.conversation.domain.model.DialogTurnResult;
+import com.voicepulse.conversation.domain.ports.outbound.ConversationDialogProcessorPort;
 import com.voicepulse.conversation.domain.statemachine.CallSessionState;
 import com.voicepulse.conversation.domain.statemachine.ConversationSession;
-import com.voicepulse.shared.model.DisruptionReason;
 import com.voicepulse.shared.model.Pnr;
 import com.voicepulse.shared.model.RebookingPreference;
 import java.time.Instant;
@@ -15,25 +16,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
  * Deterministic mock dialog simulator executing the SkyWay Airlines Disruption Hotline
- * conversational flow (RFC-0001 §4.3 and RFC-0003 §4).
+ * conversational flow (RFC-0001 §4.3, §4.4, and RFC-0003 §4).
  *
  * <p>Parses caller utterances via regex and domain linguistics heuristics, enforces the 25-word
- * brevity ceiling, compiles structured disruption tickets, and executes with sub-50ms deterministic
- * latency.
+ * brevity ceiling, orchestrates outbound MCP and Kafka ports via {@link
+ * DisruptionTriageCoordinator}, and executes with sub-50ms deterministic latency.
  */
 @Component
 @RequiredArgsConstructor
-public class MockLlmConversationProcessor {
-
-    private static final String DEFAULT_PASSENGER_NAME = "Andres";
-    private static final String DEFAULT_FLIGHT_NUMBER = "SW-104";
-    private static final DisruptionReason DEFAULT_DISRUPTION_REASON =
-            DisruptionReason.CANCELED_WEATHER;
-    private static final String TARGET_SKILL_GROUP = "DISRUPTION_DESK_PRIORITY";
+@ConditionalOnProperty(
+        prefix = "voicepulse.conversation.ai",
+        name = "mode",
+        havingValue = "mock",
+        matchIfMissing = true)
+public class MockLlmConversationProcessor implements ConversationDialogProcessorPort {
 
     private static final Pattern AFFIRMATIVE_PATTERN =
             Pattern.compile(
@@ -53,6 +54,7 @@ public class MockLlmConversationProcessor {
     private static final Pattern EMBEDDED_6CHAR_PATTERN = Pattern.compile("\\b([A-Za-z0-9]{6})\\b");
 
     private final @NonNull ConversationResponseGenerator responseGenerator;
+    private final @NonNull DisruptionTriageCoordinator triageCoordinator;
 
     /**
      * Processes a conversational turn for the given session and user utterance.
@@ -62,6 +64,7 @@ public class MockLlmConversationProcessor {
      * @param timestamp timestamp of the turn
      * @return deterministic turn execution result
      */
+    @Override
     public DialogTurnResult processTurn(
             ConversationSession session, String utterance, Instant timestamp) {
         Objects.requireNonNull(session, "session cannot be null");
@@ -105,12 +108,18 @@ public class MockLlmConversationProcessor {
             }
             case CallSessionState.AwaitingBookingConfirmation awaiting -> {
                 if (AFFIRMATIVE_PATTERN.matcher(utterance).find()) {
-                    String pnr = awaiting.transcribedPnr();
-                    session.confirmBooking(
-                            pnr, DEFAULT_PASSENGER_NAME, DEFAULT_FLIGHT_NUMBER, timestamp);
-                    responseText =
-                            responseGenerator.disruptionInquiry(
-                                    DEFAULT_FLIGHT_NUMBER, DEFAULT_DISRUPTION_REASON);
+                    Pnr pnr = new Pnr(awaiting.transcribedPnr());
+                    Optional<CustomerProfile> profileOpt =
+                            triageCoordinator.lookupAndConfirmBooking(session, pnr, timestamp);
+                    if (profileOpt.isPresent()) {
+                        CustomerProfile profile = profileOpt.get();
+                        responseText =
+                                responseGenerator.disruptionInquiry(
+                                        profile.activeItinerary().flightNumber().value(),
+                                        profile.activeItinerary().disruptionReason());
+                    } else {
+                        responseText = responseGenerator.pnrNotFoundReprompt(pnr.value());
+                    }
                 } else if (NEGATIVE_PATTERN.matcher(utterance).find()) {
                     session.promptPassengerDetails(1);
                     responseText = responseGenerator.negativeConfirmationReprompt();
@@ -125,19 +134,9 @@ public class MockLlmConversationProcessor {
                 RebookingPreference preference = resolvePreference(utterance);
 
                 AirlineDisruptionTicket ticket =
-                        DisruptionTicketAssembler.assemble(
-                                session.callId().value(),
-                                triage.customerName(),
-                                triage.pnr(),
-                                triage.flightNumber(),
-                                DEFAULT_DISRUPTION_REASON,
-                                preference,
-                                hotelRequired,
-                                specialAssistance,
-                                timestamp);
+                        triageCoordinator.finalizeAndRouteTriage(
+                                session, preference, hotelRequired, specialAssistance, timestamp);
 
-                session.attachDisruptionTicket(ticket);
-                session.prepareHandoff(ticket.ticketId().toString(), TARGET_SKILL_GROUP);
                 responseText =
                         responseGenerator.handoffReady(
                                 triage.flightNumber(), hotelRequired, preference);
@@ -163,20 +162,18 @@ public class MockLlmConversationProcessor {
     }
 
     private Optional<Pnr> extractPnr(String utterance) {
-        // Direct attempt via acoustic parser (NATO tokens, single digits, etc.)
         Optional<Pnr> acousticParsed = AcousticPnrVerifier.tryParse(utterance);
         if (acousticParsed.isPresent()) {
             return acousticParsed;
         }
 
-        // Regex fallback for embedded 6-character alphanumeric tokens (e.g., "reference is A8F9X2")
         Matcher matcher = EMBEDDED_6CHAR_PATTERN.matcher(utterance);
         while (matcher.find()) {
             String candidate = matcher.group(1);
             try {
                 return Optional.of(AcousticPnrVerifier.validate(candidate));
             } catch (IllegalArgumentException ignored) {
-                // Ignore and keep searching
+                // Ignore non-PNR tokens and continue scanning
             }
         }
 

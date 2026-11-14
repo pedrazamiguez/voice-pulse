@@ -8,10 +8,15 @@ import com.voicepulse.conversation.domain.event.CallStateTransitioned;
 import com.voicepulse.conversation.domain.event.ConversationDomainEvent;
 import com.voicepulse.conversation.domain.event.TurnCompleted;
 import com.voicepulse.conversation.domain.exception.IllegalConversationStateException;
+import com.voicepulse.conversation.domain.model.ActiveItinerary;
 import com.voicepulse.conversation.domain.model.AirlineDisruptionTicket;
+import com.voicepulse.conversation.domain.model.CustomerProfile;
+import com.voicepulse.conversation.domain.model.FrequentFlyerTier;
 import com.voicepulse.conversation.domain.vad.TurnPhase;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.DisruptionReason;
+import com.voicepulse.shared.model.FlightNumber;
+import com.voicepulse.shared.model.Pnr;
 import com.voicepulse.shared.model.RebookingPreference;
 import java.time.Instant;
 import java.util.List;
@@ -231,6 +236,44 @@ class ConversationSessionTest {
             session.confirmBooking("RIGHT1", "Passenger Name", "SW-200", now.plusSeconds(1));
 
             assertThat(session.state()).isInstanceOf(CallSessionState.DisruptionTriage.class);
+        }
+
+        @Test
+        @DisplayName("confirmBooking with CustomerProfile stores profile and enters triage")
+        void confirmBookingWithCustomerProfile_storesProfile() {
+            CallId callId = CallId.generate();
+            Instant now = Instant.now();
+            ConversationSession session = ConversationSession.start(callId, now);
+
+            session.greet(now.plusMillis(100));
+            session.promptPassengerDetails(1);
+            session.awaitBookingConfirmation("A8F9X2", now.plusMillis(200));
+
+            CustomerProfile profile =
+                    new CustomerProfile(
+                            new Pnr("A8F9X2"),
+                            "Andres Pedraza",
+                            FrequentFlyerTier.GOLD,
+                            new ActiveItinerary(
+                                    new FlightNumber("SW-104"),
+                                    "CTU",
+                                    "MAD",
+                                    DisruptionReason.CANCELED_WEATHER,
+                                    now.plusSeconds(3600)));
+
+            session.confirmBooking(profile, now.plusMillis(300));
+
+            assertThat(session.customerProfile()).contains(profile);
+            assertThat(session.state())
+                    .isInstanceOf(CallSessionState.DisruptionTriage.class)
+                    .satisfies(
+                            s -> {
+                                CallSessionState.DisruptionTriage dt =
+                                        (CallSessionState.DisruptionTriage) s;
+                                assertThat(dt.pnr()).isEqualTo("A8F9X2");
+                                assertThat(dt.customerName()).isEqualTo("Andres Pedraza");
+                                assertThat(dt.flightNumber()).isEqualTo("SW-104");
+                            });
         }
     }
 

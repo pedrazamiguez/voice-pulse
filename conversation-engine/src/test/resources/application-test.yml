@@ -9,3 +9,5 @@ voicepulse:
   conversation:
     kafka:
       enabled: false
+    ai:
+      mode: mock
