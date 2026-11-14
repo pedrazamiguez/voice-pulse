@@ -27,32 +27,39 @@ public class RedisKeySchema {
 
     /** Returns the Redis HASH key holding an operator's presence state and active call binding. */
     public String operatorPresenceKey(OperatorId operatorId) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
-        return properties.keyPrefix() + ":operators:" + operatorId.value() + ":presence";
+        return properties.keyPrefix()
+                + ":operators:"
+                + requireOperatorId(operatorId).value()
+                + ":presence";
     }
 
     /** Returns the Redis STRING TTL key tracking an operator's active heartbeat liveness. */
     public String operatorHeartbeatKey(OperatorId operatorId) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
-        return properties.keyPrefix() + ":operators:" + operatorId.value() + ":heartbeat";
+        return properties.keyPrefix()
+                + ":operators:"
+                + requireOperatorId(operatorId).value()
+                + ":heartbeat";
     }
 
     /** Returns the Redis SET key tracking currently AVAILABLE operators for a skill group. */
     public String skillAvailableKey(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
-        return properties.keyPrefix() + ":skills:" + skillGroup.name() + ":available";
+        return properties.keyPrefix()
+                + ":skills:"
+                + requireSkillGroup(skillGroup).name()
+                + ":available";
     }
 
     /** Returns the Redis SET key tracking all registered operators for a skill group. */
     public String skillOperatorsKey(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
-        return properties.keyPrefix() + ":skills:" + skillGroup.name() + ":operators";
+        return properties.keyPrefix()
+                + ":skills:"
+                + requireSkillGroup(skillGroup).name()
+                + ":operators";
     }
 
     /** Returns the Redis ZSET key maintaining priority + FIFO queued calls for a skill group. */
     public String queueKey(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
-        return properties.keyPrefix() + ":queues:" + skillGroup.name();
+        return properties.keyPrefix() + ":queues:" + requireSkillGroup(skillGroup).name();
     }
 
     /** Returns the monotonic Redis counter key used to break same-timestamp FIFO ties. */
@@ -95,5 +102,13 @@ public class RedisKeySchema {
      */
     public List<String> allQueueKeys() {
         return Arrays.stream(SkillGroup.values()).map(this::queueKey).toList();
+    }
+
+    private static OperatorId requireOperatorId(OperatorId operatorId) {
+        return Objects.requireNonNull(operatorId, "operatorId must not be null");
+    }
+
+    private static SkillGroup requireSkillGroup(SkillGroup skillGroup) {
+        return Objects.requireNonNull(skillGroup, "skillGroup must not be null");
     }
 }

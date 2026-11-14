@@ -163,7 +163,7 @@ public interface RedisRoutingMapper {
 
     @Named("optionalCallIdToString")
     default String mapOptionalCallIdToString(Optional<CallId> activeCallId) {
-        return activeCallId == null ? "" : activeCallId.map(CallId::toString).orElse("");
+        return activeCallId.map(CallId::toString).orElse("");
     }
 
     @Named("stringToOptionalCallId")

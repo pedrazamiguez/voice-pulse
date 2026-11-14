@@ -51,41 +51,41 @@ public class RedisPriorityCallQueueAdapter implements PriorityCallQueuePort {
 
     @Override
     public int enqueue(QueuedTicketItem item) {
-        Objects.requireNonNull(item, "item must not be null");
+        requireItem(item);
         Integer position = reactiveExecutor.await("enqueue", enqueueReactive(item));
         return position == null ? 0 : position;
     }
 
     @Override
     public Optional<QueuedTicketItem> dequeueHighestPriority(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         return reactiveExecutor.await(
                 "dequeueHighestPriority", dequeueHighestPriorityReactive(skillGroup));
     }
 
     @Override
     public Optional<QueuedTicketItem> removeByCallId(CallId callId) {
-        Objects.requireNonNull(callId, "callId must not be null");
+        requireCallId(callId);
         return reactiveExecutor.await("removeByCallId", removeByCallIdReactive(callId));
     }
 
     @Override
     public List<QueuedTicketItem> listQueuedBySkillGroup(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         return reactiveExecutor.await(
                 "listQueuedBySkillGroup", listQueuedBySkillGroupReactive(skillGroup));
     }
 
     @Override
     public long queueDepth(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         Long depth = reactiveExecutor.await("queueDepth", queueDepthReactive(skillGroup));
         return depth == null ? 0L : depth;
     }
 
     /** Reactively enqueues a ticket item and returns its 1-based queue position. */
     public Mono<Integer> enqueueReactive(QueuedTicketItem item) {
-        Objects.requireNonNull(item, "item must not be null");
+        requireItem(item);
         String payloadJson = serializeItem(item);
         List<String> keys = buildEnqueueKeys(item.skillGroup());
         List<String> args = buildEnqueueArgs(item, payloadJson);
@@ -123,7 +123,7 @@ public class RedisPriorityCallQueueAdapter implements PriorityCallQueuePort {
 
     /** Reactively pops the highest-priority (earliest FIFO on ties) item from a queue. */
     public Mono<Optional<QueuedTicketItem>> dequeueHighestPriorityReactive(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         List<String> keys =
                 List.of(
                         keySchema.queueKey(skillGroup),
@@ -140,7 +140,7 @@ public class RedisPriorityCallQueueAdapter implements PriorityCallQueuePort {
 
     /** Reactively removes a queued call by {@link CallId} across all skill-group queues. */
     public Mono<Optional<QueuedTicketItem>> removeByCallIdReactive(CallId callId) {
-        Objects.requireNonNull(callId, "callId must not be null");
+        requireCallId(callId);
         List<String> keys = new ArrayList<>();
         keys.add(keySchema.queueCallIndexKey());
         keys.add(keySchema.queueItemsKey());
@@ -162,7 +162,7 @@ public class RedisPriorityCallQueueAdapter implements PriorityCallQueuePort {
 
     /** Reactively lists all queued items for a skill group in exact priority-FIFO dequeue order. */
     public Mono<List<QueuedTicketItem>> listQueuedBySkillGroupReactive(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         return redisTemplate
                 .opsForZSet()
                 .range(keySchema.queueKey(skillGroup), Range.unbounded())
@@ -173,7 +173,7 @@ public class RedisPriorityCallQueueAdapter implements PriorityCallQueuePort {
 
     /** Reactively returns the current number of queued calls in a skill-group queue. */
     public Mono<Long> queueDepthReactive(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         return redisTemplate.opsForZSet().size(keySchema.queueKey(skillGroup)).defaultIfEmpty(0L);
     }
 
@@ -248,5 +248,17 @@ public class RedisPriorityCallQueueAdapter implements PriorityCallQueuePort {
             throw new RedisRoutingException("Malformed priority queue ZSET member: " + member);
         }
         return member.substring(lastColon + 1);
+    }
+
+    private static void requireItem(QueuedTicketItem item) {
+        Objects.requireNonNull(item, "item must not be null");
+    }
+
+    private static void requireSkillGroup(SkillGroup skillGroup) {
+        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+    }
+
+    private static void requireCallId(CallId callId) {
+        Objects.requireNonNull(callId, "callId must not be null");
     }
 }

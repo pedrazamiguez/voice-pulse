@@ -52,34 +52,32 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
 
     @Override
     public void savePresence(OperatorPresence presence) {
-        Objects.requireNonNull(presence, "presence must not be null");
+        requirePresence(presence);
         reactiveExecutor.awaitVoid("savePresence", savePresenceReactive(presence));
     }
 
     @Override
     public Optional<OperatorPresence> findPresence(OperatorId operatorId) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
+        requireOperatorId(operatorId);
         return reactiveExecutor.await("findPresence", findPresenceReactive(operatorId));
     }
 
     @Override
     public List<OperatorPresence> findAvailableBySkillGroup(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         return reactiveExecutor.await(
                 "findAvailableBySkillGroup", findAvailableBySkillGroupReactive(skillGroup));
     }
 
     @Override
     public List<OperatorPresence> findBySkillGroup(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         return reactiveExecutor.await("findBySkillGroup", findBySkillGroupReactive(skillGroup));
     }
 
     @Override
     public boolean tryClaimOperator(OperatorId operatorId, CallId callId, Instant claimedAt) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
-        Objects.requireNonNull(callId, "callId must not be null");
-        Objects.requireNonNull(claimedAt, "claimedAt must not be null");
+        requireClaimArgs(operatorId, callId, claimedAt);
         Boolean claimed =
                 reactiveExecutor.await(
                         "tryClaimOperator",
@@ -90,17 +88,14 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
     @Override
     public void releaseOperator(
             OperatorId operatorId, OperatorAvailabilityStatus nextStatus, Instant releasedAt) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
-        Objects.requireNonNull(nextStatus, "nextStatus must not be null");
-        Objects.requireNonNull(releasedAt, "releasedAt must not be null");
+        requireReleaseArgs(operatorId, nextStatus, releasedAt);
         reactiveExecutor.awaitVoid(
                 "releaseOperator", releaseOperatorReactive(operatorId, nextStatus, releasedAt));
     }
 
     @Override
     public boolean refreshHeartbeat(OperatorId operatorId, Instant heartbeatAt) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
-        Objects.requireNonNull(heartbeatAt, "heartbeatAt must not be null");
+        requireHeartbeatArgs(operatorId, heartbeatAt);
         Boolean refreshed =
                 reactiveExecutor.await(
                         "refreshHeartbeat", refreshHeartbeatReactive(operatorId, heartbeatAt));
@@ -109,7 +104,7 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
 
     /** Reactively saves or updates operator presence, heartbeat TTL, and skill-group sets. */
     public Mono<Void> savePresenceReactive(OperatorPresence presence) {
-        Objects.requireNonNull(presence, "presence must not be null");
+        requirePresence(presence);
         OperatorPresenceHash hash = mapper.toPresenceHash(presence);
         List<SkillGroup> allSkills = keySchema.allSkillGroups();
         List<String> keys = buildSavePresenceKeys(presence.operatorId());
@@ -131,7 +126,7 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
 
     /** Reactively retrieves an operator's presence if its heartbeat key is still active. */
     public Mono<Optional<OperatorPresence>> findPresenceReactive(OperatorId operatorId) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
+        requireOperatorId(operatorId);
         String presenceKey = keySchema.operatorPresenceKey(operatorId);
         String heartbeatKey = keySchema.operatorHeartbeatKey(operatorId);
 
@@ -160,7 +155,7 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
 
     /** Reactively retrieves all active {@code AVAILABLE} operators for a skill group. */
     public Mono<List<OperatorPresence>> findAvailableBySkillGroupReactive(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         String availableSetKey = keySchema.skillAvailableKey(skillGroup);
 
         return redisTemplate
@@ -174,7 +169,7 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
 
     /** Reactively retrieves all active operators registered for a skill group. */
     public Mono<List<OperatorPresence>> findBySkillGroupReactive(SkillGroup skillGroup) {
-        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+        requireSkillGroup(skillGroup);
         String operatorsSetKey = keySchema.skillOperatorsKey(skillGroup);
 
         return redisTemplate
@@ -189,9 +184,7 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
     /** Reactively executes an atomic {@code AVAILABLE} → {@code BUSY} operator claim. */
     public Mono<Boolean> tryClaimOperatorReactive(
             OperatorId operatorId, CallId callId, Instant claimedAt) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
-        Objects.requireNonNull(callId, "callId must not be null");
-        Objects.requireNonNull(claimedAt, "claimedAt must not be null");
+        requireClaimArgs(operatorId, callId, claimedAt);
 
         List<String> keys = new ArrayList<>();
         keys.add(keySchema.operatorPresenceKey(operatorId));
@@ -223,9 +216,7 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
     /** Reactively releases an operator's active call and updates its availability state. */
     public Mono<Void> releaseOperatorReactive(
             OperatorId operatorId, OperatorAvailabilityStatus nextStatus, Instant releasedAt) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
-        Objects.requireNonNull(nextStatus, "nextStatus must not be null");
-        Objects.requireNonNull(releasedAt, "releasedAt must not be null");
+        requireReleaseArgs(operatorId, nextStatus, releasedAt);
 
         List<String> keys = new ArrayList<>();
         keys.add(keySchema.operatorPresenceKey(operatorId));
@@ -257,8 +248,7 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
 
     /** Reactively refreshes an active operator's heartbeat TTL. */
     public Mono<Boolean> refreshHeartbeatReactive(OperatorId operatorId, Instant heartbeatAt) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
-        Objects.requireNonNull(heartbeatAt, "heartbeatAt must not be null");
+        requireHeartbeatArgs(operatorId, heartbeatAt);
 
         List<String> keys =
                 List.of(
@@ -368,5 +358,35 @@ public class RedisOperatorPresenceAdapter implements OperatorPresencePort {
 
     private String ttlMillisString() {
         return String.valueOf(routingProperties.operatorHeartbeatTtl().toMillis());
+    }
+
+    private static void requirePresence(OperatorPresence presence) {
+        Objects.requireNonNull(presence, "presence must not be null");
+    }
+
+    private static void requireOperatorId(OperatorId operatorId) {
+        Objects.requireNonNull(operatorId, "operatorId must not be null");
+    }
+
+    private static void requireSkillGroup(SkillGroup skillGroup) {
+        Objects.requireNonNull(skillGroup, "skillGroup must not be null");
+    }
+
+    private static void requireClaimArgs(OperatorId operatorId, CallId callId, Instant claimedAt) {
+        requireOperatorId(operatorId);
+        Objects.requireNonNull(callId, "callId must not be null");
+        Objects.requireNonNull(claimedAt, "claimedAt must not be null");
+    }
+
+    private static void requireReleaseArgs(
+            OperatorId operatorId, OperatorAvailabilityStatus nextStatus, Instant releasedAt) {
+        requireOperatorId(operatorId);
+        Objects.requireNonNull(nextStatus, "nextStatus must not be null");
+        Objects.requireNonNull(releasedAt, "releasedAt must not be null");
+    }
+
+    private static void requireHeartbeatArgs(OperatorId operatorId, Instant heartbeatAt) {
+        requireOperatorId(operatorId);
+        Objects.requireNonNull(heartbeatAt, "heartbeatAt must not be null");
     }
 }

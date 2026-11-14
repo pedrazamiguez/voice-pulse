@@ -61,10 +61,8 @@ class RedisRoutingPropertiesTest {
         @ValueSource(strings = {"   ", ":::", "voicepulse routing"})
         @DisplayName("Should reject blank, colon-only, or whitespace-containing keyPrefix")
         void shouldRejectInvalidKeyPrefix(String invalidPrefix) {
-            assertThatThrownBy(
-                            () ->
-                                    new RedisRoutingProperties(
-                                            true, invalidPrefix, Duration.ofSeconds(5)))
+            Duration validTimeout = Duration.ofSeconds(5);
+            assertThatThrownBy(() -> new RedisRoutingProperties(true, invalidPrefix, validTimeout))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("keyPrefix");
         }
@@ -72,6 +70,9 @@ class RedisRoutingPropertiesTest {
         @Test
         @DisplayName("Should reject null, zero, or negative operationTimeout")
         void shouldRejectInvalidOperationTimeout() {
+            Duration zeroTimeout = Duration.ZERO;
+            Duration negativeTimeout = Duration.ofSeconds(-1);
+
             assertThatThrownBy(() -> new RedisRoutingProperties(true, "voicepulse:routing", null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("operationTimeout");
@@ -79,14 +80,14 @@ class RedisRoutingPropertiesTest {
             assertThatThrownBy(
                             () ->
                                     new RedisRoutingProperties(
-                                            true, "voicepulse:routing", Duration.ZERO))
+                                            true, "voicepulse:routing", zeroTimeout))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("operationTimeout");
 
             assertThatThrownBy(
                             () ->
                                     new RedisRoutingProperties(
-                                            true, "voicepulse:routing", Duration.ofSeconds(-1)))
+                                            true, "voicepulse:routing", negativeTimeout))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("operationTimeout");
         }
