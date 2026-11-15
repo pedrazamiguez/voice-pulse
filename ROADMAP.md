@@ -16,8 +16,8 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 | **Epic 3** | **High-Throughput Kafka Event Bus & In-Order Worker Pool** | `edge-gateway-service`, `conversation-engine` | **Completed** | [Issue #68](https://github.com/pedrazamiguez/voice-pulse/issues/68) • [Plan](docs/plans/epic-3-kafka-plan.md) |
 | **Epic 4** | **Hexagonal Conversation Core, VAD & State Machine** | `conversation-engine`, `shared-kernel` | **Completed** | [Issue #105](https://github.com/pedrazamiguez/voice-pulse/issues/105) • [Plan](docs/plans/epic-4-conversation-plan.md) |
 | **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `shared-kernel`, `scripts/mcp` | **Completed** | [Issue #128](https://github.com/pedrazamiguez/voice-pulse/issues/128) • [Plan](docs/plans/epic-5-mcp-plan.md) |
-| **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, `edge-gateway-service`, `shared-kernel` | **Next** | [Issue #140](https://github.com/pedrazamiguez/voice-pulse/issues/140) • [Plan](docs/plans/epic-6-routing-console-plan.md) |
-| **Epic 7** | **10,000 Concurrent Calls Load Testing & Hardening** | Platform-wide, Gatling, OTel | Planned | RFC-0002 §12 & §13 |
+| **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, `edge-gateway-service`, `shared-kernel` | **Completed** | [Issue #140](https://github.com/pedrazamiguez/voice-pulse/issues/140) • [Plan](docs/plans/epic-6-routing-console-plan.md) |
+| **Epic 7** | **10,000 Concurrent Calls Load Testing & Hardening** | Platform-wide, Gatling, OTel | **Next** | [Issue #159](https://github.com/pedrazamiguez/voice-pulse/issues/159) • [Plan](docs/plans/epic-7-load-observability-plan.md) |
 
 ---
 
@@ -29,8 +29,8 @@ flowchart LR
     E2 --> E3["Epic 3<br/>Kafka Event Bus<br/>(Completed)"]
     E3 --> E4["Epic 4<br/>Conversation Core & VAD<br/>(Completed)"]
     E4 --> E5["Epic 5<br/>MCP Tools & AI Triage<br/>(Completed)"]
-    E5 --> E6["Epic 6<br/>Routing & Operator Console<br/>(Next)"]
-    E6 --> E7["Epic 7<br/>10k Calls Load Test"]
+    E5 --> E6["Epic 6<br/>Routing & Operator Console<br/>(Completed)"]
+    E6 --> E7["Epic 7<br/>10k Calls Load Test<br/>(Next)"]
 ```
 
 ---
@@ -143,13 +143,13 @@ flowchart LR
 ### Epic 6: Operator Handoff, Redis Presence & Web Console
 * **Tracking Issue:** [#140](https://github.com/pedrazamiguez/voice-pulse/issues/140)
 * **Master Plan:** [docs/plans/epic-6-routing-console-plan.md](docs/plans/epic-6-routing-console-plan.md)
-* **Status:** **Next**
+* **Status:** **Completed**
 * **Governing Blueprint:** RFC-0001 §3, §4.2, §4.5; RFC-0003 §2 & §4
 * **Objective:** Provide seamless human-in-the-loop escalation when automated triage concludes or customer requests an agent.
 * **Key Deliverables:**
   - Pure domain handoff state machine, outbound ports, and `OperatorRerouteSignal` (`shared-kernel`, `routing-handoff-service`) ([#142](https://github.com/pedrazamiguez/voice-pulse/issues/142)).
-  - PostgreSQL 16 ticket & handoff audit persistence (`disruption_tickets`, `operator_handoff_logs`) via Virtual Threads and MapStruct ([#143](https://github.com/pedrazamiguez/voice-pulse/issues/143)).
-  - Reactive Redis 7 skill-based operator queues, presence tracking, and TTL heartbeat mechanism ([#144](https://github.com/pedrazamiguez/voice-pulse/issues/144)).
+  - PostgreSQL 16 ticket & handoff audit persistence (`disruption_tickets`, `operator_handoff_logs`) via Virtual Threads, Spring Data JDBC, and MapStruct ([#143](https://github.com/pedrazamiguez/voice-pulse/issues/143), [#151](https://github.com/pedrazamiguez/voice-pulse/issues/151)).
+  - Reactive Redis 7 skill-based operator queues, presence tracking, and TTL heartbeat mechanism via typed Spring Data Redis abstractions ([#144](https://github.com/pedrazamiguez/voice-pulse/issues/144), [#153](https://github.com/pedrazamiguez/voice-pulse/issues/153)).
   - Kafka `telephony.tickets.intent` consumer and automated operator assignment engine ([#145](https://github.com/pedrazamiguez/voice-pulse/issues/145)).
   - Operator Web Console displaying pre-populated disruption ticket, priority queue, and live transcript ([#146](https://github.com/pedrazamiguez/voice-pulse/issues/146)).
   - Low-latency bot-to-human audio stream handoff in `edge-gateway-service` verified under `PARANOID` leak detection ([#147](https://github.com/pedrazamiguez/voice-pulse/issues/147)).
@@ -157,14 +157,18 @@ flowchart LR
 ---
 
 ### Epic 7: 10,000 Concurrent Calls Load Testing & Performance Hardening
-* **Status:** **Planned**
-* **Governing Blueprint:** RFC-0002 §12 & §13; RFC-0001 §5
-* **Objective:** Validate platform resilience and latency SLAs under severe storm surge traffic.
+* **Tracking Issue:** [#159](https://github.com/pedrazamiguez/voice-pulse/issues/159)
+* **Master Plan:** [docs/plans/epic-7-load-observability-plan.md](docs/plans/epic-7-load-observability-plan.md)
+* **Status:** **Next**
+* **Governing Blueprint:** RFC-0001 §3, §4.6, §6; RFC-0002 §9.3, §12 & §13; RFC-0003 §2 & §5
+* **Objective:** Validate platform resilience and latency SLAs under severe storm surge traffic while delivering Actuator/Prometheus metering, OpenTelemetry tracing, and full-stack observability.
 * **Key Deliverables:**
-  - Gatling load simulation orchestrating 10,000 concurrent synthetic WebSocket callers.
-  - OpenTelemetry distributed tracing and metrics export.
-  - Prometheus and Grafana dashboards tracking p95/p99 audio packet latency and Kafka consumer lag.
-  - Resource usage profiling under load (heap, direct memory, CPU).
+  - Spring Boot Actuator `/actuator/prometheus` baseline, `MeteringAudioPublisherDecorator` (`AudioFramePublisherPort`), and AI/routing SLI instrumentation ([#161](https://github.com/pedrazamiguez/voice-pulse/issues/161)).
+  - OpenTelemetry distributed tracing and W3C `traceparent` propagation across Netty WebSockets, Kafka headers, Redis, and PostgreSQL ([#163](https://github.com/pedrazamiguez/voice-pulse/issues/163)).
+  - Full-stack `docker-compose.yml` and `observability/` (OTel Collector, Prometheus alert rules, Grafana `telephony-metrics.json` dashboard) ([#164](https://github.com/pedrazamiguez/voice-pulse/issues/164)).
+  - Gatling load simulation orchestrating up to 10,000 concurrent synthetic WebSocket callers in `AI_MODE=mock` ([#165](https://github.com/pedrazamiguez/voice-pulse/issues/165)).
+  - Netty direct memory, Kafka partitioning, and Virtual Thread pinning hardening under sustained load ([#166](https://github.com/pedrazamiguez/voice-pulse/issues/166)).
+  - Reproducible benchmark report (`docs/benchmarks/load-test-results.md`), `make load-smoke` gate, and as-built design patterns blueprint (`docs/architecture/design-patterns-blueprint.md`) ([#167](https://github.com/pedrazamiguez/voice-pulse/issues/167)).
 
 ---
 
