@@ -84,7 +84,8 @@ class OperatorPresenceHashMapperTest {
         assertThatThrownBy(() -> mapper.toHash(null)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> mapper.fromHash(null))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> mapper.fromHash(Map.of()))
+        Map<String, String> emptyHash = Map.of();
+        assertThatThrownBy(() -> mapper.fromHash(emptyHash))
                 .isInstanceOf(IllegalArgumentException.class);
 
         Optional<OperatorPresenceHash> result =

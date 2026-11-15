@@ -47,7 +47,7 @@ public class OperatorPresenceLuaGateway {
             OperatorPresenceHash hash,
             Set<SkillGroup> skills,
             boolean available) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
+        requireOperatorId(operatorId);
         Objects.requireNonNull(hash, "hash must not be null");
         Objects.requireNonNull(skills, "skills must not be null");
 
@@ -88,7 +88,7 @@ public class OperatorPresenceLuaGateway {
 
     /** Atomically transitions an {@code AVAILABLE} live operator to {@code BUSY} for a call. */
     public Mono<Boolean> tryClaimOperator(OperatorId operatorId, CallId callId, Instant claimedAt) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
+        requireOperatorId(operatorId);
         Objects.requireNonNull(callId, "callId must not be null");
         Objects.requireNonNull(claimedAt, "claimedAt must not be null");
 
@@ -122,7 +122,7 @@ public class OperatorPresenceLuaGateway {
     /** Atomically releases an active operator's call binding and updates skill availability. */
     public Mono<Void> releaseOperator(
             OperatorId operatorId, OperatorAvailabilityStatus nextStatus, Instant releasedAt) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
+        requireOperatorId(operatorId);
         Objects.requireNonNull(nextStatus, "nextStatus must not be null");
         Objects.requireNonNull(releasedAt, "releasedAt must not be null");
 
@@ -157,7 +157,7 @@ public class OperatorPresenceLuaGateway {
 
     /** Atomically extends both presence hash and heartbeat liveness TTLs. */
     public Mono<Boolean> refreshHeartbeat(OperatorId operatorId, Instant heartbeatAt) {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
+        requireOperatorId(operatorId);
         Objects.requireNonNull(heartbeatAt, "heartbeatAt must not be null");
 
         List<String> keys =
@@ -213,6 +213,10 @@ public class OperatorPresenceLuaGateway {
                                                 + " removedEntries={}",
                                         distinctExpired.size(),
                                         removed));
+    }
+
+    private static void requireOperatorId(OperatorId operatorId) {
+        Objects.requireNonNull(operatorId, "operatorId must not be null");
     }
 
     private String ttlMillisString() {

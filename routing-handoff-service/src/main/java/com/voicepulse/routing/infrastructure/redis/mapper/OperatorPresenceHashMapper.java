@@ -63,13 +63,7 @@ public class OperatorPresenceHashMapper
             throw new IllegalArgumentException("Redis hash entries must not be null or empty");
         }
         Bucket bucket = Bucket.newBucketFromStringMap(hash);
-        OperatorPresenceHash mapped =
-                converter.read(OperatorPresenceHash.class, new RedisData(bucket));
-        if (mapped == null) {
-            throw new IllegalArgumentException(
-                    "MappingRedisConverter returned null for OperatorPresenceHash");
-        }
-        return mapped;
+        return converter.read(OperatorPresenceHash.class, new RedisData(bucket));
     }
 
     /**

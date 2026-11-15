@@ -3,7 +3,6 @@ package com.voicepulse.routing.infrastructure.redis;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -217,8 +216,7 @@ class RedisOperatorPresenceAdapterTest {
 
         when(luaGateway.evictExpiredOperators(List.of(expiredOp1, expiredOp2)))
                 .thenReturn(Mono.just(6L));
-        when(setOperations.remove(eq(availableSetKey), eq("op-paused-1")))
-                .thenReturn(Mono.just(1L));
+        when(setOperations.remove(availableSetKey, "op-paused-1")).thenReturn(Mono.just(1L));
 
         StepVerifier.create(
                         adapter.findAvailableBySkillGroupReactive(SkillGroup.DISRUPTION_DESK_GOLD))
@@ -274,8 +272,7 @@ class RedisOperatorPresenceAdapterTest {
                                                         mapper.toPresenceHash(
                                                                 otherSkillPresence))))));
         when(luaGateway.evictExpiredOperators(List.of())).thenReturn(Mono.just(0L));
-        when(setOperations.remove(eq(operatorsSetKey), eq("op-other-skill")))
-                .thenReturn(Mono.just(1L));
+        when(setOperations.remove(operatorsSetKey, "op-other-skill")).thenReturn(Mono.just(1L));
 
         assertThat(adapter.findBySkillGroup(SkillGroup.DISRUPTION_DESK_GOLD))
                 .containsExactly(busyPresence);
