@@ -13,6 +13,8 @@ spring:
 voicepulse:
   gateway:
     audio-publisher: kafka
+    bridge:
+      outbound-buffer-capacity: ${GATEWAY_BRIDGE_OUTBOUND_BUFFER_CAPACITY:8192}
     kafka:
       topic: telephony.calls.raw
       control-topic: telephony.calls.control

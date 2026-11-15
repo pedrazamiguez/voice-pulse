@@ -6,6 +6,7 @@ import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.CallSessionId;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Pure domain aggregate managing call session lifecycle transitions and monotonic frame ordering.
@@ -77,7 +78,65 @@ public class CallSession {
                 this.state =
                         new CallSessionState.Streaming(
                                 current.startedStreamingAt(), current.framesReceived() + 1L);
+            } else if (this.state instanceof CallSessionState.Bridged) {
+                // Keep Bridged state intact while advancing sequence and activity timestamp
             }
+        }
+    }
+
+    /**
+     * Transitions an active session into a human operator audio bridge.
+     *
+     * @param operatorId identifier of the assigned human operator
+     * @param bridgeEndpoint WebSocket bridge URI assigned to the operator
+     * @param bridgedAt timestamp of reroute activation
+     */
+    public void rerouteToOperator(String operatorId, String bridgeEndpoint, Instant bridgedAt) {
+        synchronized (lock) {
+            if (operatorId == null || operatorId.isBlank()) {
+                throw new IllegalArgumentException("operatorId cannot be null or blank");
+            }
+            if (bridgeEndpoint == null || bridgeEndpoint.isBlank()) {
+                throw new IllegalArgumentException("bridgeEndpoint cannot be null or blank");
+            }
+            Objects.requireNonNull(bridgedAt, "bridgedAt cannot be null");
+
+            if (this.state instanceof CallSessionState.Disconnected disconnected) {
+                throw new IllegalSessionStateException(
+                        "Cannot reroute terminated session in state Disconnected("
+                                + disconnected.reason()
+                                + ")");
+            }
+
+            if (this.state instanceof CallSessionState.Bridged existing) {
+                if (existing.operatorId().equals(operatorId)
+                        && existing.bridgeEndpoint().equals(bridgeEndpoint)) {
+                    return;
+                }
+                throw new IllegalSessionStateException(
+                        "Session "
+                                + id
+                                + " is already bridged to operator "
+                                + existing.operatorId());
+            }
+
+            this.lastActivityAt = bridgedAt;
+            this.state = new CallSessionState.Bridged(operatorId, bridgeEndpoint, bridgedAt);
+        }
+    }
+
+    public boolean isBridged() {
+        synchronized (lock) {
+            return this.state instanceof CallSessionState.Bridged;
+        }
+    }
+
+    public Optional<String> bridgedOperatorId() {
+        synchronized (lock) {
+            if (this.state instanceof CallSessionState.Bridged bridged) {
+                return Optional.of(bridged.operatorId());
+            }
+            return Optional.empty();
         }
     }
 

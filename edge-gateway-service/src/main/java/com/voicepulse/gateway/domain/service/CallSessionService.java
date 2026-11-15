@@ -9,6 +9,7 @@ import com.voicepulse.gateway.domain.ports.inbound.InterruptPlaybackUseCase;
 import com.voicepulse.gateway.domain.ports.inbound.ManageCallSessionUseCase;
 import com.voicepulse.gateway.domain.ports.outbound.AudioFramePublisherPort;
 import com.voicepulse.gateway.domain.ports.outbound.AudioPlaybackControlPort;
+import com.voicepulse.gateway.domain.ports.outbound.OperatorAudioBridgePort;
 import com.voicepulse.gateway.domain.ports.outbound.SessionRegistryPort;
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.CallSessionId;
@@ -30,11 +31,13 @@ public class CallSessionService
     private final SessionRegistryPort sessionRegistry;
     private final AudioFramePublisherPort audioFramePublisher;
     private final AudioPlaybackControlPort audioPlaybackControlPort;
+    private final OperatorAudioBridgePort operatorAudioBridgePort;
 
     public CallSessionService(
             SessionRegistryPort sessionRegistry,
             AudioFramePublisherPort audioFramePublisher,
-            AudioPlaybackControlPort audioPlaybackControlPort) {
+            AudioPlaybackControlPort audioPlaybackControlPort,
+            OperatorAudioBridgePort operatorAudioBridgePort) {
         this.sessionRegistry =
                 Objects.requireNonNull(sessionRegistry, "sessionRegistry cannot be null");
         this.audioFramePublisher =
@@ -42,6 +45,9 @@ public class CallSessionService
         this.audioPlaybackControlPort =
                 Objects.requireNonNull(
                         audioPlaybackControlPort, "audioPlaybackControlPort cannot be null");
+        this.operatorAudioBridgePort =
+                Objects.requireNonNull(
+                        operatorAudioBridgePort, "operatorAudioBridgePort cannot be null");
     }
 
     @Override
@@ -65,7 +71,11 @@ public class CallSessionService
         session.acceptChunk(chunk);
         sessionRegistry.save(session);
 
-        audioFramePublisher.publishAudioChunk(chunk);
+        if (session.isBridged()) {
+            operatorAudioBridgePort.relayCallerAudio(chunk);
+        } else {
+            audioFramePublisher.publishAudioChunk(chunk);
+        }
     }
 
     @Override
@@ -80,6 +90,7 @@ public class CallSessionService
 
         session.terminate(reason, Instant.now());
         sessionRegistry.save(session);
+        operatorAudioBridgePort.closeBridge(sessionId);
     }
 
     @Override

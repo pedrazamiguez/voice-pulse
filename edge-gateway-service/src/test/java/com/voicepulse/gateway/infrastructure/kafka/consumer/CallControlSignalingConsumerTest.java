@@ -6,6 +6,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.voicepulse.gateway.domain.ports.inbound.BridgeOperatorAudioUseCase;
 import com.voicepulse.gateway.domain.ports.inbound.InterruptPlaybackUseCase;
 import com.voicepulse.shared.event.BackpressureSignal;
 import com.voicepulse.shared.event.BargeInInterrupt;
@@ -28,6 +29,8 @@ class CallControlSignalingConsumerTest {
     private static final String TOPIC = "telephony.calls.control";
 
     @Mock private InterruptPlaybackUseCase interruptPlaybackUseCase;
+
+    @Mock private BridgeOperatorAudioUseCase bridgeOperatorAudioUseCase;
 
     @InjectMocks private CallControlSignalingConsumer consumer;
 

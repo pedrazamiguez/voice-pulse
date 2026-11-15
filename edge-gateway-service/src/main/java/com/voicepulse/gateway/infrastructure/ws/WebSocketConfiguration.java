@@ -14,11 +14,20 @@ import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAd
 public class WebSocketConfiguration {
 
     public static final String AUDIO_PATH = "/ws/calls/{callId}/audio";
+    public static final String OPERATOR_AUDIO_PATH =
+            "/ws/operators/{operatorId}/calls/{callId}/audio";
 
     @Bean
-    public HandlerMapping webSocketHandlerMapping(AudioWebSocketHandler audioWebSocketHandler) {
+    public HandlerMapping webSocketHandlerMapping(
+            AudioWebSocketHandler audioWebSocketHandler,
+            OperatorAudioWebSocketHandler operatorAudioWebSocketHandler) {
         SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
-        mapping.setUrlMap(Map.of(AUDIO_PATH, audioWebSocketHandler));
+        mapping.setUrlMap(
+                Map.of(
+                        AUDIO_PATH,
+                        audioWebSocketHandler,
+                        OPERATOR_AUDIO_PATH,
+                        operatorAudioWebSocketHandler));
         mapping.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return mapping;
     }
