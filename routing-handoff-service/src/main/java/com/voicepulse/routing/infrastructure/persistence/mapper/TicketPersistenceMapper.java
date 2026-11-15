@@ -2,6 +2,7 @@ package com.voicepulse.routing.infrastructure.persistence.mapper;
 
 import com.voicepulse.routing.domain.model.HandoffAssignment;
 import com.voicepulse.routing.domain.model.HandoffLifecycleState;
+import com.voicepulse.routing.domain.model.HandoffTicketStatus;
 import com.voicepulse.routing.domain.model.OperatorId;
 import com.voicepulse.routing.domain.model.SkillGroup;
 import com.voicepulse.routing.infrastructure.persistence.model.CallSessionRow;
@@ -138,16 +139,7 @@ public interface TicketPersistenceMapper {
     }
 
     default String resolveLifecycleStatus(HandoffLifecycleState state) {
-        if (state == null) {
-            return null;
-        }
-        return switch (state) {
-            case HandoffLifecycleState.Queued ignored -> "QUEUED";
-            case HandoffLifecycleState.Assigned ignored -> "ASSIGNED";
-            case HandoffLifecycleState.AudioBridged ignored -> "AUDIO_BRIDGED";
-            case HandoffLifecycleState.Completed ignored -> "COMPLETED";
-            case HandoffLifecycleState.Abandoned ignored -> "ABANDONED";
-        };
+        return state == null ? null : HandoffTicketStatus.fromLifecycleState(state).name();
     }
 
     default String extractOperatorId(HandoffLifecycleState state) {

@@ -57,6 +57,7 @@ import reactor.test.StepVerifier;
             "spring.main.web-application-type=none",
             "voicepulse.routing.persistence.enabled=false",
             "voicepulse.routing.redis.enabled=true",
+            "voicepulse.routing.kafka.enabled=false",
             "voicepulse.routing.operator-heartbeat-ttl=1200ms",
             "voicepulse.routing.max-queue-capacity=5",
             "spring.autoconfigure.exclude="
