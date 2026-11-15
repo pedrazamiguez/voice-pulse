@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(routing): implement Operator Web Console UI and reactive ticket/transcript dispatch ([#146](https://github.com/pedrazamiguez/voice-pulse/issues/146))
 - feat(gateway): implement bot-to-human WebSocket audio bridge and multi-module handoff E2E test ([#147](https://github.com/pedrazamiguez/voice-pulse/issues/147))
 
+### Changed
+- refactor(routing): migrate PostgreSQL persistence adapter from raw JdbcTemplate SQL to Spring Data ([#151](https://github.com/pedrazamiguez/voice-pulse/issues/151))
+
 ## [0.7.0] - 2026-11-14
 ### Added
 - feat(conversation): define pure domain MCP tool models, outbound ports, and TicketFormFilledEvent ([#122](https://github.com/pedrazamiguez/voice-pulse/issues/122))
