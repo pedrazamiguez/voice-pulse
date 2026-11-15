@@ -2,19 +2,23 @@ package com.voicepulse.gateway.infrastructure.config;
 
 import com.voicepulse.gateway.domain.ports.outbound.AudioFramePublisherPort;
 import com.voicepulse.gateway.domain.ports.outbound.AudioPlaybackControlPort;
+import com.voicepulse.gateway.domain.ports.outbound.OperatorAudioBridgePort;
 import com.voicepulse.gateway.domain.ports.outbound.SessionRegistryPort;
 import com.voicepulse.gateway.domain.service.CallSessionService;
+import com.voicepulse.gateway.domain.service.OperatorAudioBridgeService;
 import com.voicepulse.gateway.infrastructure.echo.EchoLatencyTracker;
 import com.voicepulse.gateway.infrastructure.echo.LoopbackAudioEchoAdapter;
 import com.voicepulse.gateway.infrastructure.registry.ConcurrentSessionRegistry;
 import com.voicepulse.gateway.infrastructure.ws.WebSocketPlaybackControlAdapter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /** Spring configuration providing domain port and service beans with dependency inversion. */
 @Configuration
+@EnableConfigurationProperties(GatewayBridgeProperties.class)
 public class GatewayDomainConfiguration {
 
     @Bean
@@ -60,8 +64,22 @@ public class GatewayDomainConfiguration {
     public CallSessionService callSessionService(
             SessionRegistryPort sessionRegistryPort,
             AudioFramePublisherPort audioFramePublisherPort,
-            AudioPlaybackControlPort audioPlaybackControlPort) {
+            AudioPlaybackControlPort audioPlaybackControlPort,
+            OperatorAudioBridgePort operatorAudioBridgePort) {
         return new CallSessionService(
-                sessionRegistryPort, audioFramePublisherPort, audioPlaybackControlPort);
+                sessionRegistryPort,
+                audioFramePublisherPort,
+                audioPlaybackControlPort,
+                operatorAudioBridgePort);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public OperatorAudioBridgeService operatorAudioBridgeService(
+            SessionRegistryPort sessionRegistryPort,
+            AudioPlaybackControlPort audioPlaybackControlPort,
+            OperatorAudioBridgePort operatorAudioBridgePort) {
+        return new OperatorAudioBridgeService(
+                sessionRegistryPort, audioPlaybackControlPort, operatorAudioBridgePort);
     }
 }

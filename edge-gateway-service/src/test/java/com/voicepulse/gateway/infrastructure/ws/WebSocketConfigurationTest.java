@@ -28,6 +28,8 @@ class WebSocketConfigurationTest {
 
     @Mock private WebSocketCallUriParser uriParser;
 
+    @Mock private OperatorAudioWebSocketHandler operatorAudioHandler;
+
     @InjectMocks private AudioWebSocketHandler handler;
 
     @Test
@@ -35,12 +37,14 @@ class WebSocketConfigurationTest {
             "WebSocketConfiguration registers HandlerMapping with correct URL pattern and order")
     void webSocketHandlerMapping_configuresUrlAndPriority() {
         WebSocketConfiguration config = new WebSocketConfiguration();
-        HandlerMapping mapping = config.webSocketHandlerMapping(handler);
+        HandlerMapping mapping = config.webSocketHandlerMapping(handler, operatorAudioHandler);
 
         assertThat(mapping).isInstanceOf(SimpleUrlHandlerMapping.class);
         SimpleUrlHandlerMapping simpleMapping = (SimpleUrlHandlerMapping) mapping;
         assertThat(simpleMapping.getOrder()).isEqualTo(Ordered.HIGHEST_PRECEDENCE);
         assertThat(simpleMapping.getUrlMap()).containsKey(WebSocketConfiguration.AUDIO_PATH);
+        assertThat(simpleMapping.getUrlMap())
+                .containsKey(WebSocketConfiguration.OPERATOR_AUDIO_PATH);
         assertThat(simpleMapping.getUrlMap().get(WebSocketConfiguration.AUDIO_PATH))
                 .isSameAs(handler);
     }

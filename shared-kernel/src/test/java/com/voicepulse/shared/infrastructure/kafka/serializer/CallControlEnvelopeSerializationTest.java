@@ -10,6 +10,7 @@ import com.voicepulse.shared.event.BargeInInterrupt;
 import com.voicepulse.shared.event.CallControlEnvelope;
 import com.voicepulse.shared.event.CallStarted;
 import com.voicepulse.shared.event.CallTerminated;
+import com.voicepulse.shared.event.OperatorRerouteSignal;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallId;
 import java.nio.charset.StandardCharsets;
@@ -155,6 +156,65 @@ class CallControlEnvelopeSerializationTest {
         assertThat(backpressure.timestamp()).isEqualTo(NOW);
         assertThat(backpressure.pauseRequested()).isTrue();
         assertThat(backpressure.bufferFillRatioPercent()).isEqualTo(80);
+    }
+
+    @Test
+    @DisplayName(
+            "Should serialize and deserialize OperatorRerouteSignal event with polymorphic"
+                    + " fidelity")
+    void shouldRoundTripOperatorRerouteSignal() {
+        String bridgeEndpoint = "/ws/operators/op-99/calls/" + CALL_ID + "/audio";
+        OperatorRerouteSignal event =
+                Instancio.of(OperatorRerouteSignal.class)
+                        .set(field(OperatorRerouteSignal::callId), CALL_ID)
+                        .set(field(OperatorRerouteSignal::sequenceNumber), 32L)
+                        .set(field(OperatorRerouteSignal::timestamp), NOW)
+                        .set(field(OperatorRerouteSignal::operatorId), "op-99")
+                        .set(field(OperatorRerouteSignal::bridgeEndpoint), bridgeEndpoint)
+                        .create();
+
+        byte[] bytes = serializer.serialize(TOPIC, event);
+        assertThat(bytes).isNotNull();
+
+        CallControlEnvelope result = deserializer.deserialize(TOPIC, bytes);
+        assertThat(result).isInstanceOf(OperatorRerouteSignal.class);
+        OperatorRerouteSignal reroute = (OperatorRerouteSignal) result;
+
+        assertThat(reroute.callId()).isEqualTo(CALL_ID);
+        assertThat(reroute.sequenceNumber()).isEqualTo(32L);
+        assertThat(reroute.timestamp()).isEqualTo(NOW);
+        assertThat(reroute.operatorId()).isEqualTo("op-99");
+        assertThat(reroute.bridgeEndpoint()).isEqualTo(bridgeEndpoint);
+    }
+
+    @Test
+    @DisplayName(
+            "Should reject OperatorRerouteSignal JSON payload missing required fields with"
+                    + " SerializationException")
+    void shouldRejectOperatorRerouteSignalMissingFields() {
+        String missingBridgeJson =
+                "{\"type\":\"OPERATOR_REROUTE_SIGNAL\",\"callId\":\""
+                        + CALL_ID
+                        + "\",\"sequenceNumber\":1,\"timestamp\":\""
+                        + NOW
+                        + "\",\"operatorId\":\"op-99\"}";
+        byte[] missingBridgeBytes = missingBridgeJson.getBytes(StandardCharsets.UTF_8);
+
+        assertThatThrownBy(() -> deserializer.deserialize(TOPIC, missingBridgeBytes))
+                .isInstanceOf(SerializationException.class)
+                .hasMessageContaining("Missing 'bridgeEndpoint' field");
+
+        String missingOperatorJson =
+                "{\"type\":\"OPERATOR_REROUTE_SIGNAL\",\"callId\":\""
+                        + CALL_ID
+                        + "\",\"sequenceNumber\":1,\"timestamp\":\""
+                        + NOW
+                        + "\",\"bridgeEndpoint\":\"/ws/operators/op-99/calls/1/audio\"}";
+        byte[] missingOperatorBytes = missingOperatorJson.getBytes(StandardCharsets.UTF_8);
+
+        assertThatThrownBy(() -> deserializer.deserialize(TOPIC, missingOperatorBytes))
+                .isInstanceOf(SerializationException.class)
+                .hasMessageContaining("Missing 'operatorId' field");
     }
 
     @Test

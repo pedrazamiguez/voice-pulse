@@ -8,6 +8,7 @@ import com.voicepulse.shared.event.BargeInInterrupt;
 import com.voicepulse.shared.event.CallControlEnvelope;
 import com.voicepulse.shared.event.CallStarted;
 import com.voicepulse.shared.event.CallTerminated;
+import com.voicepulse.shared.event.OperatorRerouteSignal;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.common.errors.SerializationException;
@@ -81,6 +82,11 @@ public class CallControlEnvelopeSerializer implements Serializer<CallControlEnve
                     root.put("type", "BACKPRESSURE_SIGNAL");
                     root.put("pauseRequested", backpressure.pauseRequested());
                     root.put("bufferFillRatioPercent", backpressure.bufferFillRatioPercent());
+                }
+                case OperatorRerouteSignal reroute -> {
+                    root.put("type", "OPERATOR_REROUTE_SIGNAL");
+                    root.put("operatorId", reroute.operatorId());
+                    root.put("bridgeEndpoint", reroute.bridgeEndpoint());
                 }
             }
 

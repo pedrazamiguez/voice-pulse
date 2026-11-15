@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-11-15
+### Added
+- feat(routing): define pure domain handoff models, ports, and OperatorRerouteSignal ([#142](https://github.com/pedrazamiguez/voice-pulse/issues/142))
+- feat(routing): implement PostgreSQL 16 ticket and handoff audit persistence adapter ([#143](https://github.com/pedrazamiguez/voice-pulse/issues/143))
+- feat(routing): implement reactive Redis 7 operator presence, heartbeats, and priority queues ([#144](https://github.com/pedrazamiguez/voice-pulse/issues/144))
+- feat(routing): implement Kafka ticket intent consumer, assignment coordinator, and reroute publisher ([#145](https://github.com/pedrazamiguez/voice-pulse/issues/145))
+- feat(routing): implement Operator Web Console UI and reactive ticket/transcript dispatch ([#146](https://github.com/pedrazamiguez/voice-pulse/issues/146))
+- feat(gateway): implement bot-to-human WebSocket audio bridge and multi-module handoff E2E test ([#147](https://github.com/pedrazamiguez/voice-pulse/issues/147))
+
+### Changed
+- refactor(routing): migrate PostgreSQL persistence adapter from raw JdbcTemplate SQL to Spring Data ([#151](https://github.com/pedrazamiguez/voice-pulse/issues/151))
+- refactor(routing): replace low-level Redis template marshaling with typed Spring Data Redis abstractions ([#153](https://github.com/pedrazamiguez/voice-pulse/issues/153))
+- Epic 6: Operator Handoff, Redis Presence & Web Console ([#140](https://github.com/pedrazamiguez/voice-pulse/issues/140))
+
 ## [0.7.0] - 2026-11-14
 ### Added
 - feat(conversation): define pure domain MCP tool models, outbound ports, and TicketFormFilledEvent ([#122](https://github.com/pedrazamiguez/voice-pulse/issues/122))

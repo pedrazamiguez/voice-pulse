@@ -148,8 +148,8 @@ The platform is engineered across 7 phase-gated epics. For detailed phase breakd
 | **Epic 2** | [Ingestion Voice Gateway & Softphone Echo Loop](docs/plans/epic-2-gateway-plan.md) | **Completed** |
 | **Epic 3** | [High-Throughput Kafka Event Bus & In-Order Worker Pool](docs/plans/epic-3-kafka-plan.md) | **Completed** |
 | **Epic 4** | [Hexagonal Conversation Core, VAD & State Machine](docs/plans/epic-4-conversation-plan.md) | **Completed** |
-| **Epic 5** | [Runtime MCP Tool Servers & AI Triage Synthesis](docs/plans/epic-5-mcp-plan.md) | **Next** |
-| **Epic 6** | Operator Handoff, Redis Presence & Web Console | Planned |
+| **Epic 5** | [Runtime MCP Tool Servers & AI Triage Synthesis](docs/plans/epic-5-mcp-plan.md) | **Completed** |
+| **Epic 6** | [Operator Handoff, Redis Presence & Web Console](docs/plans/epic-6-routing-console-plan.md) | **Next** |
 | **Epic 7** | 10,000 Concurrent Calls Load Testing & Performance Hardening | Planned |
 
 ---

@@ -1,13 +1,17 @@
 package com.voicepulse.gateway.infrastructure.kafka;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.verify;
 
 import com.voicepulse.gateway.domain.model.CallSession;
+import com.voicepulse.gateway.domain.model.CallSessionState;
 import com.voicepulse.gateway.domain.ports.outbound.AudioPlaybackControlPort;
 import com.voicepulse.gateway.domain.ports.outbound.SessionRegistryPort;
+import com.voicepulse.gateway.infrastructure.ws.CallBridgeRegistry;
 import com.voicepulse.shared.event.BargeInInterrupt;
 import com.voicepulse.shared.event.CallControlEnvelope;
+import com.voicepulse.shared.event.OperatorRerouteSignal;
 import com.voicepulse.shared.infrastructure.kafka.serializer.CallControlEnvelopeSerializer;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.CallSessionId;
@@ -54,6 +58,8 @@ class CallControlSignalingIntegrationTest {
 
     @Autowired private SessionRegistryPort sessionRegistry;
 
+    @Autowired private CallBridgeRegistry callBridgeRegistry;
+
     @MockBean private AudioPlaybackControlPort audioPlaybackControlPort;
 
     private KafkaTemplate<String, CallControlEnvelope> controlTemplate;
@@ -97,5 +103,35 @@ class CallControlSignalingIntegrationTest {
 
         await().atMost(Duration.ofSeconds(5))
                 .untilAsserted(() -> verify(audioPlaybackControlPort).interruptPlayback(sessionId));
+    }
+
+    @Test
+    @DisplayName(
+            "consumes OperatorRerouteSignal from telephony.calls.control, bridges session, flushes"
+                    + " AI audio, and registers operator assignment")
+    void consumesOperatorRerouteSignalAndActivatesAudioBridge() {
+        CallId callId = CallId.generate();
+        CallSessionId sessionId = CallSessionId.fromCallId(callId);
+        sessionRegistry.save(CallSession.start(sessionId, Instant.now().minusSeconds(3)));
+
+        Instant rerouteAt = Instant.now();
+        String endpoint = "/ws/operators/op-kafka-9/calls/" + callId + "/audio";
+        OperatorRerouteSignal rerouteSignal =
+                new OperatorRerouteSignal(callId, 25L, rerouteAt, "op-kafka-9", endpoint);
+
+        controlTemplate.send(CONTROL_TOPIC, callId.toString(), rerouteSignal);
+
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(
+                        () -> {
+                            CallSession updated = sessionRegistry.findById(sessionId).orElseThrow();
+                            assertThat(updated.isBridged()).isTrue();
+                            assertThat(updated.bridgedOperatorId()).contains("op-kafka-9");
+                            assertThat(updated.state())
+                                    .isInstanceOf(CallSessionState.Bridged.class);
+                            assertThat(callBridgeRegistry.getAssignedOperatorId(sessionId))
+                                    .contains("op-kafka-9");
+                            verify(audioPlaybackControlPort).interruptPlayback(sessionId);
+                        });
     }
 }

@@ -7,7 +7,6 @@ import com.voicepulse.gateway.infrastructure.registry.ConcurrentSessionRegistry;
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
 import com.voicepulse.shared.model.CallSessionId;
-import io.netty.util.ReferenceCountUtil;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.NonNull;
@@ -15,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -115,7 +113,7 @@ public class AudioWebSocketHandler implements WebSocketHandler {
             AtomicLong sequenceCounter,
             WebSocketMessage message) {
         if (message.getType() != WebSocketMessage.Type.BINARY) {
-            releaseBuffer(message.getPayload());
+            NettyBufferReleaser.release(message);
             return Mono.empty();
         }
 
@@ -128,7 +126,7 @@ public class AudioWebSocketHandler implements WebSocketHandler {
                     "DoS Guard: Frame size exceeds limit: {} bytes > {} bytes",
                     readableBytes,
                     AudioChunk.MAX_CHUNK_SIZE_BYTES);
-            releaseBuffer(dataBuffer);
+            NettyBufferReleaser.release(dataBuffer);
             manageCallSessionUseCase.terminateSession(sessionId, DisconnectReason.PROTOCOL_ERROR);
             return session.close(new CloseStatus(1009, "Payload exceeds 64 KB limit"));
         }
@@ -148,18 +146,7 @@ public class AudioWebSocketHandler implements WebSocketHandler {
             return session.close(
                     CloseStatus.SERVER_ERROR.withReason("Audio frame processing failed"));
         } finally {
-            releaseBuffer(dataBuffer);
-        }
-    }
-
-    private void releaseBuffer(DataBuffer dataBuffer) {
-        if (dataBuffer == null) {
-            return;
-        }
-        if (dataBuffer instanceof NettyDataBuffer nettyDataBuffer) {
-            ReferenceCountUtil.release(nettyDataBuffer.getNativeBuffer());
-        } else {
-            DataBufferUtils.release(dataBuffer);
+            NettyBufferReleaser.release(dataBuffer);
         }
     }
 

@@ -10,7 +10,11 @@ import java.time.Instant;
  * #callId()}.
  */
 public sealed interface CallControlEnvelope
-        permits CallStarted, CallTerminated, BargeInInterrupt, BackpressureSignal {
+        permits CallStarted,
+                CallTerminated,
+                BargeInInterrupt,
+                BackpressureSignal,
+                OperatorRerouteSignal {
 
     /** Unique call session identifier used for Kafka partitioning. */
     CallId callId();
