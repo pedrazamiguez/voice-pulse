@@ -15,6 +15,7 @@ import com.voicepulse.gateway.domain.model.CallSessionState;
 import com.voicepulse.gateway.domain.model.DisconnectReason;
 import com.voicepulse.gateway.domain.ports.outbound.AudioFramePublisherPort;
 import com.voicepulse.gateway.domain.ports.outbound.AudioPlaybackControlPort;
+import com.voicepulse.gateway.domain.ports.outbound.OperatorAudioBridgePort;
 import com.voicepulse.gateway.domain.ports.outbound.SessionRegistryPort;
 import com.voicepulse.shared.model.AudioChunk;
 import com.voicepulse.shared.model.AudioFormat;
@@ -40,6 +41,8 @@ class CallSessionServiceTest {
     @Mock private AudioFramePublisherPort publisher;
 
     @Mock private AudioPlaybackControlPort audioPlaybackControlPort;
+
+    @Mock private OperatorAudioBridgePort operatorAudioBridgePort;
 
     @InjectMocks private CallSessionService service;
 
