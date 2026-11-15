@@ -1,7 +1,5 @@
 package com.voicepulse.routing.infrastructure.redis.model;
 
-import java.util.Objects;
-
 /**
  * Infrastructure Redis Hash representation of an operator's live presence snapshot stored under
  * {@code <prefix>:operators:<operatorId>:presence}.
@@ -15,11 +13,18 @@ public record OperatorPresenceHash(
         String lastHeartbeatAt) {
 
     public OperatorPresenceHash {
-        Objects.requireNonNull(operatorId, "operatorId must not be null");
-        Objects.requireNonNull(displayName, "displayName must not be null");
-        Objects.requireNonNull(status, "status must not be null");
-        Objects.requireNonNull(skills, "skills must not be null");
-        Objects.requireNonNull(lastHeartbeatAt, "lastHeartbeatAt must not be null");
+        operatorId = requireNonBlank(operatorId, "operatorId");
+        displayName = requireNonBlank(displayName, "displayName");
+        status = requireNonBlank(status, "status");
+        skills = requireNonBlank(skills, "skills");
         activeCallId = activeCallId == null ? "" : activeCallId.trim();
+        lastHeartbeatAt = requireNonBlank(lastHeartbeatAt, "lastHeartbeatAt");
+    }
+
+    private static String requireNonBlank(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be null or blank");
+        }
+        return value.trim();
     }
 }

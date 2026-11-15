@@ -16,7 +16,6 @@ import com.voicepulse.shared.model.RebookingPreference;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -104,29 +103,6 @@ public interface RedisRoutingMapper {
     @Mapping(target = "payload", source = "payload")
     @Mapping(target = "timestamp", source = "eventTimestamp")
     TicketFormFilledEvent toTicketFormFilledEvent(QueuedTicketRedisPayload payload);
-
-    default Optional<OperatorPresence> fromRedisHashEntries(Map<String, String> entries) {
-        if (entries == null || entries.isEmpty()) {
-            return Optional.empty();
-        }
-        String operatorId = entries.get("operatorId");
-        String displayName = entries.get("displayName");
-        String status = entries.get("status");
-        String skills = entries.get("skills");
-        String activeCallId = entries.getOrDefault("activeCallId", "");
-        String lastHeartbeatAt = entries.get("lastHeartbeatAt");
-        if (isBlank(operatorId)
-                || isBlank(displayName)
-                || isBlank(status)
-                || isBlank(skills)
-                || isBlank(lastHeartbeatAt)) {
-            return Optional.empty();
-        }
-        OperatorPresenceHash hash =
-                new OperatorPresenceHash(
-                        operatorId, displayName, status, skills, activeCallId, lastHeartbeatAt);
-        return Optional.of(toOperatorPresence(hash));
-    }
 
     @Named("operatorIdToString")
     default String mapOperatorIdToString(OperatorId operatorId) {
@@ -238,9 +214,5 @@ public interface RedisRoutingMapper {
 
     default SkillGroup mapStringToSkillGroup(String skillGroup) {
         return skillGroup == null ? null : SkillGroup.fromCode(skillGroup);
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }
