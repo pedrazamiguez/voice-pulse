@@ -99,7 +99,8 @@ import org.testcontainers.utility.DockerImageName;
             "spring.autoconfigure.exclude="
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration,"
-                + "org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration"
+                + "org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration,"
+                + "org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration"
         })
 @Testcontainers
 @DirtiesContext

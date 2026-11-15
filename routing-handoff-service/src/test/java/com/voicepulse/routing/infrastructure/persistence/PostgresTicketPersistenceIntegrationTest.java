@@ -8,6 +8,12 @@ import com.voicepulse.routing.domain.model.HandoffLifecycleState;
 import com.voicepulse.routing.domain.model.OperatorId;
 import com.voicepulse.routing.domain.model.SkillGroup;
 import com.voicepulse.routing.domain.ports.outbound.TicketPersistencePort;
+import com.voicepulse.routing.infrastructure.persistence.model.CallSessionEntity;
+import com.voicepulse.routing.infrastructure.persistence.model.DisruptionTicketEntity;
+import com.voicepulse.routing.infrastructure.persistence.model.OperatorHandoffLogEntity;
+import com.voicepulse.routing.infrastructure.persistence.repository.CallSessionRepository;
+import com.voicepulse.routing.infrastructure.persistence.repository.DisruptionTicketRepository;
+import com.voicepulse.routing.infrastructure.persistence.repository.OperatorHandoffLogRepository;
 import com.voicepulse.shared.event.TicketFormFilledEvent;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.DisruptionReason;
@@ -20,6 +26,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.instancio.Instancio;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,8 +43,9 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 /**
- * PostgreSQL 16 Testcontainers integration test verifying {@link JdbcTicketPersistenceAdapter}
- * against {@code config/postgres/init-db.sql} (RFC-0001 §3, Epic #140 Phase 2).
+ * PostgreSQL 16 Testcontainers integration test verifying {@link
+ * SpringDataTicketPersistenceAdapter} against {@code config/postgres/init-db.sql} (RFC-0001 §3,
+ * Epic #140 Phase 2).
  */
 @SpringBootTest(
         classes = RoutingHandoffApplication.class,
@@ -70,12 +78,21 @@ class PostgresTicketPersistenceIntegrationTest {
 
     private final TicketPersistencePort persistencePort;
     private final JdbcTemplate jdbcTemplate;
+    private final CallSessionRepository callSessionRepository;
+    private final DisruptionTicketRepository disruptionTicketRepository;
+    private final OperatorHandoffLogRepository operatorHandoffLogRepository;
 
     PostgresTicketPersistenceIntegrationTest(
             @Autowired TicketPersistencePort persistencePort,
-            @Autowired JdbcTemplate jdbcTemplate) {
+            @Autowired JdbcTemplate jdbcTemplate,
+            @Autowired CallSessionRepository callSessionRepository,
+            @Autowired DisruptionTicketRepository disruptionTicketRepository,
+            @Autowired OperatorHandoffLogRepository operatorHandoffLogRepository) {
         this.persistencePort = persistencePort;
         this.jdbcTemplate = jdbcTemplate;
+        this.callSessionRepository = callSessionRepository;
+        this.disruptionTicketRepository = disruptionTicketRepository;
+        this.operatorHandoffLogRepository = operatorHandoffLogRepository;
     }
 
     @DynamicPropertySource
@@ -120,9 +137,9 @@ class PostgresTicketPersistenceIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should wire JdbcTicketPersistenceAdapter over NoOp fallback")
-    void shouldWireJdbcPersistenceAdapter() {
-        assertThat(persistencePort).isInstanceOf(JdbcTicketPersistenceAdapter.class);
+    @DisplayName("Should wire SpringDataTicketPersistenceAdapter over NoOp fallback")
+    void shouldWireSpringDataPersistenceAdapter() {
+        assertThat(persistencePort).isInstanceOf(SpringDataTicketPersistenceAdapter.class);
     }
 
     @Test
@@ -280,5 +297,114 @@ class PostgresTicketPersistenceIntegrationTest {
                         String.class,
                         callId.value());
         assertThat(sessionOperator).isEqualTo("op-audit-9");
+
+        List<OperatorHandoffLogEntity> repoLogs =
+                operatorHandoffLogRepository.findByCallIdOrderByIdAsc(callId.value());
+        assertThat(repoLogs).hasSize(2);
+        assertThat(repoLogs.get(0).id()).isNotNull();
+        assertThat(repoLogs.get(0).details().entries())
+                .containsEntry("skillGroup", "DISRUPTION_DESK_GOLD");
+        assertThat(repoLogs.get(1).id()).isGreaterThan(repoLogs.get(0).id());
+        assertThat(repoLogs.get(1).details().entries())
+                .containsEntry(
+                        "bridgeEndpoint", "/ws/operators/op-audit-9/calls/" + callId + "/audio");
+    }
+
+    @Test
+    @DisplayName(
+            "Should preserve created_at and call_sessions.metadata across re-delivery and audit"
+                    + " logs")
+    void shouldPreserveCreatedAtAndMetadataAcrossUpdatesAndAuditLogs() {
+        CallId callId = CallId.generate();
+        UUID ticketId = UUID.randomUUID();
+        Instant t1 = CREATED_AT;
+        Instant t2 = CREATED_AT.plusSeconds(30);
+        Instant t3 = CREATED_AT.plusSeconds(60);
+
+        TicketFormFilledEvent initial =
+                Instancio.of(TicketFormFilledEvent.class)
+                        .set(field(TicketFormFilledEvent::callId), callId)
+                        .set(field(TicketFormFilledEvent::ticketId), ticketId)
+                        .set(field(TicketFormFilledEvent::pnr), new Pnr("B7X4K2"))
+                        .set(
+                                field(TicketFormFilledEvent::originalFlightNumber),
+                                new FlightNumber("SW-210"))
+                        .set(
+                                field(TicketFormFilledEvent::disruptionReason),
+                                DisruptionReason.DELAYED_MAINTENANCE)
+                        .set(
+                                field(TicketFormFilledEvent::rebookingPreference),
+                                RebookingPreference.NEXT_AVAILABLE)
+                        .set(field(TicketFormFilledEvent::targetSkillGroup), "DISRUPTION_DESK_GOLD")
+                        .set(field(TicketFormFilledEvent::payload), Map.of("seat", "4C"))
+                        .set(field(TicketFormFilledEvent::timestamp), t1)
+                        .create();
+
+        HandoffLifecycleState queued =
+                new HandoffLifecycleState.Queued(
+                        callId, ticketId, SkillGroup.DISRUPTION_DESK_GOLD, 10, t1);
+        persistencePort.saveTicket(initial, SkillGroup.DISRUPTION_DESK_GOLD, queued);
+
+        TicketFormFilledEvent redelivered =
+                new TicketFormFilledEvent(
+                        callId,
+                        ticketId,
+                        initial.passengerName(),
+                        initial.pnr(),
+                        initial.originalFlightNumber(),
+                        initial.disruptionReason(),
+                        initial.rebookingPreference(),
+                        true,
+                        false,
+                        initial.targetSkillGroup(),
+                        Map.of("seat", "4C", "hotelVoucher", true),
+                        t2);
+        OperatorId operatorId = OperatorId.fromString("op-preserver-1");
+        HandoffLifecycleState assigned =
+                new HandoffLifecycleState.Assigned(
+                        callId, ticketId, operatorId, SkillGroup.DISRUPTION_DESK_GOLD, t2);
+        persistencePort.saveTicket(redelivered, SkillGroup.DISRUPTION_DESK_GOLD, assigned);
+
+        persistencePort.recordHandoffAuditLog(
+                callId,
+                "OPERATOR_ASSIGNED",
+                "QUEUED",
+                "ASSIGNED",
+                operatorId,
+                Map.of("bridgeEndpoint", "/ws/bridge/preserver"),
+                t3);
+
+        Optional<DisruptionTicketEntity> ticketEntityOpt =
+                disruptionTicketRepository.findFirstByCallIdOrderByCreatedAtDesc(callId.value());
+        assertThat(ticketEntityOpt).isPresent();
+        assertThat(ticketEntityOpt.get().createdAt()).isEqualTo(t1);
+        assertThat(ticketEntityOpt.get().updatedAt()).isEqualTo(t2);
+        assertThat(ticketEntityOpt.get().payload().entries())
+                .containsEntry("seat", "4C")
+                .containsEntry("hotelVoucher", true);
+
+        Optional<CallSessionEntity> sessionEntityOpt =
+                callSessionRepository.findById(callId.value());
+        assertThat(sessionEntityOpt).isPresent();
+        assertThat(sessionEntityOpt.get().createdAt()).isEqualTo(t1);
+        assertThat(sessionEntityOpt.get().updatedAt()).isEqualTo(t3);
+        assertThat(sessionEntityOpt.get().assignedOperatorId()).isEqualTo("op-preserver-1");
+        assertThat(sessionEntityOpt.get().metadata().entries())
+                .containsEntry("targetSkillGroup", "DISRUPTION_DESK_GOLD");
+
+        Optional<TicketFormFilledEvent> found = persistencePort.findTicketByCallId(callId);
+        assertThat(found).isPresent();
+        assertThat(found.get().targetSkillGroup()).isEqualTo("DISRUPTION_DESK_GOLD");
+        assertThat(found.get().timestamp()).isEqualTo(t1);
+    }
+
+    @Test
+    @DisplayName("Should ignore updateTicketStatus when ticketId does not exist")
+    void shouldNoOpUpdateTicketStatusWhenMissing() {
+        UUID missingTicketId = UUID.randomUUID();
+
+        persistencePort.updateTicketStatus(missingTicketId, "COMPLETED", CREATED_AT);
+
+        assertThat(disruptionTicketRepository.findById(missingTicketId.toString())).isEmpty();
     }
 }

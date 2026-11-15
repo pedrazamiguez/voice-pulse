@@ -5,9 +5,10 @@ import com.voicepulse.routing.domain.model.HandoffLifecycleState;
 import com.voicepulse.routing.domain.model.HandoffTicketStatus;
 import com.voicepulse.routing.domain.model.OperatorId;
 import com.voicepulse.routing.domain.model.SkillGroup;
-import com.voicepulse.routing.infrastructure.persistence.model.CallSessionRow;
-import com.voicepulse.routing.infrastructure.persistence.model.DisruptionTicketRow;
-import com.voicepulse.routing.infrastructure.persistence.model.OperatorHandoffLogRow;
+import com.voicepulse.routing.infrastructure.persistence.model.CallSessionEntity;
+import com.voicepulse.routing.infrastructure.persistence.model.DisruptionTicketEntity;
+import com.voicepulse.routing.infrastructure.persistence.model.JsonbDocument;
+import com.voicepulse.routing.infrastructure.persistence.model.OperatorHandoffLogEntity;
 import com.voicepulse.shared.event.TicketFormFilledEvent;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.FlightNumber;
@@ -19,11 +20,12 @@ import java.util.Map;
 import java.util.UUID;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 
 /**
  * Compile-time MapStruct mapper transforming {@link TicketFormFilledEvent} and {@link
- * HandoffAssignment} domain records to/from PostgreSQL persistence row records.
+ * HandoffAssignment} domain records to/from PostgreSQL Spring Data JDBC entity records.
  *
  * <p>Enforces zero runtime reflection and strict target field verification via {@link
  * ReportingPolicy#ERROR}.
@@ -46,7 +48,7 @@ public interface TicketPersistenceMapper {
     @Mapping(target = "payload", source = "event.payload")
     @Mapping(target = "createdAt", source = "event.timestamp")
     @Mapping(target = "updatedAt", source = "event.timestamp")
-    DisruptionTicketRow toTicketRow(
+    DisruptionTicketEntity toTicketEntity(
             TicketFormFilledEvent event, SkillGroup skillGroup, HandoffLifecycleState initialState);
 
     @Mapping(target = "callId", source = "event.callId")
@@ -57,10 +59,12 @@ public interface TicketPersistenceMapper {
     @Mapping(target = "endTime", expression = "java(extractEndTime(initialState))")
     @Mapping(target = "durationSeconds", ignore = true)
     @Mapping(target = "assignedOperatorId", expression = "java(extractOperatorId(initialState))")
-    @Mapping(target = "metadata", expression = "java(buildSessionMetadata(event, skillGroup))")
+    @Mapping(
+            target = "metadata",
+            expression = "java(mapToJsonbDocument(buildSessionMetadata(event, skillGroup)))")
     @Mapping(target = "createdAt", source = "event.timestamp")
     @Mapping(target = "updatedAt", source = "event.timestamp")
-    CallSessionRow toCallSessionRow(
+    CallSessionEntity toCallSessionEntity(
             TicketFormFilledEvent event, SkillGroup skillGroup, HandoffLifecycleState initialState);
 
     @Mapping(target = "callId", source = "assignment.callId")
@@ -71,36 +75,59 @@ public interface TicketPersistenceMapper {
     @Mapping(target = "endTime", ignore = true)
     @Mapping(target = "durationSeconds", ignore = true)
     @Mapping(target = "assignedOperatorId", source = "assignment.operatorId")
-    @Mapping(target = "metadata", expression = "java(buildAssignmentMetadata(assignment))")
+    @Mapping(
+            target = "metadata",
+            expression = "java(mapToJsonbDocument(buildAssignmentMetadata(assignment)))")
     @Mapping(target = "createdAt", source = "assignment.assignedAt")
     @Mapping(target = "updatedAt", source = "assignment.assignedAt")
-    CallSessionRow toCallSessionRow(HandoffAssignment assignment);
+    CallSessionEntity toCallSessionEntity(HandoffAssignment assignment);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "callId", source = "assignment.callId")
     @Mapping(target = "eventType", source = "eventType")
     @Mapping(target = "sourceState", source = "sourceState")
     @Mapping(target = "targetState", constant = "ASSIGNED")
     @Mapping(target = "operatorId", source = "assignment.operatorId")
-    @Mapping(target = "details", expression = "java(buildAssignmentMetadata(assignment))")
+    @Mapping(
+            target = "details",
+            expression = "java(mapToJsonbDocument(buildAssignmentMetadata(assignment)))")
     @Mapping(target = "occurredAt", source = "assignment.assignedAt")
-    OperatorHandoffLogRow toAuditLogRow(
+    OperatorHandoffLogEntity toAuditLogEntity(
             HandoffAssignment assignment, String eventType, String sourceState);
 
-    @Mapping(target = "callId", source = "row.callId")
-    @Mapping(target = "ticketId", source = "row.ticketId")
-    @Mapping(target = "passengerName", source = "row.passengerName")
-    @Mapping(target = "pnr", source = "row.pnr")
-    @Mapping(target = "originalFlightNumber", source = "row.originalFlightNumber")
-    @Mapping(target = "disruptionReason", source = "row.disruptionReason")
-    @Mapping(target = "rebookingPreference", source = "row.rebookingPreference")
-    @Mapping(target = "hotelRequired", source = "row.hotelRequired")
-    @Mapping(target = "specialAssistance", source = "row.specialAssistance")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "callId", source = "callId")
+    @Mapping(target = "eventType", source = "eventType")
+    @Mapping(target = "sourceState", source = "sourceState")
+    @Mapping(target = "targetState", source = "targetState")
+    @Mapping(target = "operatorId", source = "operatorId")
+    @Mapping(target = "details", source = "details")
+    @Mapping(target = "occurredAt", source = "occurredAt")
+    OperatorHandoffLogEntity toAuditLogEntity(
+            CallId callId,
+            String eventType,
+            String sourceState,
+            String targetState,
+            OperatorId operatorId,
+            Map<String, Object> details,
+            Instant occurredAt);
+
+    @Mapping(target = "callId", source = "entity.callId")
+    @Mapping(target = "ticketId", source = "entity.ticketId")
+    @Mapping(target = "passengerName", source = "entity.passengerName")
+    @Mapping(target = "pnr", source = "entity.pnr")
+    @Mapping(target = "originalFlightNumber", source = "entity.originalFlightNumber")
+    @Mapping(target = "disruptionReason", source = "entity.disruptionReason")
+    @Mapping(target = "rebookingPreference", source = "entity.rebookingPreference")
+    @Mapping(target = "hotelRequired", source = "entity.hotelRequired")
+    @Mapping(target = "specialAssistance", source = "entity.specialAssistance")
     @Mapping(
             target = "targetSkillGroup",
             expression = "java(resolveTargetSkillGroup(targetSkillGroup))")
-    @Mapping(target = "payload", source = "row.payload")
-    @Mapping(target = "timestamp", source = "row.createdAt")
-    TicketFormFilledEvent toTicketFormFilledEvent(DisruptionTicketRow row, String targetSkillGroup);
+    @Mapping(target = "payload", source = "entity.payload")
+    @Mapping(target = "timestamp", source = "entity.createdAt")
+    TicketFormFilledEvent toTicketFormFilledEvent(
+            DisruptionTicketEntity entity, String targetSkillGroup);
 
     default String mapUuidToString(UUID value) {
         return value == null ? null : value.toString();
@@ -223,6 +250,15 @@ public interface TicketPersistenceMapper {
         return Collections.unmodifiableMap(metadata);
     }
 
+    default JsonbDocument mapToJsonbDocument(Map<String, Object> value) {
+        return JsonbDocument.of(value);
+    }
+
+    default Map<String, Object> mapJsonbDocumentToMap(JsonbDocument value) {
+        return value == null ? Map.of() : value.entries();
+    }
+
+    @Named("resolveTargetSkillGroup")
     default String resolveTargetSkillGroup(String targetSkillGroup) {
         if (targetSkillGroup != null && !targetSkillGroup.isBlank()) {
             return targetSkillGroup.trim();

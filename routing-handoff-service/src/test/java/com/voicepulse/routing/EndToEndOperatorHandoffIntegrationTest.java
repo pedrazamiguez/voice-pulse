@@ -123,6 +123,7 @@ class EndToEndOperatorHandoffIntegrationTest {
                                     + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                                     + "org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration,"
                                     + "org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration,"
+                                    + "org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration,"
                                     + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
                                     + "org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration",
                                 "--voicepulse.gateway.audio-publisher=kafka",

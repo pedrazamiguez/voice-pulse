@@ -64,7 +64,8 @@ import reactor.test.StepVerifier;
                 + "org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration,"
-                + "org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration"
+                + "org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration,"
+                + "org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration"
         })
 @Testcontainers
 @DirtiesContext
