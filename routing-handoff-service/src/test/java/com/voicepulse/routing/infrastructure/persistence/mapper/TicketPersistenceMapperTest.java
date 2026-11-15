@@ -7,9 +7,10 @@ import com.voicepulse.routing.domain.model.HandoffAssignment;
 import com.voicepulse.routing.domain.model.HandoffLifecycleState;
 import com.voicepulse.routing.domain.model.OperatorId;
 import com.voicepulse.routing.domain.model.SkillGroup;
-import com.voicepulse.routing.infrastructure.persistence.model.CallSessionRow;
-import com.voicepulse.routing.infrastructure.persistence.model.DisruptionTicketRow;
-import com.voicepulse.routing.infrastructure.persistence.model.OperatorHandoffLogRow;
+import com.voicepulse.routing.infrastructure.persistence.model.CallSessionEntity;
+import com.voicepulse.routing.infrastructure.persistence.model.DisruptionTicketEntity;
+import com.voicepulse.routing.infrastructure.persistence.model.JsonbDocument;
+import com.voicepulse.routing.infrastructure.persistence.model.OperatorHandoffLogEntity;
 import com.voicepulse.shared.event.TicketFormFilledEvent;
 import com.voicepulse.shared.model.CallId;
 import com.voicepulse.shared.model.DisruptionReason;
@@ -52,12 +53,12 @@ class TicketPersistenceMapperTest {
     }
 
     @Nested
-    @DisplayName("TicketFormFilledEvent -> DisruptionTicketRow Mapping")
-    class TicketRowMappingTests {
+    @DisplayName("TicketFormFilledEvent -> DisruptionTicketEntity Mapping")
+    class TicketEntityMappingTests {
 
         @Test
-        @DisplayName("Should map all fields and JSONB payload to DisruptionTicketRow")
-        void shouldMapEventToTicketRow() {
+        @DisplayName("Should map all fields and JSONB payload to DisruptionTicketEntity")
+        void shouldMapEventToTicketEntity() {
             Map<String, Object> payload =
                     Map.of(
                             "departure_airport", "CTU",
@@ -72,28 +73,28 @@ class TicketPersistenceMapperTest {
                             1,
                             NOW);
 
-            DisruptionTicketRow row =
-                    mapper.toTicketRow(event, SkillGroup.DISRUPTION_DESK_GOLD, initialState);
+            DisruptionTicketEntity entity =
+                    mapper.toTicketEntity(event, SkillGroup.DISRUPTION_DESK_GOLD, initialState);
 
-            assertThat(row.ticketId()).isEqualTo(event.ticketId().toString());
-            assertThat(row.callId()).isEqualTo(event.callId().value());
-            assertThat(row.pnr()).isEqualTo("A8F9X2");
-            assertThat(row.passengerName()).isEqualTo(event.passengerName());
-            assertThat(row.originalFlightNumber()).isEqualTo("SW-104");
-            assertThat(row.disruptionReason()).isEqualTo("CANCELED_WEATHER");
-            assertThat(row.rebookingPreference()).isEqualTo("NEXT_AVAILABLE");
-            assertThat(row.hotelRequired()).isTrue();
-            assertThat(row.specialAssistance()).isFalse();
-            assertThat(row.status()).isEqualTo("QUEUED");
-            assertThat(row.priority()).isEqualTo("HIGH");
-            assertThat(row.summary())
+            assertThat(entity.ticketId()).isEqualTo(event.ticketId().toString());
+            assertThat(entity.callId()).isEqualTo(event.callId().value());
+            assertThat(entity.pnr()).isEqualTo("A8F9X2");
+            assertThat(entity.passengerName()).isEqualTo(event.passengerName());
+            assertThat(entity.originalFlightNumber()).isEqualTo("SW-104");
+            assertThat(entity.disruptionReason()).isEqualTo("CANCELED_WEATHER");
+            assertThat(entity.rebookingPreference()).isEqualTo("NEXT_AVAILABLE");
+            assertThat(entity.hotelRequired()).isTrue();
+            assertThat(entity.specialAssistance()).isFalse();
+            assertThat(entity.status()).isEqualTo("QUEUED");
+            assertThat(entity.priority()).isEqualTo("HIGH");
+            assertThat(entity.summary())
                     .contains("SW-104")
                     .contains("CANCELED_WEATHER")
                     .contains(event.passengerName())
                     .contains("NEXT_AVAILABLE");
-            assertThat(row.payload()).containsExactlyInAnyOrderEntriesOf(payload);
-            assertThat(row.createdAt()).isEqualTo(NOW);
-            assertThat(row.updatedAt()).isEqualTo(NOW);
+            assertThat(entity.payload().entries()).containsExactlyInAnyOrderEntriesOf(payload);
+            assertThat(entity.createdAt()).isEqualTo(NOW);
+            assertThat(entity.updatedAt()).isEqualTo(NOW);
         }
 
         @Test
@@ -108,10 +109,10 @@ class TicketPersistenceMapperTest {
                             0,
                             NOW);
 
-            DisruptionTicketRow row =
-                    mapper.toTicketRow(event, SkillGroup.DISRUPTION_DESK_STANDARD, initialState);
+            DisruptionTicketEntity entity =
+                    mapper.toTicketEntity(event, SkillGroup.DISRUPTION_DESK_STANDARD, initialState);
 
-            assertThat(row.priority()).isEqualTo("NORMAL");
+            assertThat(entity.priority()).isEqualTo("NORMAL");
         }
 
         @Test
@@ -130,22 +131,22 @@ class TicketPersistenceMapperTest {
                             SkillGroup.DISRUPTION_DESK_STANDARD,
                             NOW);
 
-            DisruptionTicketRow row =
-                    mapper.toTicketRow(event, SkillGroup.DISRUPTION_DESK_STANDARD, initialState);
+            DisruptionTicketEntity entity =
+                    mapper.toTicketEntity(event, SkillGroup.DISRUPTION_DESK_STANDARD, initialState);
 
-            assertThat(row.status()).isEqualTo("ASSIGNED");
-            assertThat(row.priority()).isEqualTo("CRITICAL");
-            assertThat(row.summary()).isEqualTo("VIP passenger requiring wheelchair and hotel");
+            assertThat(entity.status()).isEqualTo("ASSIGNED");
+            assertThat(entity.priority()).isEqualTo("CRITICAL");
+            assertThat(entity.summary()).isEqualTo("VIP passenger requiring wheelchair and hotel");
         }
     }
 
     @Nested
-    @DisplayName("CallSessionRow & HandoffAssignment Mapping")
+    @DisplayName("CallSessionEntity & HandoffAssignment Mapping")
     class CallSessionAndAssignmentMappingTests {
 
         @Test
-        @DisplayName("Should map TicketFormFilledEvent and Completed state to CallSessionRow")
-        void shouldMapEventAndCompletedStateToCallSessionRow() {
+        @DisplayName("Should map TicketFormFilledEvent and Completed state to CallSessionEntity")
+        void shouldMapEventAndCompletedStateToCallSessionEntity() {
             Instant completedAt = NOW.plusSeconds(120);
             TicketFormFilledEvent event =
                     sampleEvent(false, true, Map.of("caller_number", "+34600112233"));
@@ -158,18 +159,19 @@ class TicketPersistenceMapperTest {
                             "Rebooked on SW-108",
                             completedAt);
 
-            CallSessionRow row =
-                    mapper.toCallSessionRow(event, SkillGroup.DISRUPTION_DESK_ACCESSIBILITY, state);
+            CallSessionEntity entity =
+                    mapper.toCallSessionEntity(
+                            event, SkillGroup.DISRUPTION_DESK_ACCESSIBILITY, state);
 
-            assertThat(row.callId()).isEqualTo(event.callId().value());
-            assertThat(row.pnr()).isEqualTo("A8F9X2");
-            assertThat(row.callerNumber()).isEqualTo("+34600112233");
-            assertThat(row.status()).isEqualTo("COMPLETED");
-            assertThat(row.startTime()).isEqualTo(NOW);
-            assertThat(row.endTime()).isEqualTo(completedAt);
-            assertThat(row.durationSeconds()).isNull();
-            assertThat(row.assignedOperatorId()).isEqualTo("op-agent-7");
-            assertThat(row.metadata())
+            assertThat(entity.callId()).isEqualTo(event.callId().value());
+            assertThat(entity.pnr()).isEqualTo("A8F9X2");
+            assertThat(entity.callerNumber()).isEqualTo("+34600112233");
+            assertThat(entity.status()).isEqualTo("COMPLETED");
+            assertThat(entity.startTime()).isEqualTo(NOW);
+            assertThat(entity.endTime()).isEqualTo(completedAt);
+            assertThat(entity.durationSeconds()).isNull();
+            assertThat(entity.assignedOperatorId()).isEqualTo("op-agent-7");
+            assertThat(entity.metadata().entries())
                     .containsEntry("targetSkillGroup", "DISRUPTION_DESK_GOLD")
                     .containsEntry("resolvedSkillGroup", "DISRUPTION_DESK_ACCESSIBILITY");
         }
@@ -221,8 +223,9 @@ class TicketPersistenceMapperTest {
         }
 
         @Test
-        @DisplayName("Should map HandoffAssignment to CallSessionRow and OperatorHandoffLogRow")
-        void shouldMapHandoffAssignmentToSessionAndAuditRows() {
+        @DisplayName(
+                "Should map HandoffAssignment to CallSessionEntity and OperatorHandoffLogEntity")
+        void shouldMapHandoffAssignmentToSessionAndAuditEntities() {
             CallId callId = CallId.generate();
             HandoffAssignment assignment =
                     Instancio.of(HandoffAssignment.class)
@@ -239,37 +242,69 @@ class TicketPersistenceMapperTest {
                             .set(field(HandoffAssignment::assignedAt), NOW)
                             .create();
 
-            CallSessionRow sessionRow = mapper.toCallSessionRow(assignment);
-            OperatorHandoffLogRow auditRow =
-                    mapper.toAuditLogRow(assignment, "OPERATOR_ASSIGNED", "QUEUED");
+            CallSessionEntity sessionEntity = mapper.toCallSessionEntity(assignment);
+            OperatorHandoffLogEntity auditEntity =
+                    mapper.toAuditLogEntity(assignment, "OPERATOR_ASSIGNED", "QUEUED");
 
-            assertThat(sessionRow.callId()).isEqualTo(callId.value());
-            assertThat(sessionRow.status()).isEqualTo("ASSIGNED");
-            assertThat(sessionRow.assignedOperatorId()).isEqualTo("op-42");
-            assertThat(sessionRow.metadata())
+            assertThat(sessionEntity.callId()).isEqualTo(callId.value());
+            assertThat(sessionEntity.status()).isEqualTo("ASSIGNED");
+            assertThat(sessionEntity.assignedOperatorId()).isEqualTo("op-42");
+            assertThat(sessionEntity.metadata().entries())
                     .containsEntry("ticketId", assignment.ticketId().toString())
                     .containsEntry("skillGroup", "DISRUPTION_DESK_GOLD")
                     .containsEntry("bridgeEndpoint", assignment.bridgeEndpoint());
 
-            assertThat(auditRow.callId()).isEqualTo(callId.value());
-            assertThat(auditRow.eventType()).isEqualTo("OPERATOR_ASSIGNED");
-            assertThat(auditRow.sourceState()).isEqualTo("QUEUED");
-            assertThat(auditRow.targetState()).isEqualTo("ASSIGNED");
-            assertThat(auditRow.operatorId()).isEqualTo("op-42");
-            assertThat(auditRow.details())
+            assertThat(auditEntity.id()).isNull();
+            assertThat(auditEntity.callId()).isEqualTo(callId.value());
+            assertThat(auditEntity.eventType()).isEqualTo("OPERATOR_ASSIGNED");
+            assertThat(auditEntity.sourceState()).isEqualTo("QUEUED");
+            assertThat(auditEntity.targetState()).isEqualTo("ASSIGNED");
+            assertThat(auditEntity.operatorId()).isEqualTo("op-42");
+            assertThat(auditEntity.details().entries())
                     .containsEntry("ticketId", assignment.ticketId().toString())
                     .containsEntry("skillGroup", "DISRUPTION_DESK_GOLD")
                     .containsEntry("bridgeEndpoint", assignment.bridgeEndpoint());
-            assertThat(auditRow.occurredAt()).isEqualTo(NOW);
+            assertThat(auditEntity.occurredAt()).isEqualTo(NOW);
+        }
+
+        @Test
+        @DisplayName("Should map raw audit parameters and JsonbDocument helper methods")
+        void shouldMapAuditLogParametersAndJsonbDocumentHelpers() {
+            CallId callId = CallId.generate();
+            OperatorId opId = OperatorId.fromString("op-audit-3");
+            OperatorHandoffLogEntity entity =
+                    mapper.toAuditLogEntity(
+                            callId,
+                            "OPERATOR_ASSIGNED",
+                            "QUEUED",
+                            "ASSIGNED",
+                            opId,
+                            Map.of("reason", "priority-escalation"),
+                            NOW);
+
+            assertThat(entity.id()).isNull();
+            assertThat(entity.callId()).isEqualTo(callId.value());
+            assertThat(entity.operatorId()).isEqualTo("op-audit-3");
+            assertThat(entity.details().entries()).containsEntry("reason", "priority-escalation");
+            assertThat(entity.occurredAt()).isEqualTo(NOW);
+
+            OperatorHandoffLogEntity nullDetailsEntity =
+                    mapper.toAuditLogEntity(
+                            callId, "TICKET_QUEUED", null, "QUEUED", null, null, NOW);
+            assertThat(nullDetailsEntity.sourceState()).isNull();
+            assertThat(nullDetailsEntity.details()).isEqualTo(JsonbDocument.empty());
+            assertThat(nullDetailsEntity.operatorId()).isNull();
+            assertThat(mapper.mapToJsonbDocument(null)).isEqualTo(JsonbDocument.empty());
+            assertThat(mapper.mapJsonbDocumentToMap(null)).isEmpty();
         }
     }
 
     @Nested
-    @DisplayName("DisruptionTicketRow -> TicketFormFilledEvent Round-Trip Mapping")
+    @DisplayName("DisruptionTicketEntity -> TicketFormFilledEvent Round-Trip Mapping")
     class RoundTripMappingTests {
 
         @Test
-        @DisplayName("Should reconstruct TicketFormFilledEvent from DisruptionTicketRow")
+        @DisplayName("Should reconstruct TicketFormFilledEvent from DisruptionTicketEntity")
         void shouldReconstructTicketFormFilledEvent() {
             Map<String, Object> payload = Map.of("baggage_claim_tag", "SW-BG-102", "party_size", 3);
             TicketFormFilledEvent original = sampleEvent(true, true, payload);
@@ -281,10 +316,10 @@ class TicketPersistenceMapperTest {
                             1,
                             NOW);
 
-            DisruptionTicketRow row =
-                    mapper.toTicketRow(original, SkillGroup.DISRUPTION_DESK_GOLD, initialState);
+            DisruptionTicketEntity entity =
+                    mapper.toTicketEntity(original, SkillGroup.DISRUPTION_DESK_GOLD, initialState);
             TicketFormFilledEvent reconstructed =
-                    mapper.toTicketFormFilledEvent(row, original.targetSkillGroup());
+                    mapper.toTicketFormFilledEvent(entity, original.targetSkillGroup());
 
             assertThat(reconstructed).isEqualTo(original);
         }
@@ -300,10 +335,11 @@ class TicketPersistenceMapperTest {
                             SkillGroup.DISRUPTION_DESK_STANDARD,
                             0,
                             NOW);
-            DisruptionTicketRow row =
-                    mapper.toTicketRow(original, SkillGroup.DISRUPTION_DESK_STANDARD, initialState);
+            DisruptionTicketEntity entity =
+                    mapper.toTicketEntity(
+                            original, SkillGroup.DISRUPTION_DESK_STANDARD, initialState);
 
-            TicketFormFilledEvent reconstructed = mapper.toTicketFormFilledEvent(row, "  ");
+            TicketFormFilledEvent reconstructed = mapper.toTicketFormFilledEvent(entity, "  ");
 
             assertThat(reconstructed.targetSkillGroup())
                     .isEqualTo(SkillGroup.DISRUPTION_DESK_STANDARD.name());
@@ -312,10 +348,11 @@ class TicketPersistenceMapperTest {
         @Test
         @DisplayName("Should safely handle null scalar inputs")
         void shouldReturnNullForNullInputs() {
-            assertThat(mapper.toTicketRow(null, null, null)).isNull();
-            assertThat(mapper.toCallSessionRow(null, null, null)).isNull();
-            assertThat(mapper.toCallSessionRow(null)).isNull();
-            assertThat(mapper.toAuditLogRow(null, null, null)).isNull();
+            assertThat(mapper.toTicketEntity(null, null, null)).isNull();
+            assertThat(mapper.toCallSessionEntity(null, null, null)).isNull();
+            assertThat(mapper.toCallSessionEntity(null)).isNull();
+            assertThat(mapper.toAuditLogEntity(null, null, null)).isNull();
+            assertThat(mapper.toAuditLogEntity(null, null, null, null, null, null, null)).isNull();
             assertThat(mapper.toTicketFormFilledEvent(null, null)).isNull();
             assertThat(mapper.resolveLifecycleStatus(null)).isNull();
             assertThat(mapper.extractOperatorId(null)).isNull();
