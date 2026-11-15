@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(routing): implement reactive Redis 7 operator presence, heartbeats, and priority queues ([#144](https://github.com/pedrazamiguez/voice-pulse/issues/144))
 - feat(routing): implement Kafka ticket intent consumer, assignment coordinator, and reroute publisher ([#145](https://github.com/pedrazamiguez/voice-pulse/issues/145))
 - feat(routing): implement Operator Web Console UI and reactive ticket/transcript dispatch ([#146](https://github.com/pedrazamiguez/voice-pulse/issues/146))
+- feat(gateway): implement bot-to-human WebSocket audio bridge and multi-module handoff E2E test ([#147](https://github.com/pedrazamiguez/voice-pulse/issues/147))
 
 ## [0.7.0] - 2026-11-14
 ### Added
