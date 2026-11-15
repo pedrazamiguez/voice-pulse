@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - refactor(routing): migrate PostgreSQL persistence adapter from raw JdbcTemplate SQL to Spring Data ([#151](https://github.com/pedrazamiguez/voice-pulse/issues/151))
 - refactor(routing): replace low-level Redis template marshaling with typed Spring Data Redis abstractions ([#153](https://github.com/pedrazamiguez/voice-pulse/issues/153))
+- Epic 6: Operator Handoff, Redis Presence & Web Console ([#140](https://github.com/pedrazamiguez/voice-pulse/issues/140))
 
 ## [0.7.0] - 2026-11-14
 ### Added
