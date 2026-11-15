@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-15
 ### Added
 - feat(routing): define pure domain handoff models, ports, and OperatorRerouteSignal ([#142](https://github.com/pedrazamiguez/voice-pulse/issues/142))
 - feat(routing): implement PostgreSQL 16 ticket and handoff audit persistence adapter ([#143](https://github.com/pedrazamiguez/voice-pulse/issues/143))
