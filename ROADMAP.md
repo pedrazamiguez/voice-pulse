@@ -1,6 +1,6 @@
 # VoicePulse Platform Roadmap
 
-This document outlines the master multi-epic roadmap for the **VoicePulse** real-time voice AI telephony platform. Development follows **Specification-Driven Development (SDD)**, progressing across seven phase-gated epics anchored in our core architectural RFCs:
+This document outlines the master multi-epic roadmap for the **VoicePulse** real-time voice AI telephony platform. Development follows **Specification-Driven Development (SDD)**, progressing across eight phase-gated epics anchored in our core architectural RFCs:
 - **[RFC-0001: Architecture Strategy](docs/rfcs/RFC-0001-VOICEPULSE.md)** — Streaming topology, network framing, and Hexagonal boundaries.
 - **[RFC-0002: AI Engineering, Tooling & Automation Blueprint](docs/rfcs/RFC-0002-VOICEPULSE.md)** — Multi-agent taxonomy, SDD skills, and local RAG.
 - **[RFC-0003: Airline Disruption Hotline Scenario](docs/rfcs/RFC-0003-VOICEPULSE.md)** — High-load validation scenario for SkyWay Airlines.
@@ -18,6 +18,7 @@ This document outlines the master multi-epic roadmap for the **VoicePulse** real
 | **Epic 5** | **Runtime MCP Tool Servers & AI Triage Synthesis** | `conversation-engine`, `shared-kernel`, `scripts/mcp` | **Completed** | [Issue #128](https://github.com/pedrazamiguez/voice-pulse/issues/128) • [Plan](docs/plans/epic-5-mcp-plan.md) |
 | **Epic 6** | **Operator Handoff, Redis Presence & Web Console** | `routing-handoff-service`, `edge-gateway-service`, `shared-kernel` | **Completed** | [Issue #140](https://github.com/pedrazamiguez/voice-pulse/issues/140) • [Plan](docs/plans/epic-6-routing-console-plan.md) |
 | **Epic 7** | **10,000 Concurrent Calls Load Testing & Hardening** | Platform-wide, Gatling, OTel | **Next** | [Issue #159](https://github.com/pedrazamiguez/voice-pulse/issues/159) • [Plan](docs/plans/epic-7-load-observability-plan.md) |
+| **Epic 8** | **Live Voice Pipeline (STT/TTS), Bot Audio Return & E2E Demo Stack** | `shared-kernel`, `edge-gateway-service`, `conversation-engine`, `scripts/mcp` | **Planned** | [Issue #170](https://github.com/pedrazamiguez/voice-pulse/issues/170) • [Plan](docs/plans/epic-8-live-voice-pipeline-plan.md) |
 
 ---
 
@@ -31,6 +32,7 @@ flowchart LR
     E4 --> E5["Epic 5<br/>MCP Tools & AI Triage<br/>(Completed)"]
     E5 --> E6["Epic 6<br/>Routing & Operator Console<br/>(Completed)"]
     E6 --> E7["Epic 7<br/>10k Calls Load Test<br/>(Next)"]
+    E7 --> E8["Epic 8<br/>Live Voice STT/TTS & Demo<br/>(Planned)"]
 ```
 
 ---
@@ -169,6 +171,20 @@ flowchart LR
   - Gatling load simulation orchestrating up to 10,000 concurrent synthetic WebSocket callers in `AI_MODE=mock` ([#165](https://github.com/pedrazamiguez/voice-pulse/issues/165)).
   - Netty direct memory, Kafka partitioning, and Virtual Thread pinning hardening under sustained load ([#166](https://github.com/pedrazamiguez/voice-pulse/issues/166)).
   - Reproducible benchmark report (`docs/benchmarks/load-test-results.md`), `make load-smoke` gate, and as-built design patterns blueprint (`docs/architecture/design-patterns-blueprint.md`) ([#167](https://github.com/pedrazamiguez/voice-pulse/issues/167)).
+
+### Epic 8: Live Voice Pipeline (STT/TTS), Bot Audio Return & End-to-End Demo Stack
+* **Tracking Issue:** [#170](https://github.com/pedrazamiguez/voice-pulse/issues/170)
+* **Master Plan:** [`docs/plans/epic-8-live-voice-pipeline-plan.md`](docs/plans/epic-8-live-voice-pipeline-plan.md)
+* **Status:** **Planned**
+* **Governing Blueprint:** RFC-0001 (§4.3 & §4.4) & RFC-0003 (§3 & §4)
+* **Objective:** Wire real-time Speech-to-Text (`SpeechToTextPort`), interruptible Text-to-Speech (`TextToSpeechPort`), outbound bot PCM streaming (`telephony.calls.outbound`), live spoken transcript handoff, and a turnkey local demo stack (`make demo`) so a real browser caller can speak end-to-end from AI greeting through operator voice bridge handoff.
+* **Key Deliverables:**
+  - Call lifecycle signaling (`CallStarted`/`CallTerminated`), `OutboundAudioChunkEnvelope`, `telephony.calls.outbound` topic provisioning, and pure domain STT/TTS/outbound ports ([#171](https://github.com/pedrazamiguez/voice-pulse/issues/171)).
+  - Per-call VAD active-speech PCM buffering (`UtteranceAudioBuffer`) and Virtual-Thread `SpeechToTextPort` transcription adapter driving `ProgressConversationUseCase` ([#172](https://github.com/pedrazamiguez/voice-pulse/issues/172)).
+  - Interruptible `TextToSpeechPort` synthesis and 20 ms (640-byte) PCM chunk emission to `telephony.calls.outbound` with instantaneous barge-in cancellation ([#173](https://github.com/pedrazamiguez/voice-pulse/issues/173)).
+  - `edge-gateway-service` `telephony.calls.outbound` consumer streaming binary PCM frames to `ConcurrentSessionRegistry` with zero `ByteBuf` leaks (`PARANOID`) and clean preemption on `OperatorRerouteSignal` bridge connect ([#174](https://github.com/pedrazamiguez/voice-pulse/issues/174)).
+  - Live `BOT`/`CALLER` spoken transcript propagation into `TicketFormFilledEvent.payload()` and lightweight status/caption telemetry in the Softphone UI ([#175](https://github.com/pedrazamiguez/voice-pulse/issues/175)).
+  - Turnkey `docker-compose.demo.yml` + `make demo` (Kafka, Redis, Postgres, 3 Python MCP servers, local STT/TTS/LLM containers, and all 3 Spring Boot services), `EndToEndLiveVoicePipelineIntegrationTest`, and `docs/engineering/live-demo-guide.md` ([#176](https://github.com/pedrazamiguez/voice-pulse/issues/176)).
 
 ---
 
