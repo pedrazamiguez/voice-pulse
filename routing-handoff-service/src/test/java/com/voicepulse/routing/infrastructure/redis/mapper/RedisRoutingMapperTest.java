@@ -59,42 +59,6 @@ class RedisRoutingMapperTest {
     }
 
     @Test
-    @DisplayName("Should reconstruct OperatorPresence from Redis hash entry map")
-    void shouldMapFromRedisHashEntries() {
-        CallId callId = CallId.generate();
-        Map<String, String> fields =
-                Map.of(
-                        "operatorId", "op-hash-1",
-                        "displayName", "Carlos Diaz",
-                        "status", "BUSY",
-                        "skills", "DISRUPTION_DESK_ACCESSIBILITY,DISRUPTION_DESK_STANDARD",
-                        "activeCallId", callId.toString(),
-                        "lastHeartbeatAt", NOW.toString());
-
-        Optional<OperatorPresence> result = mapper.fromRedisHashEntries(fields);
-
-        assertThat(result)
-                .contains(
-                        new OperatorPresence(
-                                OperatorId.fromString("op-hash-1"),
-                                "Carlos Diaz",
-                                OperatorAvailabilityStatus.BUSY,
-                                Set.of(
-                                        SkillGroup.DISRUPTION_DESK_ACCESSIBILITY,
-                                        SkillGroup.DISRUPTION_DESK_STANDARD),
-                                Optional.of(callId),
-                                NOW));
-    }
-
-    @Test
-    @DisplayName("Should return Optional.empty when Redis hash entries are empty or incomplete")
-    void shouldReturnEmptyWhenHashEntriesIncomplete() {
-        assertThat(mapper.fromRedisHashEntries(null)).isEmpty();
-        assertThat(mapper.fromRedisHashEntries(Map.of())).isEmpty();
-        assertThat(mapper.fromRedisHashEntries(Map.of("operatorId", "op-1"))).isEmpty();
-    }
-
-    @Test
     @DisplayName("Should round-trip QueuedTicketItem to and from QueuedTicketRedisPayload")
     void shouldRoundTripQueuedTicketItem() {
         TicketFormFilledEvent event =

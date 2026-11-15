@@ -83,18 +83,21 @@ class RedisPresenceAndQueueIntegrationTest {
     private final RedisOperatorPresenceAdapter presenceAdapter;
     private final RedisPriorityCallQueueAdapter queueAdapter;
     private final ReactiveStringRedisTemplate redisTemplate;
+    private final RedisKeySchema keySchema;
 
     RedisPresenceAndQueueIntegrationTest(
             @Autowired OperatorPresencePort presencePort,
             @Autowired PriorityCallQueuePort queuePort,
             @Autowired RedisOperatorPresenceAdapter presenceAdapter,
             @Autowired RedisPriorityCallQueueAdapter queueAdapter,
-            @Autowired ReactiveStringRedisTemplate redisTemplate) {
+            @Autowired ReactiveStringRedisTemplate redisTemplate,
+            @Autowired RedisKeySchema keySchema) {
         this.presencePort = presencePort;
         this.queuePort = queuePort;
         this.presenceAdapter = presenceAdapter;
         this.queueAdapter = queueAdapter;
         this.redisTemplate = redisTemplate;
+        this.keySchema = keySchema;
     }
 
     @DynamicPropertySource
@@ -442,6 +445,120 @@ class RedisPresenceAndQueueIntegrationTest {
                         queueAdapter.dequeueHighestPriorityReactive(
                                 SkillGroup.DISRUPTION_DESK_STANDARD))
                 .expectNext(Optional.of(item))
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName(
+            "Should atomically batch-evict expired operators across all skill sets on pipelined"
+                    + " skill query")
+    void shouldBatchEvictMultipleExpiredOperatorsAcrossSkillSets() {
+        OperatorId liveOp = OperatorId.fromString("op-batch-live");
+        OperatorId expiredOp1 = OperatorId.fromString("op-batch-exp-1");
+        OperatorId expiredOp2 = OperatorId.fromString("op-batch-exp-2");
+        Instant start = Instant.now();
+
+        Set<SkillGroup> multiSkills =
+                Set.of(SkillGroup.DISRUPTION_DESK_GOLD, SkillGroup.DISRUPTION_DESK_PRIORITY);
+
+        presencePort.savePresence(
+                new OperatorPresence(
+                        liveOp,
+                        "Live Agent",
+                        OperatorAvailabilityStatus.AVAILABLE,
+                        multiSkills,
+                        Optional.empty(),
+                        start));
+        presencePort.savePresence(
+                new OperatorPresence(
+                        expiredOp1,
+                        "Expired Agent 1",
+                        OperatorAvailabilityStatus.AVAILABLE,
+                        multiSkills,
+                        Optional.empty(),
+                        start));
+        presencePort.savePresence(
+                new OperatorPresence(
+                        expiredOp2,
+                        "Expired Agent 2",
+                        OperatorAvailabilityStatus.AVAILABLE,
+                        multiSkills,
+                        Optional.empty(),
+                        start));
+
+        await().pollDelay(Duration.ofMillis(700))
+                .atMost(Duration.ofSeconds(2))
+                .untilAsserted(
+                        () ->
+                                assertThat(presencePort.refreshHeartbeat(liveOp, Instant.now()))
+                                        .isTrue());
+
+        await().atMost(Duration.ofSeconds(3))
+                .untilAsserted(
+                        () -> {
+                            List<OperatorPresence> available =
+                                    presencePort.findAvailableBySkillGroup(
+                                            SkillGroup.DISRUPTION_DESK_GOLD);
+                            assertThat(available)
+                                    .extracting(OperatorPresence::operatorId)
+                                    .containsExactly(liveOp);
+                        });
+
+        StepVerifier.create(
+                        redisTemplate
+                                .opsForSet()
+                                .members(
+                                        keySchema.skillAvailableKey(
+                                                SkillGroup.DISRUPTION_DESK_PRIORITY))
+                                .collectList())
+                .assertNext(members -> assertThat(members).containsExactly(liveOp.value()))
+                .verifyComplete();
+
+        StepVerifier.create(
+                        redisTemplate
+                                .opsForSet()
+                                .members(
+                                        keySchema.skillOperatorsKey(
+                                                SkillGroup.DISRUPTION_DESK_PRIORITY))
+                                .collectList())
+                .assertNext(members -> assertThat(members).containsExactly(liveOp.value()))
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName(
+            "Should round-trip typed queued payloads across multiGet listing, dequeue, and remove")
+    void shouldRoundTripTypedQueuedPayloadsAcrossTemplateAndLua() {
+        QueuedTicketItem first = sampleQueueItem(SkillGroup.DISRUPTION_DESK_GOLD, 120, BASE_TIME);
+        QueuedTicketItem second =
+                sampleQueueItem(SkillGroup.DISRUPTION_DESK_GOLD, 95, BASE_TIME.plusSeconds(1));
+        QueuedTicketItem third =
+                sampleQueueItem(SkillGroup.DISRUPTION_DESK_GOLD, 70, BASE_TIME.plusSeconds(2));
+
+        StepVerifier.create(queueAdapter.enqueueReactive(third)).expectNext(1).verifyComplete();
+        StepVerifier.create(queueAdapter.enqueueReactive(first)).expectNext(1).verifyComplete();
+        StepVerifier.create(queueAdapter.enqueueReactive(second)).expectNext(2).verifyComplete();
+
+        StepVerifier.create(
+                        queueAdapter.listQueuedBySkillGroupReactive(
+                                SkillGroup.DISRUPTION_DESK_GOLD))
+                .expectNext(List.of(first, second, third))
+                .verifyComplete();
+
+        StepVerifier.create(queueAdapter.removeByCallIdReactive(second.callId()))
+                .expectNext(Optional.of(second))
+                .verifyComplete();
+
+        StepVerifier.create(
+                        queueAdapter.dequeueHighestPriorityReactive(
+                                SkillGroup.DISRUPTION_DESK_GOLD))
+                .expectNext(Optional.of(first))
+                .verifyComplete();
+
+        StepVerifier.create(
+                        queueAdapter.dequeueHighestPriorityReactive(
+                                SkillGroup.DISRUPTION_DESK_GOLD))
+                .expectNext(Optional.of(third))
                 .verifyComplete();
     }
 }
