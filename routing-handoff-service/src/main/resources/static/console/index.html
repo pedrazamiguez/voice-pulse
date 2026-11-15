@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>VoicePulse Operator Web Console</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="console-shell">
+        <header class="console-header">
+            <div class="brand">
+                <span class="brand-icon" aria-hidden="true">🎧</span>
+                <div>
+                    <h1>VoicePulse Operator Console</h1>
+                    <p class="brand-subtitle">SkyWay Airlines Disruption Desk — Human Handoff Workstation</p>
+                </div>
+            </div>
+            <div class="header-indicators">
+                <div class="indicator-pill">
+                    <span class="indicator-label">Signaling WS</span>
+                    <span id="ws-status-badge" class="badge badge-offline" aria-live="polite">DISCONNECTED</span>
+                </div>
+                <div class="indicator-pill">
+                    <span class="indicator-label">Heartbeat</span>
+                    <span id="heartbeat-indicator" class="heartbeat-dot heartbeat-idle" aria-live="polite">IDLE</span>
+                </div>
+                <div class="indicator-pill">
+                    <span class="indicator-label">Audio Bridge</span>
+                    <span id="audio-status-badge" class="badge badge-offline" aria-live="polite">IDLE</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="console-grid">
+            <!-- Left Column: Presence & Priority Queue -->
+            <div class="column-left">
+                <section class="card" aria-labelledby="identity-title">
+                    <div class="card-header">
+                        <h2 id="identity-title" class="section-title">Operator Identity &amp; Presence</h2>
+                        <span id="presence-badge" class="badge badge-offline">OFFLINE</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="operator-id-input">Operator ID</label>
+                            <input type="text" id="operator-id-input" value="op-alex-1" placeholder="e.g. op-alex-1" autocomplete="off" spellcheck="false" />
+                        </div>
+                        <div class="form-group">
+                            <label for="display-name-input">Display Name</label>
+                            <input type="text" id="display-name-input" value="Alex Rivera" placeholder="e.g. Alex Rivera" autocomplete="off" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <span class="field-label">Skill Groups</span>
+                        <div id="skill-checkboxes" class="skill-checkbox-grid" role="group" aria-label="Operator Skill Groups"></div>
+                    </div>
+
+                    <div class="button-row">
+                        <button type="button" id="btn-connect" class="btn btn-primary">Connect &amp; Register</button>
+                        <button type="button" id="btn-disconnect" class="btn btn-secondary" disabled>Disconnect</button>
+                    </div>
+
+                    <div class="presence-controls">
+                        <span class="field-label">Presence State</span>
+                        <div class="presence-toggle-group">
+                            <button type="button" id="btn-status-available" class="btn btn-presence" data-status="AVAILABLE" disabled>AVAILABLE</button>
+                            <button type="button" id="btn-status-paused" class="btn btn-presence" data-status="PAUSED" disabled>PAUSED</button>
+                            <button type="button" id="btn-status-offline" class="btn btn-presence" data-status="OFFLINE" disabled>OFFLINE</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card" aria-labelledby="queue-title">
+                    <div class="card-header">
+                        <h2 id="queue-title" class="section-title">Prioritized Skill-Group Queue</h2>
+                        <div class="queue-actions">
+                            <select id="queue-skill-filter" aria-label="Filter queue by skill group">
+                                <option value="">ALL SKILLS</option>
+                            </select>
+                            <button type="button" id="btn-refresh-queue" class="btn btn-sm btn-secondary">Refresh</button>
+                            <button type="button" id="btn-claim-next" class="btn btn-sm btn-primary" disabled>Claim Next</button>
+                        </div>
+                    </div>
+
+                    <div id="queue-depth-pills" class="depth-pills" aria-live="polite"></div>
+
+                    <div class="table-wrapper">
+                        <table class="queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Score</th>
+                                    <th>Skill Group</th>
+                                    <th>PNR</th>
+                                    <th>Passenger</th>
+                                    <th>Flight</th>
+                                    <th>Reason</th>
+                                    <th>Flags</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="queue-table-body">
+                                <tr>
+                                    <td colspan="8" class="empty-cell">No queued disruption calls.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column: Ticket, Transcript, Audio Bridge -->
+            <div class="column-right">
+                <section class="card" aria-labelledby="ticket-title">
+                    <div class="card-header">
+                        <h2 id="ticket-title" class="section-title">Pre-Populated Disruption Ticket</h2>
+                        <span id="ticket-priority-badge" class="badge badge-offline">NO ACTIVE CALL</span>
+                    </div>
+
+                    <div id="ticket-empty-state" class="empty-state">
+                        No active disruption assignment. Switch to <strong>AVAILABLE</strong> or claim a call from the queue.
+                    </div>
+
+                    <div id="ticket-details" class="ticket-details hidden">
+                        <div class="ticket-grid">
+                            <div class="ticket-field">
+                                <span class="field-label">Passenger</span>
+                                <span id="ticket-passenger" class="field-value">-</span>
+                            </div>
+                            <div class="ticket-field">
+                                <span class="field-label">PNR</span>
+                                <span id="ticket-pnr" class="field-value mono pnr-highlight">-</span>
+                            </div>
+                            <div class="ticket-field">
+                                <span class="field-label">Original Flight</span>
+                                <span id="ticket-flight" class="field-value mono">-</span>
+                            </div>
+                            <div class="ticket-field">
+                                <span class="field-label">Disruption Reason</span>
+                                <span id="ticket-reason" class="field-value">-</span>
+                            </div>
+                            <div class="ticket-field">
+                                <span class="field-label">Rebooking Preference</span>
+                                <span id="ticket-preference" class="field-value">-</span>
+                            </div>
+                            <div class="ticket-field">
+                                <span class="field-label">Skill Group</span>
+                                <span id="ticket-skill" class="field-value mono">-</span>
+                            </div>
+                            <div class="ticket-field">
+                                <span class="field-label">Hotel Required</span>
+                                <span id="ticket-hotel" class="field-value">-</span>
+                            </div>
+                            <div class="ticket-field">
+                                <span class="field-label">Special Assistance</span>
+                                <span id="ticket-assistance" class="field-value">-</span>
+                            </div>
+                            <div class="ticket-field">
+                                <span class="field-label">Caller Number</span>
+                                <span id="ticket-caller-number" class="field-value mono">-</span>
+                            </div>
+                            <div class="ticket-field">
+                                <span class="field-label">Category</span>
+                                <span id="ticket-category" class="field-value">-</span>
+                            </div>
+                            <div class="ticket-field ticket-field-wide">
+                                <span class="field-label">Call ID / Ticket ID</span>
+                                <span id="ticket-ids" class="field-value mono">-</span>
+                            </div>
+                            <div class="ticket-field ticket-field-wide">
+                                <span class="field-label">Triage Summary</span>
+                                <p id="ticket-summary" class="ticket-summary">-</p>
+                            </div>
+                        </div>
+
+                        <div class="completion-bar">
+                            <input type="text" id="resolution-notes-input" placeholder="Resolution notes (e.g. Rebooked on SW-210 + hotel voucher issued)" />
+                            <button type="button" id="btn-complete-handoff" class="btn btn-success">Complete Handoff</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card" aria-labelledby="transcript-title">
+                    <div class="card-header">
+                        <h2 id="transcript-title" class="section-title">Live Call Transcript</h2>
+                        <span id="transcript-turn-count" class="muted-text">0 turns</span>
+                    </div>
+                    <div id="transcript-panel" class="transcript-panel" role="log" aria-live="polite">
+                        <div class="empty-state">Transcript turns will appear here when a call is assigned.</div>
+                    </div>
+                </section>
+
+                <section class="card" aria-labelledby="audio-title">
+                    <div class="card-header">
+                        <h2 id="audio-title" class="section-title">Operator Audio Bridge (16 kHz PCM)</h2>
+                        <span id="audio-bridge-url" class="mono muted-text">No bridge assigned</span>
+                    </div>
+
+                    <div class="button-row">
+                        <button type="button" id="btn-audio-connect" class="btn btn-primary" disabled>Connect Audio Bridge</button>
+                        <button type="button" id="btn-audio-mute" class="btn btn-secondary" disabled aria-pressed="false">Mute Mic</button>
+                    </div>
+
+                    <div class="vu-row">
+                        <div class="vu-label-row">
+                            <span>Operator Mic Level</span>
+                            <span id="audio-vu-value" class="mono">0%</span>
+                        </div>
+                        <div class="vu-bar-bg">
+                            <div id="audio-vu-bar" class="vu-bar-fill"></div>
+                        </div>
+                    </div>
+
+                    <div class="audio-metrics">
+                        <div class="metric-chip">
+                            <span class="metric-label">PCM Out</span>
+                            <span id="metric-audio-sent" class="metric-value mono">0 pkts</span>
+                        </div>
+                        <div class="metric-chip">
+                            <span class="metric-label">PCM In</span>
+                            <span id="metric-audio-recv" class="metric-value mono">0 pkts</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <section class="card log-card" aria-labelledby="console-log-title">
+            <div class="card-header">
+                <h2 id="console-log-title" class="section-title">Console Event Log</h2>
+                <button type="button" id="btn-clear-log" class="btn btn-sm btn-secondary">Clear</button>
+            </div>
+            <div id="console-log" class="console-log" role="log" aria-live="polite"></div>
+        </section>
+    </div>
+
+    <script src="console.js"></script>
+</body>
+</html>

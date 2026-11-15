@@ -28,6 +28,10 @@ voicepulse:
     operator-heartbeat-ttl: ${OPERATOR_HEARTBEAT_TTL:30s}
     operator-bridge-base-path: ${OPERATOR_BRIDGE_BASE_PATH:/ws/operators}
     max-queue-capacity: ${ROUTING_MAX_QUEUE_CAPACITY:1000}
+    console:
+      gateway-ws-base-url: ${GATEWAY_WS_BASE_URL:ws://localhost:8080}
+      heartbeat-interval: ${OPERATOR_CONSOLE_HEARTBEAT_INTERVAL:10s}
+      outbound-buffer-capacity: ${OPERATOR_CONSOLE_OUTBOUND_BUFFER_CAPACITY:256}
     persistence:
       enabled: ${ROUTING_PERSISTENCE_ENABLED:true}
     redis:
