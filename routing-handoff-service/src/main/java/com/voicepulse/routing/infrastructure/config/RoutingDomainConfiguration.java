@@ -12,6 +12,7 @@ import com.voicepulse.routing.domain.service.OperatorPresenceService;
 import com.voicepulse.routing.domain.service.OperatorRerouteDispatcher;
 import com.voicepulse.routing.domain.service.QueuedCallClaimService;
 import com.voicepulse.routing.domain.service.QueuedCallDrainService;
+import com.voicepulse.routing.domain.service.RoutingQueueQueryService;
 import com.voicepulse.routing.domain.service.SkillGroupMatchingPolicy;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -124,5 +125,13 @@ public class RoutingDomainConfiguration {
                 handoffPersistenceCoordinator,
                 operatorRerouteDispatcher,
                 queuedCallDrainService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public RoutingQueueQueryService routingQueueQueryService(
+            PriorityCallQueuePort priorityCallQueuePort,
+            TicketPersistencePort ticketPersistencePort) {
+        return new RoutingQueueQueryService(priorityCallQueuePort, ticketPersistencePort);
     }
 }

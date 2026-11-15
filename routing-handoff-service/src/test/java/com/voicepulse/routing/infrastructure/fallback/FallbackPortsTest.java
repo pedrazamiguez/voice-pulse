@@ -80,6 +80,19 @@ class FallbackPortsTest {
     }
 
     @Test
+    @DisplayName("NoOpInspectRoutingQueueUseCase operates as a safe Null Object")
+    void inspectRoutingQueueFallback() {
+        NoOpInspectRoutingQueueUseCase useCase = new NoOpInspectRoutingQueueUseCase();
+        CallId callId = CallId.generate();
+
+        assertThat(useCase.listQueuedBySkillGroup(SkillGroup.DISRUPTION_DESK_GOLD)).isEmpty();
+        assertThat(useCase.listAllQueued()).isEmpty();
+        assertThat(useCase.queueDepthsBySkillGroup()).isEmpty();
+        assertThat(useCase.queueDepth(SkillGroup.DISRUPTION_DESK_GOLD)).isZero();
+        assertThat(useCase.findTicketByCallId(callId)).isEmpty();
+    }
+
+    @Test
     @DisplayName("NoOpCompleteHandoffUseCase operates as a safe Null Object")
     void completeHandoffFallback() {
         NoOpCompleteHandoffUseCase useCase = new NoOpCompleteHandoffUseCase();
