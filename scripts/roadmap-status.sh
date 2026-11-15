@@ -102,8 +102,9 @@ printf "  ${GREEN}✓${NC} ${BOLD}Zero Memory Leaks:${NC} Explicit ${CYAN}ByteBu
 
 # 4. Limitations & Testing Context
 printf "${BOLD}⚠️ Platform Limitations & Testing Context${NC}\n"
-printf "  ${YELLOW}•${NC} Live STT/TTS audio adapters for automated voice-to-text turns in ${CYAN}conversation-engine${NC} are not\n"
-printf "    wired yet (PCM frames trigger VAD/barge-in while dialog turns progress via ${CYAN}ProgressConversationUseCase${NC}).\n"
+printf "  ${YELLOW}•${NC} Live STT/TTS audio adapters, outbound bot TTS return audio, and turnkey demo orchestration\n"
+printf "    are scoped and tracked in Epic 8 (#170) (currently PCM frames trigger VAD/barge-in while dialog\n"
+printf "    turns progress via ${CYAN}ProgressConversationUseCase${NC}).\n"
 printf "  ${YELLOW}•${NC} Actuator/Prometheus/OpenTelemetry observability, Decorator metering, full-stack Compose, and 10,000-call\n"
 printf "    Gatling load testing & hardening are next in Epic 7 (#159).\n"
 printf "  ${YELLOW}•${NC} ${BOLD}Why Epics 3–5 are verified headlessly:${NC} Distributed Kafka streaming, VAD state machines, and MCP\n"

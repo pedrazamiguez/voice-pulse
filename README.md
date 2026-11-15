@@ -140,7 +140,7 @@ voice-pulse/
 
 ## 6. Project Roadmap & Epics
 
-The platform is engineered across 7 phase-gated epics. For detailed phase breakdowns, tracked GitHub issues, and execution plans, see [**ROADMAP.md**](ROADMAP.md).
+The platform is engineered across 8 phase-gated epics. For detailed phase breakdowns, tracked GitHub issues, and execution plans, see [**ROADMAP.md**](ROADMAP.md).
 
 | Epic | Focus Area | Status |
 | :--- | :--- | :---: |
@@ -151,6 +151,7 @@ The platform is engineered across 7 phase-gated epics. For detailed phase breakd
 | **Epic 5** | [Runtime MCP Tool Servers & AI Triage Synthesis](docs/plans/epic-5-mcp-plan.md) | **Completed** |
 | **Epic 6** | [Operator Handoff, Redis Presence & Web Console](docs/plans/epic-6-routing-console-plan.md) | **Completed** |
 | **Epic 7** | [10,000 Concurrent Calls Load Testing & Performance Hardening](docs/plans/epic-7-load-observability-plan.md) | **Next** |
+| **Epic 8** | [Live Voice Pipeline (STT/TTS), Bot Audio Return & End-to-End Demo Stack](docs/plans/epic-8-live-voice-pipeline-plan.md) | **Planned** |
 
 ---
 
