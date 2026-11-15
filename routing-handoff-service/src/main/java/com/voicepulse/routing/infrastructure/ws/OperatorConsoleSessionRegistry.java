@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +27,17 @@ import reactor.core.publisher.Sinks;
 @RequiredArgsConstructor
 public class OperatorConsoleSessionRegistry {
 
+    private static final String ERR_OPERATOR_ID_NULL = "operatorId cannot be null";
+    private static final String ERR_MESSAGE_NULL = "message cannot be null";
+
     private final @NonNull OperatorConsoleProperties consoleProperties;
 
     private final ConcurrentHashMap<
                     OperatorId, ConcurrentHashMap<String, Sinks.Many<OperatorWsMessage>>>
             operatorConnections = new ConcurrentHashMap<>();
+
+    private final ConcurrentHashMap<String, ReentrantLock> connectionLocks =
+            new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<OperatorId, OperatorAssignmentPayloadDto> activeAssignments =
             new ConcurrentHashMap<>();
@@ -40,13 +47,14 @@ public class OperatorConsoleSessionRegistry {
      * message flux.
      */
     public Flux<OperatorWsMessage> register(OperatorId operatorId, String connectionId) {
-        Objects.requireNonNull(operatorId, "operatorId cannot be null");
+        Objects.requireNonNull(operatorId, ERR_OPERATOR_ID_NULL);
         Objects.requireNonNull(connectionId, "connectionId cannot be null");
         Sinks.Many<OperatorWsMessage> sink =
                 Sinks.many()
                         .multicast()
                         .onBackpressureBuffer(consoleProperties.outboundBufferCapacity(), false);
 
+        connectionLocks.put(connectionId, new ReentrantLock());
         ConcurrentHashMap<String, Sinks.Many<OperatorWsMessage>> connections =
                 operatorConnections.computeIfAbsent(
                         operatorId, ignored -> new ConcurrentHashMap<>());
@@ -66,19 +74,32 @@ public class OperatorConsoleSessionRegistry {
                 operatorId,
                 (ignored, connections) -> {
                     Sinks.Many<OperatorWsMessage> removed = connections.remove(connectionId);
+                    ReentrantLock lock = connectionLocks.remove(connectionId);
                     if (removed != null) {
-                        synchronized (removed) {
-                            removed.tryEmitComplete();
-                        }
+                        completeRemovedSink(removed, lock);
                     }
                     return connections.isEmpty() ? null : connections;
                 });
     }
 
+    private static void completeRemovedSink(
+            Sinks.Many<OperatorWsMessage> removed, ReentrantLock lock) {
+        if (lock == null) {
+            removed.tryEmitComplete();
+            return;
+        }
+        lock.lock();
+        try {
+            removed.tryEmitComplete();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     /** Emits a signaling message to all active WebSocket connections for {@code operatorId}. */
     public void sendToOperator(OperatorId operatorId, OperatorWsMessage message) {
-        Objects.requireNonNull(operatorId, "operatorId cannot be null");
-        Objects.requireNonNull(message, "message cannot be null");
+        Objects.requireNonNull(operatorId, ERR_OPERATOR_ID_NULL);
+        Objects.requireNonNull(message, ERR_MESSAGE_NULL);
         Map<String, Sinks.Many<OperatorWsMessage>> connections =
                 operatorConnections.get(operatorId);
         if (connections == null || connections.isEmpty()) {
@@ -91,9 +112,9 @@ public class OperatorConsoleSessionRegistry {
     /** Emits a signaling message to a single specific WebSocket connection. */
     public void sendToConnection(
             OperatorId operatorId, String connectionId, OperatorWsMessage message) {
-        Objects.requireNonNull(operatorId, "operatorId cannot be null");
+        Objects.requireNonNull(operatorId, ERR_OPERATOR_ID_NULL);
         Objects.requireNonNull(connectionId, "connectionId cannot be null");
-        Objects.requireNonNull(message, "message cannot be null");
+        Objects.requireNonNull(message, ERR_MESSAGE_NULL);
         Map<String, Sinks.Many<OperatorWsMessage>> connections =
                 operatorConnections.get(operatorId);
         if (connections == null) {
@@ -107,7 +128,7 @@ public class OperatorConsoleSessionRegistry {
 
     /** Broadcasts a signaling message to every currently connected Operator Web Console. */
     public void broadcast(OperatorWsMessage message) {
-        Objects.requireNonNull(message, "message cannot be null");
+        Objects.requireNonNull(message, ERR_MESSAGE_NULL);
         operatorConnections.forEach(
                 (operatorId, connections) ->
                         connections.forEach(
@@ -117,20 +138,20 @@ public class OperatorConsoleSessionRegistry {
 
     /** Caches an active assignment payload so reconnecting consoles immediately replay it. */
     public void cacheActiveAssignment(OperatorId operatorId, OperatorAssignmentPayloadDto payload) {
-        Objects.requireNonNull(operatorId, "operatorId cannot be null");
+        Objects.requireNonNull(operatorId, ERR_OPERATOR_ID_NULL);
         Objects.requireNonNull(payload, "payload cannot be null");
         activeAssignments.put(operatorId, payload);
     }
 
     /** Returns the cached active assignment payload for an operator if present. */
     public Optional<OperatorAssignmentPayloadDto> getActiveAssignment(OperatorId operatorId) {
-        Objects.requireNonNull(operatorId, "operatorId cannot be null");
+        Objects.requireNonNull(operatorId, ERR_OPERATOR_ID_NULL);
         return Optional.ofNullable(activeAssignments.get(operatorId));
     }
 
     /** Evicts an operator's cached active assignment if it matches {@code callId}. */
     public void evictActiveAssignment(OperatorId operatorId, CallId callId) {
-        Objects.requireNonNull(operatorId, "operatorId cannot be null");
+        Objects.requireNonNull(operatorId, ERR_OPERATOR_ID_NULL);
         Objects.requireNonNull(callId, "callId cannot be null");
         String targetCallId = callId.toString();
         activeAssignments.computeIfPresent(
@@ -149,7 +170,7 @@ public class OperatorConsoleSessionRegistry {
 
     /** Returns the number of active WebSocket connections for {@code operatorId}. */
     public int activeConnectionCount(OperatorId operatorId) {
-        Objects.requireNonNull(operatorId, "operatorId cannot be null");
+        Objects.requireNonNull(operatorId, ERR_OPERATOR_ID_NULL);
         Map<String, Sinks.Many<OperatorWsMessage>> connections =
                 operatorConnections.get(operatorId);
         return connections == null ? 0 : connections.size();
@@ -165,9 +186,16 @@ public class OperatorConsoleSessionRegistry {
             String connectionId,
             Sinks.Many<OperatorWsMessage> sink,
             OperatorWsMessage message) {
+        ReentrantLock lock = connectionLocks.get(connectionId);
+        if (lock == null) {
+            return;
+        }
         Sinks.EmitResult result;
-        synchronized (sink) {
+        lock.lock();
+        try {
             result = sink.tryEmitNext(message);
+        } finally {
+            lock.unlock();
         }
         if (result.isFailure()) {
             log.debug(

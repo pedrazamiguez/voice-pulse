@@ -82,6 +82,7 @@ class OperatorConsolePropertiesTest {
         @Test
         @DisplayName("Rejects null, zero, or negative heartbeatInterval")
         void rejectsInvalidHeartbeatInterval() {
+            Duration negative = Duration.ofSeconds(-1);
             assertThatThrownBy(() -> new OperatorConsoleProperties("ws://localhost:8080", null, 64))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("heartbeatInterval");
@@ -94,7 +95,7 @@ class OperatorConsolePropertiesTest {
             assertThatThrownBy(
                             () ->
                                     new OperatorConsoleProperties(
-                                            "ws://localhost:8080", Duration.ofSeconds(-1), 64))
+                                            "ws://localhost:8080", negative, 64))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("heartbeatInterval");
         }
@@ -103,12 +104,11 @@ class OperatorConsolePropertiesTest {
         @ValueSource(ints = {0, -1, -100})
         @DisplayName("Rejects non-positive outboundBufferCapacity")
         void rejectsInvalidOutboundBufferCapacity(int invalidCapacity) {
+            Duration heartbeat = Duration.ofSeconds(10);
             assertThatThrownBy(
                             () ->
                                     new OperatorConsoleProperties(
-                                            "ws://localhost:8080",
-                                            Duration.ofSeconds(10),
-                                            invalidCapacity))
+                                            "ws://localhost:8080", heartbeat, invalidCapacity))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("outboundBufferCapacity");
         }

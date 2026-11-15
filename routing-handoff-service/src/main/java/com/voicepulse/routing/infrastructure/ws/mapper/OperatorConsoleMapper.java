@@ -272,7 +272,7 @@ public interface OperatorConsoleMapper {
     }
 
     default String mapOptionalCallIdToString(Optional<CallId> activeCallId) {
-        return activeCallId == null ? null : activeCallId.map(CallId::toString).orElse(null);
+        return activeCallId.map(CallId::toString).orElse(null);
     }
 
     default Set<String> mapSkillsToStrings(Set<SkillGroup> skills) {

@@ -232,153 +232,163 @@ class OperatorConsoleWebIntegrationTest {
                         .subscribe();
 
         try {
-            await().atMost(Duration.ofSeconds(5))
-                    .untilAsserted(
-                            () ->
-                                    assertThat(receivedFrames)
-                                            .anySatisfy(
-                                                    frame ->
-                                                            assertThat(frame.path("type").asText())
-                                                                    .isEqualTo(
-                                                                            "CONSOLE_SNAPSHOT")));
-
-            JsonNode snapshot =
-                    receivedFrames.stream()
-                            .filter(f -> "CONSOLE_SNAPSHOT".equals(f.path("type").asText()))
-                            .findFirst()
-                            .orElseThrow();
-            assertThat(snapshot.path("presence").path("operatorId").asText())
-                    .isEqualTo(OPERATOR_RAW_ID);
-
-            clientOutbound.tryEmitNext("{\"type\":\"HEARTBEAT\"}");
-
-            await().atMost(Duration.ofSeconds(5))
-                    .untilAsserted(
-                            () ->
-                                    assertThat(receivedFrames)
-                                            .anySatisfy(
-                                                    frame ->
-                                                            assertThat(frame.path("type").asText())
-                                                                    .isEqualTo("PONG")));
-
-            webTestClient
-                    .put()
-                    .uri("/api/operators/" + OPERATOR_RAW_ID + "/presence")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(
-                            new OperatorPresenceRequestDto(
-                                    "Elena Vance",
-                                    OperatorAvailabilityStatus.AVAILABLE.name(),
-                                    Set.of(SkillGroup.DISRUPTION_DESK_GOLD.name())))
-                    .exchange()
-                    .expectStatus()
-                    .isOk()
-                    .expectBody(OperatorPresenceDto.class)
-                    .value(
-                            dto -> {
-                                assertThat(dto.operatorId()).isEqualTo(OPERATOR_RAW_ID);
-                                assertThat(dto.status()).isEqualTo("AVAILABLE");
-                            });
-
-            when(priorityCallQueuePort.dequeueHighestPriority(SkillGroup.DISRUPTION_DESK_GOLD))
-                    .thenReturn(Optional.of(queuedItem));
-            when(operatorPresencePort.tryClaimOperator(eq(operatorId), eq(callId), any()))
-                    .thenReturn(true);
-            when(priorityCallQueuePort.queueDepth(SkillGroup.DISRUPTION_DESK_GOLD)).thenReturn(0L);
-
-            webTestClient
-                    .post()
-                    .uri("/api/operators/" + OPERATOR_RAW_ID + "/claim")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(new ClaimCallRequestDto(null))
-                    .exchange()
-                    .expectStatus()
-                    .isOk()
-                    .expectBody(OperatorAssignmentPayloadDto.class)
-                    .value(
-                            payload -> {
-                                assertThat(payload.callId()).isEqualTo(callId.value().toString());
-                                assertThat(payload.pnr()).isEqualTo("KL9MX4");
-                                assertThat(payload.bridgeEndpoint())
-                                        .isEqualTo(
-                                                "/ws/operators/"
-                                                        + OPERATOR_RAW_ID
-                                                        + "/calls/"
-                                                        + callId.value()
-                                                        + "/audio");
-                            });
-
-            await().atMost(Duration.ofSeconds(5))
-                    .untilAsserted(
-                            () -> {
-                                assertThat(receivedFrames)
-                                        .anySatisfy(
-                                                frame -> {
-                                                    assertThat(frame.path("type").asText())
-                                                            .isEqualTo("ASSIGNMENT");
-                                                    assertThat(
-                                                                    frame.path("assignment")
-                                                                            .path("pnr")
-                                                                            .asText())
-                                                            .isEqualTo("KL9MX4");
-                                                    assertThat(
-                                                                    frame.path("assignment")
-                                                                            .path("transcript")
-                                                                            .size())
-                                                            .isEqualTo(2);
-                                                });
-                                assertThat(receivedFrames)
-                                        .anySatisfy(
-                                                frame -> {
-                                                    assertThat(frame.path("type").asText())
-                                                            .isEqualTo("QUEUE_METRICS");
-                                                    assertThat(frame.path("skillGroup").asText())
-                                                            .isEqualTo(
-                                                                    SkillGroup.DISRUPTION_DESK_GOLD
-                                                                            .name());
-                                                });
-                            });
-
-            when(priorityCallQueuePort.dequeueHighestPriority(SkillGroup.DISRUPTION_DESK_GOLD))
-                    .thenReturn(Optional.empty());
-
-            webTestClient
-                    .post()
-                    .uri(
-                            "/api/operators/"
-                                    + OPERATOR_RAW_ID
-                                    + "/calls/"
-                                    + callId.value()
-                                    + "/complete")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(new CompleteHandoffRequestDto("Rebooked passenger onto SW-210"))
-                    .exchange()
-                    .expectStatus()
-                    .isOk()
-                    .expectBody(HandoffStateDto.class)
-                    .value(
-                            state -> {
-                                assertThat(state.status()).isEqualTo("COMPLETED");
-                                assertThat(state.resolutionNotes())
-                                        .isEqualTo("Rebooked passenger onto SW-210");
-                            });
-
-            await().atMost(Duration.ofSeconds(5))
-                    .untilAsserted(
-                            () ->
-                                    assertThat(receivedFrames)
-                                            .anySatisfy(
-                                                    frame -> {
-                                                        assertThat(frame.path("type").asText())
-                                                                .isEqualTo("HANDOFF_STATE");
-                                                        assertThat(
-                                                                        frame.path("state")
-                                                                                .path("status")
-                                                                                .asText())
-                                                                .isEqualTo("COMPLETED");
-                                                    }));
+            verifySnapshotAndHeartbeat(receivedFrames, clientOutbound);
+            verifyPresenceAndClaimDispatch(operatorId, callId, queuedItem, receivedFrames);
+            verifyCompletionBroadcast(callId, receivedFrames);
         } finally {
             sessionDisposable.dispose();
         }
+    }
+
+    private void verifySnapshotAndHeartbeat(
+            CopyOnWriteArrayList<JsonNode> receivedFrames, Sinks.Many<String> clientOutbound) {
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(
+                        () ->
+                                assertThat(receivedFrames)
+                                        .anySatisfy(
+                                                frame ->
+                                                        assertThat(frame.path("type").asText())
+                                                                .isEqualTo("CONSOLE_SNAPSHOT")));
+
+        JsonNode snapshot =
+                receivedFrames.stream()
+                        .filter(f -> "CONSOLE_SNAPSHOT".equals(f.path("type").asText()))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(snapshot.path("presence").path("operatorId").asText())
+                .isEqualTo(OPERATOR_RAW_ID);
+
+        clientOutbound.tryEmitNext("{\"type\":\"HEARTBEAT\"}");
+
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(
+                        () ->
+                                assertThat(receivedFrames)
+                                        .anySatisfy(
+                                                frame ->
+                                                        assertThat(frame.path("type").asText())
+                                                                .isEqualTo("PONG")));
+    }
+
+    private void verifyPresenceAndClaimDispatch(
+            OperatorId operatorId,
+            CallId callId,
+            QueuedTicketItem queuedItem,
+            CopyOnWriteArrayList<JsonNode> receivedFrames) {
+        webTestClient
+                .put()
+                .uri("/api/operators/" + OPERATOR_RAW_ID + "/presence")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(
+                        new OperatorPresenceRequestDto(
+                                "Elena Vance",
+                                OperatorAvailabilityStatus.AVAILABLE.name(),
+                                Set.of(SkillGroup.DISRUPTION_DESK_GOLD.name())))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(OperatorPresenceDto.class)
+                .value(
+                        dto -> {
+                            assertThat(dto.operatorId()).isEqualTo(OPERATOR_RAW_ID);
+                            assertThat(dto.status()).isEqualTo("AVAILABLE");
+                        });
+
+        when(priorityCallQueuePort.dequeueHighestPriority(SkillGroup.DISRUPTION_DESK_GOLD))
+                .thenReturn(Optional.of(queuedItem));
+        when(operatorPresencePort.tryClaimOperator(eq(operatorId), eq(callId), any()))
+                .thenReturn(true);
+        when(priorityCallQueuePort.queueDepth(SkillGroup.DISRUPTION_DESK_GOLD)).thenReturn(0L);
+
+        webTestClient
+                .post()
+                .uri("/api/operators/" + OPERATOR_RAW_ID + "/claim")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new ClaimCallRequestDto(null))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(OperatorAssignmentPayloadDto.class)
+                .value(
+                        payload -> {
+                            assertThat(payload.callId()).isEqualTo(callId.value().toString());
+                            assertThat(payload.pnr()).isEqualTo("KL9MX4");
+                            assertThat(payload.bridgeEndpoint())
+                                    .isEqualTo(
+                                            "/ws/operators/"
+                                                    + OPERATOR_RAW_ID
+                                                    + "/calls/"
+                                                    + callId.value()
+                                                    + "/audio");
+                        });
+
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(
+                        () -> {
+                            assertThat(receivedFrames)
+                                    .anySatisfy(
+                                            frame -> {
+                                                assertThat(frame.path("type").asText())
+                                                        .isEqualTo("ASSIGNMENT");
+                                                assertThat(
+                                                                frame.path("assignment")
+                                                                        .path("pnr")
+                                                                        .asText())
+                                                        .isEqualTo("KL9MX4");
+                                                assertThat(
+                                                                frame.path("assignment")
+                                                                        .path("transcript")
+                                                                        .size())
+                                                        .isEqualTo(2);
+                                            });
+                            assertThat(receivedFrames)
+                                    .anySatisfy(
+                                            frame -> {
+                                                assertThat(frame.path("type").asText())
+                                                        .isEqualTo("QUEUE_METRICS");
+                                                assertThat(frame.path("skillGroup").asText())
+                                                        .isEqualTo(
+                                                                SkillGroup.DISRUPTION_DESK_GOLD
+                                                                        .name());
+                                            });
+                        });
+    }
+
+    private void verifyCompletionBroadcast(
+            CallId callId, CopyOnWriteArrayList<JsonNode> receivedFrames) {
+        when(priorityCallQueuePort.dequeueHighestPriority(SkillGroup.DISRUPTION_DESK_GOLD))
+                .thenReturn(Optional.empty());
+
+        webTestClient
+                .post()
+                .uri("/api/operators/" + OPERATOR_RAW_ID + "/calls/" + callId.value() + "/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new CompleteHandoffRequestDto("Rebooked passenger onto SW-210"))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(HandoffStateDto.class)
+                .value(
+                        state -> {
+                            assertThat(state.status()).isEqualTo("COMPLETED");
+                            assertThat(state.resolutionNotes())
+                                    .isEqualTo("Rebooked passenger onto SW-210");
+                        });
+
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(
+                        () ->
+                                assertThat(receivedFrames)
+                                        .anySatisfy(
+                                                frame -> {
+                                                    assertThat(frame.path("type").asText())
+                                                            .isEqualTo("HANDOFF_STATE");
+                                                    assertThat(
+                                                                    frame.path("state")
+                                                                            .path("status")
+                                                                            .asText())
+                                                            .isEqualTo("COMPLETED");
+                                                }));
     }
 }

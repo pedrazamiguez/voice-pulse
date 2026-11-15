@@ -102,11 +102,16 @@ public class WebSocketOperatorDispatchAdapter implements OperatorDispatchPort {
                 sessionRegistry.evictActiveAssignment(completed.operatorId(), completed.callId());
                 sessionRegistry.sendToOperator(completed.operatorId(), message);
             }
-            case HandoffLifecycleState.Queued ignored -> sessionRegistry.broadcast(message);
+            case HandoffLifecycleState.Queued queued -> {
+                log.debug("Broadcasted queued handoff state: callId={}", queued.callId());
+                sessionRegistry.broadcast(message);
+            }
             case HandoffLifecycleState.Abandoned abandoned -> {
                 sessionRegistry.evictActiveAssignmentByCallId(abandoned.callId());
                 sessionRegistry.broadcast(message);
             }
+            default ->
+                    throw new IllegalStateException("Unexpected HandoffLifecycleState: " + state);
         }
     }
 }

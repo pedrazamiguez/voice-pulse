@@ -272,12 +272,11 @@ public class OperatorConsoleWebSocketHandler implements WebSocketHandler {
 
         OperatorAssignmentPayloadDto activeAssignment =
                 sessionRegistry.getActiveAssignment(operatorId).orElse(null);
-        if (activeAssignment == null
-                && presenceOpt.isPresent()
-                && presenceOpt.get().activeCallId().isPresent()) {
+        if (activeAssignment == null) {
             activeAssignment =
-                    inspectRoutingQueueUseCase
-                            .findTicketByCallId(presenceOpt.get().activeCallId().get())
+                    presenceOpt
+                            .flatMap(OperatorPresence::activeCallId)
+                            .flatMap(inspectRoutingQueueUseCase::findTicketByCallId)
                             .map(
                                     ticket ->
                                             mapper.toTicketPayload(

@@ -21,12 +21,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class TranscriptContextExtractor {
 
+    private static final String ERR_EVENT_NULL = "event cannot be null";
+
     private static final List<String> TRANSCRIPT_KEYS =
             List.of("transcript", "transcriptTurns", "conversationTranscript", "turns");
 
     /** Extracts or synthesizes a concise human-readable summary of the disruption ticket. */
     public String extractSummary(TicketFormFilledEvent event) {
-        Objects.requireNonNull(event, "event cannot be null");
+        Objects.requireNonNull(event, ERR_EVENT_NULL);
         Object rawSummary = event.payload().get("summary");
         if (rawSummary instanceof String summary && !summary.isBlank()) {
             return summary.trim();
@@ -44,7 +46,7 @@ public class TranscriptContextExtractor {
 
     /** Extracts explicit priority from payload or derives priority from ticket flags and skill. */
     public String extractPriority(TicketFormFilledEvent event, SkillGroup resolvedSkillGroup) {
-        Objects.requireNonNull(event, "event cannot be null");
+        Objects.requireNonNull(event, ERR_EVENT_NULL);
         Object rawPriority = event.payload().get("priority");
         if (rawPriority instanceof String priority && !priority.isBlank()) {
             return priority.trim().toUpperCase(Locale.ROOT);
@@ -60,7 +62,7 @@ public class TranscriptContextExtractor {
 
     /** Extracts disruption category from payload or derives a deterministic default category. */
     public String extractCategory(TicketFormFilledEvent event) {
-        Objects.requireNonNull(event, "event cannot be null");
+        Objects.requireNonNull(event, ERR_EVENT_NULL);
         Object rawCategory = event.payload().get("category");
         if (rawCategory instanceof String category && !category.isBlank()) {
             return category.trim().toUpperCase(Locale.ROOT);
@@ -72,7 +74,7 @@ public class TranscriptContextExtractor {
 
     /** Extracts caller telephone number if supplied in payload metadata. */
     public String extractCallerNumber(TicketFormFilledEvent event) {
-        Objects.requireNonNull(event, "event cannot be null");
+        Objects.requireNonNull(event, ERR_EVENT_NULL);
         Map<String, Object> payload = event.payload();
         for (String key : List.of("caller_number", "callerNumber")) {
             Object rawValue = payload.get(key);
@@ -88,7 +90,7 @@ public class TranscriptContextExtractor {
      * text fields inside {@link TicketFormFilledEvent#payload()}.
      */
     public List<TranscriptTurnDto> extractTranscript(TicketFormFilledEvent event) {
-        Objects.requireNonNull(event, "event cannot be null");
+        Objects.requireNonNull(event, ERR_EVENT_NULL);
         Map<String, Object> payload = event.payload();
         Object rawTranscript = findTranscriptValue(payload);
         if (rawTranscript == null) {
@@ -106,7 +108,7 @@ public class TranscriptContextExtractor {
 
     /** Returns an immutable copy of non-null payload metadata entries. */
     public Map<String, Object> extractMetadata(TicketFormFilledEvent event) {
-        Objects.requireNonNull(event, "event cannot be null");
+        Objects.requireNonNull(event, ERR_EVENT_NULL);
         Map<String, Object> payload = event.payload();
         if (payload.isEmpty()) {
             return Map.of();

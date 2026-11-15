@@ -8,6 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.HandlerMapping;
+import org.springframework.web.reactive.socket.HandshakeInfo;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
 /**
@@ -78,13 +79,11 @@ public class OperatorConsoleUriParser {
 
     /** Returns the URI path of the session handshake if present. */
     public String extractPath(WebSocketSession session) {
-        if (session != null && session.getHandshakeInfo() != null) {
-            URI uri = session.getHandshakeInfo().getUri();
-            if (uri != null) {
-                return uri.getPath();
-            }
-        }
-        return null;
+        return Optional.ofNullable(session)
+                .map(WebSocketSession::getHandshakeInfo)
+                .map(HandshakeInfo::getUri)
+                .map(URI::getPath)
+                .orElse(null);
     }
 
     private String extractRawOperatorId(WebSocketSession session) {
@@ -92,17 +91,18 @@ public class OperatorConsoleUriParser {
         if (fromAttrs.isPresent()) {
             return fromAttrs.get();
         }
-        if (session.getHandshakeInfo() != null) {
-            Optional<String> fromHandshake =
-                    extractFromAttributes(session.getHandshakeInfo().getAttributes());
-            if (fromHandshake.isPresent()) {
-                return fromHandshake.get();
-            }
-            URI uri = session.getHandshakeInfo().getUri();
-            if (uri != null) {
-                return extractFromPath(uri.getPath()).orElse(null);
-            }
+        Optional<HandshakeInfo> handshakeInfo = Optional.ofNullable(session.getHandshakeInfo());
+        Optional<String> fromHandshake =
+                handshakeInfo
+                        .map(HandshakeInfo::getAttributes)
+                        .flatMap(this::extractFromAttributes);
+        if (fromHandshake.isPresent()) {
+            return fromHandshake.get();
         }
-        return null;
+        return handshakeInfo
+                .map(HandshakeInfo::getUri)
+                .map(URI::getPath)
+                .flatMap(this::extractFromPath)
+                .orElse(null);
     }
 }
