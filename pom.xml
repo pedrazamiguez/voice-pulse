@@ -49,7 +49,7 @@
         <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
         <maven-wrapper-plugin.version>3.3.4</maven-wrapper-plugin.version>
         <sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
-        <versions-maven-plugin.version>2.24.0</versions-maven-plugin.version>
+        <versions-maven-plugin.version>2.25.2</versions-maven-plugin.version>
 
         <!-- SonarQube Static Analysis & Quality Gate -->
         <sonar.projectKey>VoicePulse</sonar.projectKey>
